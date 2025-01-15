@@ -1,0 +1,219 @@
+/**
+  ******************************************************************************
+  * File Name          : SPI.c
+  * Description        : This file provides code for the configuration
+  *                      of the SPI instances.
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+  * All rights reserved.</center></h2>
+  *
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
+  *
+  ******************************************************************************
+  */
+
+/**
+  *  Portions Copyright (c) 2020, 2021 Analog Devices, Inc.
+  */
+
+/* Includes ------------------------------------------------------------------*/
+#include "spi.h"
+
+/* USER CODE BEGIN 0 */
+HAL_StatusTypeDef   status;
+
+/* Store the IRQ callback and user parameter locally */
+static          ADI_CB gpfSpiCallback = NULL;
+static void     *gpSpiCBParam = NULL;
+/* USER CODE END 0 */
+
+SPI_HandleTypeDef hEthSpi;
+DMA_HandleTypeDef hDmaEthSpiTx;
+DMA_HandleTypeDef hDmaEthSpiRx;
+
+/* ETH_SPI init function */
+HAL_StatusTypeDef ETH_SPI_Init(void)
+{
+	hEthSpi.Instance = SPI1;
+	  hEthSpi.Init.Mode = SPI_MODE_MASTER;
+	  hEthSpi.Init.Direction = SPI_DIRECTION_2LINES;
+	  hEthSpi.Init.DataSize = SPI_DATASIZE_8BIT;
+	  hEthSpi.Init.CLKPolarity = SPI_POLARITY_HIGH;
+	  hEthSpi.Init.CLKPhase = SPI_PHASE_2EDGE;
+	  hEthSpi.Init.NSS = SPI_NSS_SOFT;
+	  hEthSpi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+	  hEthSpi.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	  hEthSpi.Init.TIMode = SPI_TIMODE_DISABLE;
+	  hEthSpi.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+	  hEthSpi.Init.CRCPolynomial = 7;
+	  hEthSpi.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+	  hEthSpi.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+	  if (HAL_SPI_Init(&hEthSpi) != HAL_OK)
+	  {
+	    while(1);
+	  }
+}
+
+void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	  //if(hspi->Instance==SPI1)
+	  {
+	  /* USER CODE BEGIN SPI1_MspInit 0 */
+
+	  /* USER CODE END SPI1_MspInit 0 */
+	    /* Peripheral clock enable */
+	    __HAL_RCC_SPI1_CLK_ENABLE();
+
+	    __HAL_RCC_GPIOA_CLK_ENABLE();
+	    /**SPI1 GPIO Configuration
+	    PA5     ------> SPI1_SCK
+	    PA6     ------> SPI1_MISO
+	    PA7     ------> SPI1_MOSI
+	    */
+	    GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
+	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	    GPIO_InitStruct.Pull = GPIO_NOPULL;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	    GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+	    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	    /* SPI1 DMA Init */
+	    /* SPI1_RX Init */
+	    hDmaEthSpiRx.Instance = DMA1_Channel2;								//alle nachfolgenden hdma_spi1_rx mit hDmaEthSpiRx ersetzen
+	    hDmaEthSpiRx.Init.Request = DMA_REQUEST_1;
+	    hDmaEthSpiRx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+	    hDmaEthSpiRx.Init.PeriphInc = DMA_PINC_DISABLE;
+	    hDmaEthSpiRx.Init.MemInc = DMA_MINC_ENABLE;
+	    hDmaEthSpiRx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+	    hDmaEthSpiRx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+	    hDmaEthSpiRx.Init.Mode = DMA_NORMAL;
+	    hDmaEthSpiRx.Init.Priority = DMA_PRIORITY_LOW;
+	    if (HAL_DMA_Init(&hDmaEthSpiRx) != HAL_OK)
+	    {
+	      while(1);
+	    }
+
+	    __HAL_LINKDMA(spiHandle,hdmarx,hDmaEthSpiRx);						//hspi mit spiHandle ersetzen, hdma_spi1_rx mit hDmaEthSpiRx ersetzen
+
+	    /* SPI1_TX Init */
+	    hDmaEthSpiTx.Instance = DMA1_Channel3;								//alle nachfolgenden hdma_spi1_tx mit hDmaEthSpiTx ersetzen
+	    hDmaEthSpiTx.Init.Request = DMA_REQUEST_1;
+	    hDmaEthSpiTx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+	    hDmaEthSpiTx.Init.PeriphInc = DMA_PINC_DISABLE;
+	    hDmaEthSpiTx.Init.MemInc = DMA_MINC_ENABLE;
+	    hDmaEthSpiTx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+	    hDmaEthSpiTx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+	    hDmaEthSpiTx.Init.Mode = DMA_NORMAL;
+	    hDmaEthSpiTx.Init.Priority = DMA_PRIORITY_LOW;
+	    if (HAL_DMA_Init(&hDmaEthSpiTx) != HAL_OK)
+	    {
+	    	while(1);
+	    }
+
+	    __HAL_LINKDMA(spiHandle,hdmatx,hDmaEthSpiTx);						//hspi mit spiHandle ersetzen, hdma_spi1_tx mit hDmaEthSpiTx
+
+	  /* USER CODE BEGIN SPI1_MspInit 1 */
+
+	  /* USER CODE END SPI1_MspInit 1 */
+
+	  }
+}
+
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle)
+{
+
+	//if(hspi->Instance==SPI1)
+	  {
+	  /* USER CODE BEGIN SPI1_MspDeInit 0 */
+
+	  /* USER CODE END SPI1_MspDeInit 0 */
+	    /* Peripheral clock disable */
+	    __HAL_RCC_SPI1_CLK_DISABLE();
+
+	    /**SPI1 GPIO Configuration
+	    PA5     ------> SPI1_SCK
+	    PA6     ------> SPI1_MISO
+	    PA7     ------> SPI1_MOSI
+	    */
+	    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7);
+
+	    /* SPI1 DMA DeInit */
+	    //HAL_DMA_DeInit(hspi->hdmarx);
+	    //HAL_DMA_DeInit(hspi->hdmatx);
+	  /* USER CODE BEGIN SPI1_MspDeInit 1 */
+
+	  /* USER CODE END SPI1_MspDeInit 1 */
+	  }
+}
+
+
+HAL_StatusTypeDef HAL_SPI_Write_Read(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma)
+{
+    HAL_StatusTypeDef   status;
+
+    /* Assert SS. */
+    HAL_GPIO_WritePin(ETH_SPI_SS_GPIO_Port, ETH_SPI_SS_Pin, GPIO_PIN_RESET);
+
+    if (useDma)
+    {
+        status = HAL_SPI_TransmitReceive_DMA(&hEthSpi, (uint8_t *)pBufferTx, (uint8_t *)pBufferRx, nbBytes);
+    }
+    else
+    {
+        status = HAL_SPI_TransmitReceive_IT(&hEthSpi, (uint8_t *)pBufferTx, (uint8_t *)pBufferRx, nbBytes);
+    }
+
+    return status;
+}
+
+uint32_t HAL_SPI_Register_Callback(ADI_CB const *pfCallback, void *const pCBParam)
+{
+    gpfSpiCallback = (ADI_CB)pfCallback;
+    gpSpiCBParam = pCBParam ;
+
+    return 0;
+}
+
+/**
+  * @brief  TxRx Transfer completed callback.
+  * @param  hspi: SPI handle
+  * @note   This example shows a simple way to report end of DMA TxRx transfer, and
+  *         you can add your own implementation.
+  * @retval None
+  */
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+    if (hspi->Instance == ETH_SPI)
+    {
+        /* Deassert SS */
+        HAL_GPIO_WritePin(ETH_SPI_SS_GPIO_Port, ETH_SPI_SS_Pin, GPIO_PIN_SET);
+
+        (*gpfSpiCallback)(gpSpiCBParam, 0, NULL);
+    }
+}
+
+/**
+  * @brief  SPI error callbacks.
+  * @param  hspi: SPI handle
+  * @note   This example shows a simple way to report transfer error, and you can
+  *         add your own implementation.
+  * @retval None
+  */
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
+{
+  if (hspi->Instance == ETH_SPI)
+  {
+    HAL_GPIO_WritePin(ETH_SPI_SS_GPIO_Port, ETH_SPI_SS_Pin, GPIO_PIN_SET);//deassert SS
+
+    (*gpfSpiCallback)(gpSpiCBParam, 1, NULL);
+  }
+}
+/* USER CODE END 1 */
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

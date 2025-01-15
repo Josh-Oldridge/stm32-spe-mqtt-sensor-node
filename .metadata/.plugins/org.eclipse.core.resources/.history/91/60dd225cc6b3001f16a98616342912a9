@@ -1,0 +1,145 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file    gpio.c
+  * @brief   This file provides code for the configuration
+  *          of all used GPIO pins.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2024 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+
+/* Includes ------------------------------------------------------------------*/
+#include "gpio.h"
+
+/* USER CODE BEGIN 0 */
+
+/* Store the IRQ callback and user parameter locally */
+static          ADI_CB gpfIntCallback = NULL;
+static void     *gpIntCBParam = NULL;
+/* USER CODE END 0 */
+
+/*----------------------------------------------------------------------------*/
+/* Configure GPIO                                                             */
+/*----------------------------------------------------------------------------*/
+/* USER CODE BEGIN 1 */
+
+/* USER CODE END 1 */
+
+/** Configure pins
+*/
+void MX_GPIO_Init(void)
+{
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, SPI1_CS_Pin|Reset_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : Interrupt_Pin */
+  GPIO_InitStruct.Pin = Interrupt_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Interrupt_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI1_CS_Pin */
+  GPIO_InitStruct.Pin = SPI1_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SPI1_CS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Reset_Pin */
+  GPIO_InitStruct.Pin = Reset_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(Reset_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+}
+
+/* USER CODE BEGIN 2 */
+
+/**
+  * @brief  Disable global interrupts and return previous state.
+  * @retval Previous interrupt state.
+  */
+uint32_t HAL_INT_N_DisableIRQ(void) {
+    uint32_t previous_state = __get_PRIMASK();
+    __disable_irq();
+    return previous_state;
+}
+
+/**
+  * @brief  Enable global interrupts and return current state.
+  * @retval Current interrupt state.
+  */
+uint32_t HAL_INT_N_EnableIRQ(void) {
+    __enable_irq();
+    return __get_PRIMASK();
+}
+
+/**
+  * @brief  Toggle all LEDs.
+  * @retval None
+  */
+void MX_Led_Toggle(void) {
+    HAL_GPIO_TogglePin(BSP_LED3_PORT, BSP_LED3_PIN);
+#if !defined(EVAL_ADIN1110EBZ)
+    HAL_GPIO_TogglePin(BSP_LED5_PORT, BSP_LED5_PIN);
+#endif
+    HAL_GPIO_TogglePin(BSP_LED1_PORT, BSP_LED1_PIN);
+    HAL_GPIO_TogglePin(BSP_LED4_PORT, BSP_LED4_PIN);
+    HAL_GPIO_TogglePin(BSP_LED2_PORT, BSP_LED2_PIN);
+}
+
+/**
+  * @brief  Register a callback for the ETH_INT_N interrupt.
+  * @param  pfCallback Pointer to the callback function.
+  * @param  pCBParam   Pointer to the callback parameter.
+  * @retval Status code (0 for success).
+  */
+uint32_t HAL_INT_N_Register_Callback(ADI_CB const *pfCallback, void *const pCBParam) {
+    HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0xF, 0); // Adjust priority as needed
+
+    gpfIntCallback = (ADI_CB)pfCallback;
+    gpIntCBParam = pCBParam;
+
+    return 0;
+}
+
+/**
+  * @brief EXTI line detection callbacks
+  * @param GPIO_Pin: Specifies the pins connected EXTI line
+  * @retval None
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == ETH_INT_N_Pin)
+    {
+        if (gpfIntCallback)
+        {
+            (*gpfIntCallback)(gpIntCBParam, 0, NULL);
+        }
+    }
+}
+
+/* USER CODE END 2 */

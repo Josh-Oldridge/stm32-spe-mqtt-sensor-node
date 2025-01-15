@@ -1,0 +1,4 @@
+../Core/Src/gpio.c:39:6:MX_GPIO_Init	48	static
+../Core/Src/gpio.c:117:6:HAL_INT_N_DisableIRQ	8	static
+../Core/Src/gpio.c:127:6:HAL_INT_N_EnableIRQ	8	static
+../Core/Src/gpio.c:138:6:MX_Led_Toggle	8	static

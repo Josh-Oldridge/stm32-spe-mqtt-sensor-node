@@ -1,0 +1,72 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file    spi.h
+  * @brief   This file contains all the function prototypes for
+  *          the spi.c file
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2024 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __SPI_H__
+#define __SPI_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* USER CODE BEGIN Includes */
+#include "boardsupport.h"
+
+/* USER CODE END Includes */
+
+extern SPI_HandleTypeDef hspi1;
+
+/* USER CODE BEGIN Private defines */
+
+/* USER CODE END Private defines */
+
+void MX_SPI1_Init(void);
+
+/* USER CODE BEGIN Prototypes */
+
+/**
+  * @brief  Perform SPI Write and Read operations.
+  * @param  pBufferTx Pointer to the transmit buffer.
+  * @param  pBufferRx Pointer to the receive buffer.
+  * @param  nbBytes   Number of bytes to transfer.
+  * @param  useDma    Use DMA if true, else use interrupt.
+  * @retval HAL_StatusTypeDef Status of the operation.
+  */
+HAL_StatusTypeDef HAL_SPI_Write_Read(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma);
+
+/**
+  * @brief  Register a callback for SPI events.
+  * @param  pfCallback Pointer to the callback function.
+  * @param  pCBParam   Pointer to the callback parameter.
+  * @retval uint32_t   Status code (0 for success).
+  */
+uint32_t HAL_SPI_Register_Callback(ADI_CB const *pfCallback, void *const pCBParam);
+
+
+/* USER CODE END Prototypes */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __SPI_H__ */
+
