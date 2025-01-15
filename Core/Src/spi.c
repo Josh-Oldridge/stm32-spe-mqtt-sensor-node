@@ -22,7 +22,6 @@
 
 /* USER CODE BEGIN 0 */
 #include "boardsupport.h"
-#include "delay.h"
 HAL_StatusTypeDef   status;
 extern SPI_CallbackData spiCallbackData;
 
@@ -175,8 +174,6 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     {
         // De-assert chip select because the DMA transaction is truly finished now
         ADIN1110_CS_Deselect();
-
-        DelayMicroseconds(1000);
 
         // Re-enter the ADI driver’s callback so it can call oaStateMachine()
         if (spiCallbackData.callback != NULL)

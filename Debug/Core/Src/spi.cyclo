@@ -1,5 +1,5 @@
-../Core/Src/spi.c:37:6:MX_SPI1_Init	2
-../Core/Src/spi.c:71:6:HAL_SPI_MspInit	4
-../Core/Src/spi.c:140:6:HAL_SPI_MspDeInit	2
-../Core/Src/spi.c:172:6:HAL_SPI_TxRxCpltCallback	3
-../Core/Src/spi.c:196:6:SPI_Loopback_Test	3
+../Core/Src/spi.c:36:6:MX_SPI1_Init	2
+../Core/Src/spi.c:70:6:HAL_SPI_MspInit	4
+../Core/Src/spi.c:139:6:HAL_SPI_MspDeInit	2
+../Core/Src/spi.c:171:6:HAL_SPI_TxRxCpltCallback	3
+../Core/Src/spi.c:193:6:SPI_Loopback_Test	3

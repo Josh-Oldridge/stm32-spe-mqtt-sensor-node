@@ -33,7 +33,7 @@ Core/Src/spi.o: ../Core/Src/spi.c ../Core/Inc/spi.h ../Core/Inc/main.h \
  ../Core/Inc/hal.h ../Core/Inc/adi_eth_common.h \
  ../Core/Inc/hal_port_specific.h \
  ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l496xx.h \
- ../Core/Inc/boardsupport.h ../Core/Inc/delay.h
+ ../Core/Inc/boardsupport.h
 ../Core/Inc/spi.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
@@ -77,4 +77,3 @@ Core/Src/spi.o: ../Core/Src/spi.c ../Core/Inc/spi.h ../Core/Inc/main.h \
 ../Core/Inc/hal_port_specific.h:
 ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l496xx.h:
 ../Core/Inc/boardsupport.h:
-../Core/Inc/delay.h:

@@ -3,7 +3,6 @@
 "./Core/Src/adi_spi_oa.o"
 "./Core/Src/adin1110.o"
 "./Core/Src/boardsupport.o"
-"./Core/Src/delay.o"
 "./Core/Src/dma.o"
 "./Core/Src/fcs.o"
 "./Core/Src/gpio.o"

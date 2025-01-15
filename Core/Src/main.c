@@ -29,6 +29,7 @@
 #include "boardsupport.h"
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,7 +40,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define FRAME_COUNT         (10000)
-#define FRAME_SIZE          (1518)
+#define FRAME_SIZE          (1024)
 #define BUFF_DESC_COUNT     (6)
 #define ADIN1110_INIT_ITER  (5)
 #define ADIN1110_RESET_GPIO_Port GPIOE
@@ -471,6 +472,13 @@ adin1110_DriverConfig_t drvConfig = {
 
 void printStats(adin1110_DeviceHandle_t hDevice);
 
+uint8_t dest_mac[6] = {0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33};  // Dell MAC
+uint8_t src_mac[6]  = {0x00, 0xE0, 0x22, 0xFE, 0xDA, 0xCA};  // ADIN1110 MAC
+uint16_t etherType = 0x88B5;
+char payload[] = "CMD:RUN|notepad.exe|Hello from ADIN1110!";
+
+
+
 uint32_t txIdx = 0;
 volatile uint32_t rxIdx = 0;
 volatile uint32_t expectedTxIdx;
@@ -505,6 +513,7 @@ static void txCallback(void *pCBParam, uint32_t Event, void *pArg)
     }
 }
 
+
 static void rxCallback(void *pCBParam, uint32_t Event, void *pArg)
 {
     adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t)pCBParam;
@@ -534,6 +543,8 @@ void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg)
         HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET); // Turn off LD3
     }
 }
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -589,40 +600,6 @@ void printStats(adin1110_DeviceHandle_t hDevice)
     DEBUG_MESSAGE("         RX_DROP_FILT_CNT   = %" PRIu32 "\r", stats.RX_DROP_FILT_CNT);
 }
 
-
-void ADIN1110_Reset(void)
-{
-    // Configure the GPIO pin as an output
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = ADIN1110_RESET_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;  // Or use GPIO_PULLUP
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(ADIN1110_RESET_GPIO_Port, &GPIO_InitStruct);
-
-    // Reset the ADIN1110
-    HAL_GPIO_WritePin(ADIN1110_RESET_GPIO_Port, ADIN1110_RESET_Pin, GPIO_PIN_RESET); // Pull /RESET low
-    HAL_Delay(1); // Hold for at least 10 µs
-    HAL_GPIO_WritePin(ADIN1110_RESET_GPIO_Port, ADIN1110_RESET_Pin, GPIO_PIN_SET);   // Release /RESET
-    HAL_Delay(100); // Allow time for the ADIN1110 to initialize
-}
-
-void test_ADIN1110_SPI(void)
-{
-    adin1110_DeviceId_t deviceId;
-    adi_eth_Result_e result;
-
-    // Use the GetDeviceId function to retrieve the Device ID
-    result = adin1110_GetDeviceId(hDevice, &deviceId);
-    if (result == ADI_ETH_SUCCESS) {
-        printf("ADIN1110 Device ID:\n");
-        printf("  PHY ID: 0x%08X\n", deviceId.phyId);
-        printf("  Digital Rev Num: %d\n", deviceId.digRevNum);
-        printf("  Package Type: %d\n", deviceId.pkgType);
-    } else {
-        printf("Failed to read Device ID. Error: %d\n", result);
-    }
-}
 /* USER CODE END 0 */
 
 /**
@@ -664,12 +641,12 @@ int main(void)
 
       // Allocate memory buffer
   uint8_t deviceMemory[ADIN1110_DEVICE_SIZE];
-     memset(deviceMemory, 0, ADIN1110_DEVICE_SIZE); // Optional: Clear memory
+     memset(deviceMemory, 0, ADIN1110_DEVICE_SIZE);
 
       // Configure the driver
   adin1110_DriverConfig_t drvConfig;
   drvConfig.pDevMem = deviceMemory;
-  drvConfig.devMemSize = ADIN1110_DEVICE_SIZE;     // Set to 512 bytes
+  drvConfig.devMemSize = ADIN1110_DEVICE_SIZE;
    drvConfig.fcsCheckEn = true;
   adi_eth_Result_e initResult = adin1110_Init(hDevice, &drvConfig);
       if (initResult == ADI_ETH_SUCCESS) {
@@ -678,9 +655,6 @@ int main(void)
           printf("ADIN1110 initialization failed. Error: %d\n", initResult);
       }
 
-
-  printf("UART Retargeting Test: Hello, UART!\n\r");
-  printf("%s\n", "A string");
   adi_eth_Result_e result;
   uint32_t error;
   uint32_t heartbeatCheckTime = 0;
@@ -688,21 +662,7 @@ int main(void)
   error = BSP_InitSystem();
   DEBUG_RESULT("BSP_InitSystem", error, 0);
 
-  printf("Performing SPI Loopback Test...\n");
-  //SPI_Loopback_Test();
-
-  ADIN1110_Reset();
-
-  test_ADIN1110_SPI();
-
   BSP_HWReset(true);
-
-  if (adin1110_Init(hDevice, &drvConfig) == ADI_ETH_SUCCESS) {
-          printf("ADIN1110 initialized successfully.\n");
-          test_ADIN1110_SPI();
-      } else {
-          printf("ADIN1110 initialization failed.\n");
-  }
 
   for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++) {
 	  printf("Attempting ADIN1110_Init iteration %u...\n", i+1);
@@ -746,12 +706,12 @@ int main(void)
   }
 
   result = adin1110_Enable(hDevice);
-  DEBUG_RESULT("Device enable error", result, ADI_ETH_SUCCESS);
+    DEBUG_RESULT("Device enable error", result, ADI_ETH_SUCCESS);
 
-  do {
-	  result = adin1110_GetLinkStatus(hDevice, &linkStatus);
-	  DEBUG_RESULT("adin1110_GetLinkStatus", result, ADI_ETH_SUCCESS);
-  } while (linkStatus != ADI_ETH_LINK_STATUS_UP);
+    do {
+  	  result = adin1110_GetLinkStatus(hDevice, &linkStatus);
+  	  DEBUG_RESULT("adin1110_GetLinkStatus", result, ADI_ETH_SUCCESS);
+    } while (linkStatus != ADI_ETH_LINK_STATUS_UP);
 
   expectedRxIdx = 0;
   expectedTxIdx = 0;
@@ -760,16 +720,54 @@ int main(void)
 
   frameIdx = 0;
   heartbeatTicks = 0;
+
+  while (1) {
+      HAL_Delay(1000);
+
+      if (!txBufAvailable[txBufDescIdx]) {
+          printf("TX buffer %d is busy, skipping transmission.\n", txBufDescIdx);
+          continue;
+      }
+      memset(txBuf[txBufDescIdx], 0, FRAME_SIZE);
+      memcpy(txBuf[txBufDescIdx], dest_mac, 6);
+      memcpy(txBuf[txBufDescIdx] + 6, src_mac, 6);
+      txBuf[txBufDescIdx][12] = (etherType >> 8) & 0xFF;
+      txBuf[txBufDescIdx][13] = etherType & 0xFF;
+      strcpy((char*)&txBuf[txBufDescIdx][14], payload);
+      txBufDesc[txBufDescIdx].pBuf = txBuf[txBufDescIdx];
+      txBufDesc[txBufDescIdx].trxSize = 64;  // Minimum Ethernet frame size
+      txBufDesc[txBufDescIdx].bufSize = FRAME_SIZE;
+      txBufDesc[txBufDescIdx].egressCapt = ADI_MAC_EGRESS_CAPTURE_NONE;
+      txBufDesc[txBufDescIdx].cbFunc = txCallback;
+      txBufAvailable[txBufDescIdx] = false;
+      adi_eth_Result_e result = adin1110_SubmitTxBuffer(hDevice, &txBufDesc[txBufDescIdx]);
+      if (result == ADI_ETH_SUCCESS) {
+          printf("Frame %u sent to Dell MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", frameIdx,
+                 dest_mac[0], dest_mac[1], dest_mac[2], dest_mac[3], dest_mac[4], dest_mac[5]);
+          txBufDescIdx = (txBufDescIdx + 1) % BUFF_DESC_COUNT;
+          frameIdx++;
+      } else {
+          printf("Failed to send frame. Error: %d\n", result);
+          txBufAvailable[txBufDescIdx] = true;
+      }
+      if (++heartbeatTicks >= 8) {
+          heartbeatTicks = 0;
+          BSP_HeartBeat();
+          printStats(hDevice);
+      }
+
+
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (!FRAME_COUNT || (txIdx < FRAME_COUNT))
+  /*while (!FRAME_COUNT || (txIdx < FRAME_COUNT))
     {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  uint32_t now = BSP_SysNow();
+	  /*uint32_t now = BSP_SysNow();
 
 	  if (now - heartbeatCheckTime >= 250) {
 		  heartbeatCheckTime = now;
@@ -809,9 +807,7 @@ int main(void)
 
 	printStats(hDevice);
 	result = adin1110_UnInit(hDevice);
-	/*if (frameIdx == 500) {
-		exit;
-	}*/
+
 
   /* USER CODE END 3 */
 }
@@ -896,25 +892,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     	// Toggle LD2 (Blue - PB7)
     	MX_Led_Toggle();
     }
-}
-
-void test_CN0575_LED_IO(bool state)
-{
-    uint16_t led_control_register;
-
-    // Read current LED control register state
-    adin1110_PhyRead(hDevice, ADDR_LED_CNTRL, &led_control_register);
-
-    if (state) {
-        led_control_register |= (1 << 26); // Set GPIO26 HIGH (Turn ON LED)
-    } else {
-        led_control_register &= ~(1 << 26); // Set GPIO26 LOW (Turn OFF LED)
-    }
-
-    // Write back the updated register
-    adin1110_PhyWrite(hDevice, ADDR_LED_CNTRL, led_control_register);
-
-    printf("CN0575 LED_IO (GPIO26) set to: %s\n", state ? "ON" : "OFF");
 }
 
 /* USER CODE END 4 */
