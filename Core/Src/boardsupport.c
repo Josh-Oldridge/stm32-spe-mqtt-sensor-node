@@ -87,11 +87,17 @@ void BSP_delayMs(uint32_t delay)
  */
 void BSP_HWReset(bool set)
 {
-    HAL_GPIO_WritePin(ETH_RESET_GPIO_Port, ETH_RESET_Pin, GPIO_PIN_RESET);
-    BSP_delayMs(RESET_DELAY);
-    HAL_GPIO_WritePin(ETH_RESET_GPIO_Port, ETH_RESET_Pin, GPIO_PIN_SET);
-    BSP_delayMs(AFTER_RESET_DELAY);
+    DEBUG_MESSAGE("BSP_HWReset: Driving Reset_Pin LOW\r\n");
+    HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_RESET);
+    BSP_delayMs(2000);
+
+    DEBUG_MESSAGE("BSP_HWReset: Driving Reset_Pin HIGH\r\n");
+    HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_SET);
+    BSP_delayMs(500);
+
+    DEBUG_MESSAGE("BSP_HWReset: Reset sequence completed\r\n");
 }
+
 
 /* LED functions */
 

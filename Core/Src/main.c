@@ -422,6 +422,20 @@ void SystemClock_Config(void)
  * @param GPIO_Pin The GPIO pin number that triggered the interrupt.
  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == Reset_Button_Pin) {
+		DEBUG_MESSAGE("Reset button interrupt triggered.\r\n");
+		uint32_t pressStart = HAL_GetTick();
+		while (HAL_GPIO_ReadPin(Reset_Button_GPIO_Port, Reset_Button_Pin)
+				== GPIO_PIN_RESET) {
+			if ((HAL_GetTick() - pressStart) >= 3000) {
+				DEBUG_MESSAGE(
+						"User button long press detected: Initiating reset.\r\n");
+				BSP_HWReset(true);
+				NVIC_SystemReset();
+				break;
+			}
+		}
+	}
 	if (GPIO_Pin == ETH_INT_N_Pin) {
 
 		HAL_INT_N_DisableIRQ();
@@ -451,3 +465,20 @@ void Error_Handler(void)
 	}
   /* USER CODE END Error_Handler_Debug */
 }
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */
