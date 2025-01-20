@@ -42,6 +42,10 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+#define ADIN1110_INIT_ITER  (5)
+#define BUFF_DESC_COUNT     (5)
+#define FRAME_COUNT         (1)
+
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
 #define TEST_FRAMES_COUNT   (2)
 
@@ -71,8 +75,6 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void SystemClock_Config(void);
-extern uint8_t macAddr[2][6];
-
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

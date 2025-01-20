@@ -180,7 +180,7 @@ uint32_t BSP_spi2_write_and_read(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_
     return 0;
 }
 
-/*
+/*at
  * @brief Helper for Access BSP EEPROM, chip select is active high
  *
  * @param [in]      output - true/false
