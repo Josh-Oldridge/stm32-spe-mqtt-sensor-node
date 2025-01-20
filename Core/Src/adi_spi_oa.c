@@ -132,22 +132,17 @@ adi_eth_Result_e oaStateMachine(adi_mac_Device_t *hDevice)
             /* Check header vs. echoed header for errors */
             cHdr = *(uint32_t *)&hDevice->ctrlTxBuf[0];
             eHdr = *(uint32_t *)&hDevice->ctrlRxBuf[ADI_SPI_HEADER_SIZE];
-            printf("DEBUG: [CONTROL_END] cHdr=0x%08lX, eHdr=0x%08lX\n", cHdr, eHdr); // <-- DEBUG
 
             if (cHdr != eHdr)
             {
-            	printf("ERROR: cHdr != eHdr in CONTROL_END state\n"); // <-- DEBUG
                 hDevice->spiErr = 1;
             }
             else
             {
-            	printf("DEBUG: cHdr == eHdr, so no mismatch in CONTROL_END\n"); // <-- DEBUG
                 hDevice->spiErr = 0;
                 if (hDevice->wnr == ADI_MAC_SPI_READ)
                 {
                     result = oaCtrlCmdReadData((uint32_t *)hDevice->pRegData, &hDevice->ctrlRxBuf[2 * ADI_SPI_HEADER_SIZE], hDevice->cnt);
-                    printf("DEBUG: CONTROL_END read result=%d\n", result); // <-- DEBUG
-
                 }
             }
             hDevice->spiState = ADI_MAC_SPI_STATE_READY;
@@ -161,12 +156,9 @@ adi_eth_Result_e oaStateMachine(adi_mac_Device_t *hDevice)
 
             if ((result == ADI_ETH_SUCCESS) && hDevice->oaTrxSize)
             {
-                /* Determine if it's worth using DMA based on the transaction size. */
                 useDma = (hDevice->oaTrxSize >= MIN_SIZE_FOR_DMA);
 
                 hDevice->state = ADI_MAC_STATE_DATA_END;
-                /* Rx/Tx are the same in OA SPI, reusing the state names from   */
-                /* generic SPI. Different state names also help with debugging. */
                 hDevice->spiState = ADI_MAC_SPI_STATE_TX_FRAME;
 
                 /* Platform dependent function*/
@@ -624,28 +616,20 @@ adi_eth_Result_e oaStateMachine(adi_mac_Device_t *hDevice)
 
         case ADI_MAC_STATE_DATA_READ_PHY_REGISTER:
 
-        	printf("DEBUG: [DATA_READ_PHY_REGISTER] Entered\n"); // <-- DEBUG
-
             /* Check header vs. echoed header for errors */
             memcpy(&cHdr, &hDevice->ctrlTxBuf[0], 4);
             memcpy(&eHdr, &hDevice->ctrlRxBuf[ADI_SPI_HEADER_SIZE], 4);
 
-            printf("DEBUG: cHdr=0x%08lX, eHdr=0x%08lX\n", cHdr, eHdr); // <-- DEBUG
-
             if (cHdr != eHdr)
             {
-            	printf("ERROR: cHdr != eHdr in DATA_READ_PHY_REGISTER\n"); // <-- DEBUG
                 hDevice->spiErr = 1;
                 oaSpiIntHandle(hDevice);
             }
             else
             {
-            	printf("DEBUG: cHdr == eHdr, no mismatch here\n"); // <-- DEBUG
                 hDevice->spiErr = 0;
-
                 if (hDevice->regAddr == ADDR_MAC_MDIOACC_0_)
                 {
-                	printf("DEBUG: Handling second register write (MDIOACC_0_)\n"); // <-- DEBUG
                     /* Second register write */
                     hDevice->wnr = ADI_MAC_SPI_WRITE;
                     oaPhyRegReadStep(hDevice, &mdioCmd);
@@ -654,7 +638,6 @@ adi_eth_Result_e oaStateMachine(adi_mac_Device_t *hDevice)
                 {
                     if (hDevice->wnr == ADI_MAC_SPI_WRITE)
                     {
-                    	printf("DEBUG: Both writes completed, now read\n"); // <-- DEBUG
                         /* Both writes completed, now read */
                         hDevice->wnr = ADI_MAC_SPI_READ;
                         oaPhyRegReadStep(hDevice, &mdioCmd);
@@ -663,11 +646,9 @@ adi_eth_Result_e oaStateMachine(adi_mac_Device_t *hDevice)
                     {
                         /* Poll until TRDONE bit is set in the MDIO access register */
                         result = oaCtrlCmdReadData((uint32_t *)hDevice->pRegData, &hDevice->ctrlRxBuf[2 * ADI_SPI_HEADER_SIZE], hDevice->cnt);
-                        printf("DEBUG: Polling read result=%d, data=0x%08lX\n",
-                                               result, *hDevice->pRegData); // <-- DEBUG
+
                         if (*hDevice->pRegData & BITM_MAC_MDIOACC_N__MDIO_TRDONE)
                         {
-                        	printf("DEBUG: TRDONE set => successful read\n"); // <-- DEBUG
                             /* Successful read, record the status */
                             if ((hDevice->statusRegisters.status0Masked & BITM_MAC_STATUS0_PHYINT) &&
                                 ((hDevice->statusRegisters.p1Status & 0xFFFF0000) == (ADI_MAC_PHY_STATUS_INIT_VAL & 0xFFFF0000)))
@@ -745,7 +726,6 @@ adi_eth_Result_e oaStateMachine(adi_mac_Device_t *hDevice)
                         }
                         else
                         {
-                        	printf("DEBUG: TRDONE not set => reissue a read step\n"); // <-- DEBUG
                             /* Keep polling until TRDONE is set */
                             hDevice->wnr = ADI_MAC_SPI_READ;
                             oaPhyRegReadStep(hDevice, &mdioCmd);

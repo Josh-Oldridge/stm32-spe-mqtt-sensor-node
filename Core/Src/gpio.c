@@ -115,7 +115,6 @@ void MX_GPIO_Init(void)
  * This function disables the specific IRQ associated with the ADIN1110's INT_N pin.
  */
 void HAL_INT_N_DisableIRQ(void) {
-    // Disable the specific IRQ. Replace EXTI15_10_IRQn with the correct IRQ if different.
     HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
 }
 
@@ -125,8 +124,7 @@ void HAL_INT_N_DisableIRQ(void) {
  * This function enables the specific IRQ associated with the ADIN1110's INT_N pin.
  */
 void HAL_INT_N_EnableIRQ(void) {
-    // Optionally, set the priority before enabling
-    HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0); // Priority levels can be adjusted as needed
+    HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
@@ -136,6 +134,6 @@ void HAL_INT_N_EnableIRQ(void) {
  * This function toggles the GPIO pin connected to the status LED.
  */
 void MX_Led_Toggle(void) {
-	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7); // Replace LED_GPIO_Port and LED_Pin with actual port and pin
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 }
 /* USER CODE END 2 */

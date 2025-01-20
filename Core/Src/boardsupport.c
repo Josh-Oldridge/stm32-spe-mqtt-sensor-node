@@ -25,7 +25,7 @@ SPI_CallbackData spiCallbackData;
 SPI_HandleTypeDef hEthSpi;
 
 void ETH_SPI_Init(void) {
-    hEthSpi.Instance = SPI1; // Ensure this matches your hardware configuration
+    hEthSpi.Instance = SPI1;
     hEthSpi.Init.Mode = SPI_MODE_MASTER;
     hEthSpi.Init.Direction = SPI_DIRECTION_2LINES;
     hEthSpi.Init.DataSize = SPI_DATASIZE_8BIT;
@@ -41,7 +41,6 @@ void ETH_SPI_Init(void) {
     hEthSpi.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
 
     if (HAL_SPI_Init(&hEthSpi) != HAL_OK) {
-        // Initialization Error
         Error_Handler();
     }
 }
@@ -172,11 +171,7 @@ void BSP_LedToggleAll(void)
 uint32_t BSP_spi2_write_and_read(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma)
 {
     ADIN1110_CS_Select();
-    // Perform SPI transfer
-    printf("DEBUG: Calling HAL_SPI_TransmitReceive_DMA(...) with nbBytes=%u\n", nbBytes);
-    HAL_StatusTypeDef status = HAL_SPI_TransmitReceive_DMA(&hspi1, pBufferTx, pBufferRx, nbBytes);
-    printf("DEBUG: HAL_SPI_TransmitReceive_DMA returned status=%d\n", status);
-    //ADIN1110_CS_Deselect();
+    HAL_SPI_TransmitReceive_DMA(&hspi1, pBufferTx, pBufferRx, nbBytes);
     return 0;
 }
 
@@ -303,36 +298,31 @@ void common_Perf(char *InfoString)
 }
 
 uint32_t BSP_RegisterIRQCallback(ADI_CB const *intCallback, void *hDevice) {
-    // Add your logic to register the callback for the specific interrupt.
-    // Example (assuming the callback is for a specific GPIO interrupt):
     if (intCallback != NULL) {
         HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
         HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-        return 0; // Success
+        return 0;
     }
-    return 1; // Error
+    return 1;
 }
 
 uint32_t BSP_spi2_register_callback(ADI_CB pfCallback, void *const pCBParam) {
     if (pfCallback != NULL) {
-        // Store the callback and user data
     	spiCallbackData.callback = pfCallback;
         spiCallbackData.userData = pCBParam;
-        printf("DEBUG: Registering SPI callback at address %p with user data %p\n",
-                       (void*)spiCallbackData.callback, spiCallbackData.userData);
-        return 0; // Success
+        return 0;
     }
-    return 1; // Error
+    return 1;
 }
 
 void ADIN1110_CS_Select(void)
 {
-    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET); // CS_N low
+    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
 }
 
 void ADIN1110_CS_Deselect(void)
 {
-    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_SET); // CS_N high
+    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_SET);
 }
 
 

@@ -56,7 +56,7 @@ void MX_SPI1_Init(void)
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi1.Init.CRCPolynomial = 7;
   hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
-  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
@@ -172,43 +172,16 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi->Instance == SPI1)
     {
-        // De-assert chip select because the DMA transaction is truly finished now
+
         ADIN1110_CS_Deselect();
 
-        // Re-enter the ADI driver’s callback so it can call oaStateMachine()
         if (spiCallbackData.callback != NULL)
         {
-        	printf("DEBUG: Manually calling callback. Address = %p\n", (void*)spiCallbackData.callback);
             // Usually the ADI driver sets up 'spiCallbackData.userData' as the MAC device
             // The signature is callback(void *pCBParam, uint32_t Event, void *pArg)
             spiCallbackData.callback(spiCallbackData.userData, 0, NULL);
-        } else {
-        	printf("DEBUG: No SPI callback registered!\n");
         }
-
-        printf("DEBUG: SPI1 DMA TxRx complete, CS deasserted, invoked ADI SPI callback.\n");
     }
 }
 
-void SPI_Loopback_Test(void)
-{
-    uint8_t txData = 0xAA;
-    uint8_t rxData = 0x00;
-    HAL_StatusTypeDef status;
-
-    // Manually assert CS if required
-    ADIN1110_CS_Select();
-
-    // Perform SPI transfer
-    status = HAL_SPI_TransmitReceive(&hspi1, &txData, &rxData, 1, HAL_MAX_DELAY);
-
-    // Manually deassert CS if required
-    ADIN1110_CS_Deselect();
-
-    if (status == HAL_OK && rxData == txData) {
-        printf("SPI Loopback Test Passed: 0x%02X\n", rxData);
-    } else {
-        printf("SPI Loopback Test Failed: Received 0x%02X, Status: %d\n", rxData, status);
-    }
-}
 /* USER CODE END 1 */

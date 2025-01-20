@@ -80,16 +80,14 @@ __attribute__((weak)) int _read(int file, char *ptr, int len)
 
 int _write(int file, char *ptr, int len)
 {
-    // Prevent unused variable warnings
     (void)file;
 
-    // Transmit data via USART3
     if (HAL_UART_Transmit(&hlpuart1, (uint8_t*)ptr, len, HAL_MAX_DELAY) != HAL_OK)
     {
-        errno = EIO;    // Input/output error
-        return -1;      // Indicate error
+        errno = EIO;
+        return -1;
     }
-    return len;         // Indicate successful transmission
+    return 0;
 }
 
 int _close(int file)
