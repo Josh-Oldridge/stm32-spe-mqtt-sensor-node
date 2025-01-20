@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -56,21 +56,16 @@ adin1110_DeviceHandle_t hDevice = &dev;
 
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
 
-adin1110_DriverConfig_t drvConfig = {
-    .pDevMem    = (void *)devMem,
-    .devMemSize = sizeof(devMem),
-    .fcsCheckEn = false,
-};
+adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
+		sizeof(devMem), .fcsCheckEn = false, };
 
 void printStats(adin1110_DeviceHandle_t hDevice);
 
-uint8_t dest_mac[6] = {0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33};  // Dell MAC
-uint8_t mySourceMac[6] = {0x00, 0xE0, 0x22, 0xFE, 0xDA, 0xCA};
-uint16_t myEtherType   = 0x88B5;
-const char payloadStr[]      = "CMD:RUN|notepad.exe|Hello from ADIN1110!";
-uint32_t payloadLen    =  strlen(payloadStr);
-
-
+uint8_t dest_mac[6] = { 0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33 };  // Dell MAC
+uint8_t mySourceMac[6] = { 0x00, 0xE0, 0x22, 0xFE, 0xDA, 0xCA };
+uint16_t myEtherType = 0x88B5;
+const char payloadStr[] = "CMD:RUN|notepad.exe|Hello from ADIN1110!";
+uint32_t payloadLen = strlen(payloadStr);
 
 uint32_t txIdx = 0;
 volatile uint32_t rxIdx = 0;
@@ -84,57 +79,52 @@ static uint8_t txBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] __attribute__((aligned
 
 bool txBufAvailable[BUFF_DESC_COUNT];
 
-static void txCallback(void *pCBParam, uint32_t Event, void *pArg)
-{
-    adi_eth_BufDesc_t *pTxBufDesc = (adi_eth_BufDesc_t *)pArg;
-    uint32_t idx;
+static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
+	adi_eth_BufDesc_t *pTxBufDesc = (adi_eth_BufDesc_t*) pArg;
+	uint32_t idx;
 
-    txIdx++;
-    memcpy(&idx, &pTxBufDesc->pBuf[14], 4);
+	txIdx++;
+	memcpy(&idx, &pTxBufDesc->pBuf[14], 4);
 
-    if (idx != expectedTxIdx) {
-        errorTxIdx++;
-    }
-    expectedTxIdx = idx + 1;
-    for (uint32_t i = 0; i < BUFF_DESC_COUNT; i++) {
-        if (&txBuf[i][0] == pTxBufDesc->pBuf) {
-            txBufAvailable[i] = true;
-            break;
-        }
-    }
+	if (idx != expectedTxIdx) {
+		errorTxIdx++;
+	}
+	expectedTxIdx = idx + 1;
+	for (uint32_t i = 0; i < BUFF_DESC_COUNT; i++) {
+		if (&txBuf[i][0] == pTxBufDesc->pBuf) {
+			txBufAvailable[i] = true;
+			break;
+		}
+	}
 }
 
+static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
+	adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t) pCBParam;
+	adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t*) pArg;
+	uint32_t idx;
 
-static void rxCallback(void *pCBParam, uint32_t Event, void *pArg)
-{
-    adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t)pCBParam;
-    adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t *)pArg;
-    uint32_t idx;
+	rxIdx++;
+	memcpy(&idx, &pRxBufDesc->pBuf[14], 4);
 
-    rxIdx++;
-    memcpy(&idx, &pRxBufDesc->pBuf[14], 4);
+	if (idx != expectedRxIdx) {
+		errorRxIdx++;
+	}
+	expectedRxIdx = idx + 1;
 
-    if (idx != expectedRxIdx) {
-        errorRxIdx++;
-    }
-    expectedRxIdx = idx + 1;
-
-    adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+	adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 
-void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg)
-{
-    adi_eth_LinkStatus_e linkStatus;
-    linkStatus = *(adi_eth_LinkStatus_e *)pArg;
-    if (linkStatus == ADI_ETH_LINK_STATUS_UP) {
-        DEBUG_MESSAGE("Ethernet Link Status: UP\r");
-        HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET); // Turn on LD3
-    } else {
-    	DEBUG_MESSAGE("Ethernet Link Status: DOWN\r");
-        HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET); // Turn off LD3
-    }
+void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
+	adi_eth_LinkStatus_e linkStatus;
+	linkStatus = *(adi_eth_LinkStatus_e*) pArg;
+	if (linkStatus == ADI_ETH_LINK_STATUS_UP) {
+		DEBUG_MESSAGE("Ethernet Link Status: UP\r");
+		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET); // Turn on LD3
+	} else {
+		DEBUG_MESSAGE("Ethernet Link Status: DOWN\r");
+		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET); // Turn off LD3
+	}
 }
-
 
 /* USER CODE END PV */
 
@@ -145,367 +135,276 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void printStats(adin1110_DeviceHandle_t hDevice)
-{
-    adi_eth_Result_e          result = ADI_ETH_SUCCESS;
-    adi_eth_MacStatCounters_t stats;
-    bool fail;
+void printStats(adin1110_DeviceHandle_t hDevice) {
+	adi_eth_Result_e result = ADI_ETH_SUCCESS;
+	adi_eth_MacStatCounters_t stats;
+	bool fail;
 
-    result = adin1110_GetStatCounters(hDevice, &stats);
-    DEBUG_RESULT("adin1110_GetStatCounters", result, ADI_ETH_SUCCESS);
+	result = adin1110_GetStatCounters(hDevice, &stats);
+	DEBUG_RESULT("adin1110_GetStatCounters", result, ADI_ETH_SUCCESS);
 
-    fail = false;
-    fail = fail || (errorTxIdx || errorRxIdx);
-    fail = fail || (stats.RX_CRC_ERR_CNT > 0);
-    fail = fail || (stats.RX_ALGN_ERR_CNT > 0);
-    fail = fail || (stats.RX_LS_ERR_CNT > 0);
-    fail = fail || (stats.RX_PHY_ERR_CNT > 0);
-    fail = fail || (stats.RX_DROP_FULL_CNT > 0);
-    fail = fail || (stats.RX_DROP_FILT_CNT > 0);
+	fail = false;
+	fail = fail || (errorTxIdx || errorRxIdx);
+	fail = fail || (stats.RX_CRC_ERR_CNT > 0);
+	fail = fail || (stats.RX_ALGN_ERR_CNT > 0);
+	fail = fail || (stats.RX_LS_ERR_CNT > 0);
+	fail = fail || (stats.RX_PHY_ERR_CNT > 0);
+	fail = fail || (stats.RX_DROP_FULL_CNT > 0);
+	fail = fail || (stats.RX_DROP_FILT_CNT > 0);
 
-    if (fail) {
-        DEBUG_MESSAGE("Result: FAIL\r");
-        DEBUG_MESSAGE("    Tx index errors: %" PRIu32 "\r", errorTxIdx);
-        DEBUG_MESSAGE("    Rx index errors: %" PRIu32 "\r", errorRxIdx);
-        BSP_ErrorLed(true);
-    } else {
-        DEBUG_MESSAGE("Result: PASS\r");
-    }
-    DEBUG_MESSAGE("Summary:\r");
-    DEBUG_MESSAGE("     Sent frames:        %" PRIu32 "\r", txIdx);
-    DEBUG_MESSAGE("     Received frames:    %" PRIu32 "\r", rxIdx);
-    DEBUG_MESSAGE("     Statistics counters:\r");
-    DEBUG_MESSAGE("         TX_FRM_CNT         = %" PRIu32 "\r", stats.TX_FRM_CNT);
-    DEBUG_MESSAGE("         TX_UCAST_CNT       = %" PRIu32 "\r", stats.TX_UCAST_CNT);
-    DEBUG_MESSAGE("         TX_MCAST_CNT       = %" PRIu32 "\r", stats.TX_MCAST_CNT);
-    DEBUG_MESSAGE("         TX_BCAST_CNT       = %" PRIu32 "\r", stats.TX_BCAST_CNT);
-    DEBUG_MESSAGE("         RX_FRM_CNT         = %" PRIu32 "\r", stats.RX_FRM_CNT);
-    DEBUG_MESSAGE("         RX_UCAST_CNT       = %" PRIu32 "\r", stats.RX_UCAST_CNT);
-    DEBUG_MESSAGE("         RX_MCAST_CNT       = %" PRIu32 "\r", stats.RX_MCAST_CNT);
-    DEBUG_MESSAGE("         RX_BCAST_CNT       = %" PRIu32 "\r", stats.RX_BCAST_CNT);
-    DEBUG_MESSAGE("         RX_CRC_ERR_CNT     = %" PRIu32 "\r", stats.RX_CRC_ERR_CNT);
-    DEBUG_MESSAGE("         RX_ALGN_ERR_CNT    = %" PRIu32 "\r", stats.RX_ALGN_ERR_CNT);
-    DEBUG_MESSAGE("         RX_LS_ERR_CNT      = %" PRIu32 "\r", stats.RX_LS_ERR_CNT);
-    DEBUG_MESSAGE("         RX_PHY_ERR_CNT     = %" PRIu32 "\r", stats.RX_PHY_ERR_CNT);
-    DEBUG_MESSAGE("         RX_DROP_FULL_CNT   = %" PRIu32 "\r", stats.RX_DROP_FULL_CNT);
-    DEBUG_MESSAGE("         RX_DROP_FILT_CNT   = %" PRIu32 "\r", stats.RX_DROP_FILT_CNT);
+	if (fail) {
+		DEBUG_MESSAGE("Result: FAIL\r");
+		DEBUG_MESSAGE("    Tx index errors: %" PRIu32 "\r", errorTxIdx);
+		DEBUG_MESSAGE("    Rx index errors: %" PRIu32 "\r", errorRxIdx);
+		BSP_ErrorLed(true);
+	} else {
+		DEBUG_MESSAGE("Result: PASS\r");
+	}
+	DEBUG_MESSAGE("Summary:\r");
+	DEBUG_MESSAGE("     Sent frames:        %" PRIu32 "\r", txIdx);
+	DEBUG_MESSAGE("     Received frames:    %" PRIu32 "\r", rxIdx);
+	DEBUG_MESSAGE("     Statistics counters:\r");
+	DEBUG_MESSAGE("         TX_FRM_CNT         = %" PRIu32 "\r",
+			stats.TX_FRM_CNT);
+	DEBUG_MESSAGE("         TX_UCAST_CNT       = %" PRIu32 "\r",
+			stats.TX_UCAST_CNT);
+	DEBUG_MESSAGE("         TX_MCAST_CNT       = %" PRIu32 "\r",
+			stats.TX_MCAST_CNT);
+	DEBUG_MESSAGE("         TX_BCAST_CNT       = %" PRIu32 "\r",
+			stats.TX_BCAST_CNT);
+	DEBUG_MESSAGE("         RX_FRM_CNT         = %" PRIu32 "\r",
+			stats.RX_FRM_CNT);
+	DEBUG_MESSAGE("         RX_UCAST_CNT       = %" PRIu32 "\r",
+			stats.RX_UCAST_CNT);
+	DEBUG_MESSAGE("         RX_MCAST_CNT       = %" PRIu32 "\r",
+			stats.RX_MCAST_CNT);
+	DEBUG_MESSAGE("         RX_BCAST_CNT       = %" PRIu32 "\r",
+			stats.RX_BCAST_CNT);
+	DEBUG_MESSAGE("         RX_CRC_ERR_CNT     = %" PRIu32 "\r",
+			stats.RX_CRC_ERR_CNT);
+	DEBUG_MESSAGE("         RX_ALGN_ERR_CNT    = %" PRIu32 "\r",
+			stats.RX_ALGN_ERR_CNT);
+	DEBUG_MESSAGE("         RX_LS_ERR_CNT      = %" PRIu32 "\r",
+			stats.RX_LS_ERR_CNT);
+	DEBUG_MESSAGE("         RX_PHY_ERR_CNT     = %" PRIu32 "\r",
+			stats.RX_PHY_ERR_CNT);
+	DEBUG_MESSAGE("         RX_DROP_FULL_CNT   = %" PRIu32 "\r",
+			stats.RX_DROP_FULL_CNT);
+	DEBUG_MESSAGE("         RX_DROP_FILT_CNT   = %" PRIu32 "\r",
+			stats.RX_DROP_FILT_CNT);
 }
 
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
 
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_SPI1_Init();
-  MX_LPUART1_UART_Init();
-  /* USER CODE BEGIN 2 */
-  printf("UART Retargeting Test: Hello, UART!\r\n");
-  adin1110_DeviceStruct_t deviceStruct;
-  adin1110_DeviceHandle_t hDevice = &deviceStruct;
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_SPI1_Init();
+	MX_LPUART1_UART_Init();
+	/* USER CODE BEGIN 2 */
+	adi_eth_Result_e result;
+	adin1110_DeviceStruct_t deviceStruct;
+	adin1110_DeviceHandle_t hDevice = &deviceStruct;
 
-      // Allocate memory buffer
-  uint8_t deviceMemory[ADIN1110_DEVICE_SIZE];
-     memset(deviceMemory, 0, ADIN1110_DEVICE_SIZE);
+	for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++) {
+		result = adin1110_Init(hDevice, &drvConfig);
+		if (result == ADI_ETH_SUCCESS) {
+			break;
+		}
+	}
+	DEBUG_RESULT("No MACPHY device found", result, ADI_ETH_SUCCESS);
 
-      // Configure the driver
-  adin1110_DriverConfig_t drvConfig;
-  drvConfig.pDevMem = deviceMemory;
-  drvConfig.devMemSize = ADIN1110_DEVICE_SIZE;
-   drvConfig.fcsCheckEn = true;
-  adi_eth_Result_e initResult = adin1110_Init(hDevice, &drvConfig);
-      if (initResult == ADI_ETH_SUCCESS) {
-          printf("ADIN1110 initialized successfully.\n");
-      } else {
-          printf("ADIN1110 initialization failed. Error: %d\n", initResult);
-      }
+	result = adin1110_AddAddressFilter(hDevice, &macAddr[0][0], NULL, 0);
+	DEBUG_RESULT("adin1110_AddAddressFilter", result, ADI_ETH_SUCCESS);
 
-  adi_eth_Result_e result;
-  uint32_t error = BSP_InitSystem();
-  DEBUG_RESULT("BSP_InitSystem", error, 0);
+	result = adin1110_AddAddressFilter(hDevice, &macAddr[1][0], NULL, 0);
+	DEBUG_RESULT("adin1110_AddAddressFilter", result, ADI_ETH_SUCCESS);
 
-  BSP_HWReset(true);
+	result = adin1110_SyncConfig(hDevice);
+	DEBUG_RESULT("adin1110_SyncConfig", result, ADI_ETH_SUCCESS);
 
-  for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++) {
-	  printf("Attempting ADIN1110_Init iteration %u...\n", i+1);
-	  result = adin1110_Init(hDevice, &drvConfig);
-	  if (result == ADI_ETH_SUCCESS) {
-		  printf("ADIN1110_Init succeeded on iteration %u.\n", i+1);
-		  break;
-	  }
-	  printf("ADIN1110_Init failed on iteration %u with result %d.\n", i+1, result);
-  }
-  DEBUG_RESULT("No MACPHY device found", result, ADI_ETH_SUCCESS);
+	result = adin1110_RegisterCallback(hDevice, cbLinkChange,
+			ADI_MAC_EVT_LINK_CHANGE);
+	DEBUG_RESULT("adin1110_RegisterCallback (ADI_MAC_EVT_LINK_CHANGE)", result,
+			ADI_ETH_SUCCESS);
 
-  result = adin1110_AddAddressFilter(hDevice, &macAddr[0][0], NULL, 0);
-  DEBUG_RESULT("adin1110_AddAddressFilter", result, ADI_ETH_SUCCESS);
+	adi_eth_BufDesc_t rxBufDesc[BUFF_DESC_COUNT];
+	adi_eth_BufDesc_t txBufDesc[BUFF_DESC_COUNT];
+	uint32_t txBufDescIdx = 0;
+	adi_eth_LinkStatus_e linkStatus;
+	uint32_t frameIdx = 0;
+	uint32_t heartbeatTicks = 0;
 
-  result = adin1110_AddAddressFilter(hDevice, &macAddr[1][0], NULL, 0);
-  DEBUG_RESULT("adin1110_AddAddressFilter", result, ADI_ETH_SUCCESS);
+	for (uint32_t i = 0; i < BUFF_DESC_COUNT; i++) {
+		memcpy(&txBuf[i], &testFrames[i % 2][0], MAX_FRAME_SIZE);
+		txBufAvailable[i] = true;
 
-  result = adin1110_SyncConfig(hDevice);
-  DEBUG_RESULT("adin1110_SyncConfig", result, ADI_ETH_SUCCESS);
+		rxBufDesc[i].pBuf = &rxBuf[i][0];
+		rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
+		rxBufDesc[i].cbFunc = rxCallback;
+		result = adin1110_SubmitRxBuffer(hDevice, &rxBufDesc[i]);
+	}
 
-  result = adin1110_RegisterCallback(hDevice, cbLinkChange, ADI_MAC_EVT_LINK_CHANGE);
-  DEBUG_RESULT("adin1110_RegisterCallback (ADI_MAC_EVT_LINK_CHANGE)", result, ADI_ETH_SUCCESS);
+	result = adin1110_Enable(hDevice);
+	DEBUG_RESULT("Device enable error", result, ADI_ETH_SUCCESS);
 
-  adi_eth_BufDesc_t rxBufDesc[BUFF_DESC_COUNT];
-  adi_eth_BufDesc_t txBufDesc[BUFF_DESC_COUNT];
-  uint32_t txBufDescIdx = 0;
-  uint32_t testFramesIdx = 0;
-  adi_eth_LinkStatus_e linkStatus;
-  uint32_t frameIdx = 0;
-  uint32_t heartbeatTicks = 0;
+	do {
+		result = adin1110_GetLinkStatus(hDevice, &linkStatus);
+		DEBUG_RESULT("adin1110_GetLinkStatus", result, ADI_ETH_SUCCESS);
+	} while (linkStatus != ADI_ETH_LINK_STATUS_UP);
+	HAL_Delay(3000);
 
-  for (uint32_t i = 0; i < BUFF_DESC_COUNT; i++) {
-	  memcpy(&txBuf[i], &testFrames[i % 2][0], MAX_FRAME_SIZE);
-	  txBufAvailable[i] = true;
+	expectedRxIdx = 0;
+	expectedTxIdx = 0;
+	errorTxIdx = 0;
+	errorRxIdx = 0;
 
-	  rxBufDesc[i].pBuf = &rxBuf[i][0];
-	  rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
-	  rxBufDesc[i].cbFunc = rxCallback;
-	  result = adin1110_SubmitRxBuffer(hDevice, &rxBufDesc[i]);
-  }
+	uint32_t heartbeatCheckTime = BSP_SysNow();
 
-  result = adin1110_Enable(hDevice);
-    DEBUG_RESULT("Device enable error", result, ADI_ETH_SUCCESS);
+	/* USER CODE END 2 */
 
-    do {
-        adin1110_GetLinkStatus(hDevice, &linkStatus);
-        HAL_Delay(100);
-    } while (linkStatus != ADI_ETH_LINK_STATUS_UP);
-    printf("Link is up!\n");
-    HAL_Delay(3000);
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (!FRAME_COUNT || (txIdx < FRAME_COUNT)) {
+		/* USER CODE END WHILE */
 
-  expectedRxIdx = 0;
-  expectedTxIdx = 0;
-  errorTxIdx = 0;
-  errorRxIdx = 0;
+		/* USER CODE BEGIN 3 */
+		uint32_t now = BSP_SysNow();
 
-  uint32_t heartbeatCheckTime = BSP_SysNow();
+		if ((now - heartbeatCheckTime) >= 250) {
+			heartbeatCheckTime = now;
+			BSP_HeartBeat();
+			heartbeatTicks++;
 
-  /* USER CODE END 2 */
+			if (heartbeatTicks >= 8) {
+				heartbeatTicks = 0;
+				printStats(hDevice);
+			}
+		}
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  /*while (!FRAME_COUNT || (txIdx < FRAME_COUNT))
-    {*/
-  while (!FRAME_COUNT || (txIdx < FRAME_COUNT))
-  {
-  /* USER CODE END WHILE */
-
-  /* USER CODE BEGIN 3 */
-	  uint32_t now = BSP_SysNow();
-
-	          // Heartbeat every 250 ms
-	          if ((now - heartbeatCheckTime) >= 250) {
-	              heartbeatCheckTime = now;
-	              BSP_HeartBeat();
-	              heartbeatTicks++;
-
-	              // Print stats every 2 seconds
-	              if (heartbeatTicks >= 8) {
-	                  heartbeatTicks = 0;
-	                  printStats(hDevice);
-	              }
-	          }
-
-	          // Attempt to build and send a frame if we have a free Tx buffer
-	          if (txBufAvailable[txBufDescIdx]) {
-	              // Zero out a fresh frame each time
+		if (txBufAvailable[txBufDescIdx]) {
 
 			memset(txBuf[txBufDescIdx], 0, MAX_FRAME_SIZE);
 
-			// (a) Destination MAC at offset [0..5]
 			memcpy(&txBuf[txBufDescIdx][0], dest_mac, 6);
-
-			// (b) Source MAC at offset [6..11]
 			memcpy(&txBuf[txBufDescIdx][6], mySourceMac, 6);
 
-			// (c) EtherType at offset [12..13]
 			txBuf[txBufDescIdx][12] = (myEtherType >> 8) & 0xFF;
 			txBuf[txBufDescIdx][13] = (myEtherType) & 0xFF;
 
-			// 4) Put any frameIndex or custom payload next:
-			//    e.g., 32-bit index at offset 14..17
-			uint32_t *pIndex = (uint32_t *)&txBuf[txBufDescIdx][14];
+			uint32_t *pIndex = (uint32_t*) &txBuf[txBufDescIdx][14];
 			*pIndex = frameIdx;
 
-	        	  size_t payloadOffset = 18;
-	        	  memcpy(&txBuf[txBufDescIdx][payloadOffset], payloadStr, payloadLen);
-	        	  size_t totalLen = payloadOffset + payloadLen;
-	        	  if (totalLen < 64) totalLen = 64;  // pad
+			size_t payloadOffset = 18;
+			memcpy(&txBuf[txBufDescIdx][payloadOffset], payloadStr, payloadLen);
+			size_t totalLen = payloadOffset + payloadLen;
+			if (totalLen < 64)
+				totalLen = 64;
 
-	              // Fill descriptor
-	              txBufDesc[txBufDescIdx].pBuf       = &txBuf[txBufDescIdx][0];
-	              txBufDesc[txBufDescIdx].trxSize    = totalLen;
-	              txBufDesc[txBufDescIdx].bufSize    = MAX_FRAME_BUF_SIZE;
-	              txBufDesc[txBufDescIdx].egressCapt = ADI_MAC_EGRESS_CAPTURE_NONE;
-	              txBufDesc[txBufDescIdx].cbFunc     = txCallback;
+			txBufDesc[txBufDescIdx].pBuf = &txBuf[txBufDescIdx][0];
+			txBufDesc[txBufDescIdx].trxSize = totalLen;
+			txBufDesc[txBufDescIdx].bufSize = MAX_FRAME_BUF_SIZE;
+			txBufDesc[txBufDescIdx].egressCapt = ADI_MAC_EGRESS_CAPTURE_NONE;
+			txBufDesc[txBufDescIdx].cbFunc = txCallback;
 
-	              // Mark as busy
-	              txBufAvailable[txBufDescIdx] = false;
+			txBufAvailable[txBufDescIdx] = false;
 
-	              // Submit to ADIN1110
-	              adi_eth_Result_e res = adin1110_SubmitTxBuffer(hDevice, &txBufDesc[txBufDescIdx]);
-	              printf("adin1110_SubmitTxBuffer returned %d\n", (int)res);
-	              if (res == ADI_ETH_QUEUE_FULL) {
-	                  printf("TX queue is full!\n");
-	              }
-	              if (res == ADI_ETH_SUCCESS) {
-	                  // success
-	                  txBufDescIdx = (txBufDescIdx + 1) % BUFF_DESC_COUNT;
-	                  frameIdx++;
-	              } else {
-	                  // if fail, restore the availability
-	                  txBufAvailable[txBufDescIdx] = true;
-	              }
-	          }
-	      }
+			adi_eth_Result_e res = adin1110_SubmitTxBuffer(hDevice,
+					&txBufDesc[txBufDescIdx]);
 
-	      // Optionally wait for all frames to be received or callbacks to finish
-	      while (rxIdx < FRAME_COUNT);
-	      while (rxIdx < txIdx);
-
-	      // Print final stats
-	      printStats(hDevice);
-
-	      // Uninit
-	      adi_eth_Result_e uninitRes = adin1110_UnInit(hDevice);
-	      DEBUG_RESULT("adin1110_UnInit", uninitRes, ADI_ETH_SUCCESS);
-
-	      /* Idle forever or do something else */
-	      while (1) { }
-
-	  /*uint32_t now = BSP_SysNow();
-
-	  if (now - heartbeatCheckTime >= 250) {
-		  heartbeatCheckTime = now;
-		  BSP_HeartBeat();
-		  heartbeatTicks++;
-	  }
-
-	  if (txBufAvailable[testFramesIdx]) {
-		  memset(txBuf[txBufDescIdx], 0, MAX_FRAME_SIZE);
-
-		  			// (a) Destination MAC at offset [0..5]
-		  			memcpy(&txBuf[txBufDescIdx][0], dest_mac, 6);
-
-		  			// (b) Source MAC at offset [6..11]
-		  			memcpy(&txBuf[txBufDescIdx][6], mySourceMac, 6);
-
-		  			// (c) EtherType at offset [12..13]
-		  			txBuf[txBufDescIdx][12] = (myEtherType >> 8) & 0xFF;
-		  			txBuf[txBufDescIdx][13] = (myEtherType) & 0xFF;
-		  txBufDesc[txBufDescIdx].pBuf = &txBuf[testFramesIdx][0];
-		  txBufDesc[txBufDescIdx].trxSize = MAX_FRAME_SIZE;
-		  txBufDesc[txBufDescIdx].bufSize = MAX_FRAME_BUF_SIZE;
-		  txBufDesc[txBufDescIdx].egressCapt = ADI_MAC_EGRESS_CAPTURE_NONE;
-		  txBufDesc[txBufDescIdx].cbFunc = txCallback;
-
-		  uint32_t *p = (uint32_t *)&txBufDesc[txBufDescIdx].pBuf[14];
-		  *p = frameIdx;
-
-		  txBufAvailable[testFramesIdx] = false;
-		  result = adin1110_SubmitTxBuffer(hDevice, &txBufDesc[txBufDescIdx]);
-		  if (result == ADI_ETH_SUCCESS) {
-			  txBufDescIdx = (txBufDescIdx + 1) % BUFF_DESC_COUNT;
-			  testFramesIdx = (testFramesIdx + 1) % BUFF_DESC_COUNT;
-			  frameIdx++;
-		  } else {
-			  txBufAvailable[testFramesIdx] = true;
-		  }
-	  }
-
-	  if (heartbeatTicks >= 8) {
-		  heartbeatTicks = 0;
-		  printStats(hDevice);
-	  }
+			if (res == ADI_ETH_SUCCESS) {
+				txBufDescIdx = (txBufDescIdx + 1) % BUFF_DESC_COUNT;
+				frameIdx++;
+			} else {
+				txBufAvailable[txBufDescIdx] = true;
+			}
+		}
 	}
 
-	while (rxIdx < FRAME_COUNT);
-	while (rxIdx < txIdx);
+	while (rxIdx < FRAME_COUNT)
+		;
+	while (rxIdx < txIdx)
+		;
 
 	printStats(hDevice);
-	result = adin1110_UnInit(hDevice);
+	adi_eth_Result_e uninitRes = adin1110_UnInit(hDevice);
+	DEBUG_RESULT("adin1110_UnInit", uninitRes, ADI_ETH_SUCCESS);
+	while (1) {
+	}
 
-
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
-  /** Configure the main internal regulator output voltage
-  */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Configure the main internal regulator output voltage
+	 */
+	if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1)
+			!= HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 10;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
-  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+	RCC_OscInitStruct.PLL.PLLM = 1;
+	RCC_OscInitStruct.PLL.PLLN = 10;
+	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+	RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+	RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
 /* USER CODE BEGIN 4 */
@@ -518,44 +417,35 @@ void SystemClock_Config(void)
  *
  * @param GPIO_Pin The GPIO pin number that triggered the interrupt.
  */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    if (GPIO_Pin == ETH_INT_N_Pin) {
-        // Optionally disable IRQ to prevent nested interrupts
-        HAL_INT_N_DisableIRQ();
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == ETH_INT_N_Pin) {
 
-        // Handle the ADIN1110 interrupt
-        adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
-        if (result != ADI_ETH_SUCCESS) {
-            // Handle the error appropriately (e.g., log, set error flags, etc.)
-            DEBUG_MESSAGE("ADIN1110 Handle Interrupt Error\r");
-        }
+		HAL_INT_N_DisableIRQ();
+		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
+		if (result != ADI_ETH_SUCCESS) {
+			DEBUG_MESSAGE("ADIN1110 Handle Interrupt Error\r");
+		}
+		HAL_INT_N_EnableIRQ();
+	}
 
-        // Re-enable IRQ after handling
-        HAL_INT_N_EnableIRQ();
-    }
-
-    if (GPIO_Pin == Interrupt_Pin) {
-    	// Toggle LD2 (Blue - PB7)
-    	MX_Led_Toggle();
-    }
+	if (GPIO_Pin == Interrupt_Pin) {
+		MX_Led_Toggle();
+	}
 }
 
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1) {
+	}
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
