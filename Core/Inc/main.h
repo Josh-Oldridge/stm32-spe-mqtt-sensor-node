@@ -42,9 +42,13 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+#ifdef USE_LWIP
+  /* When using lwIP, these definitions come from lwIP_adin1110_app.c */
+#else /* USE_LWIP not defined */
 #define ADIN1110_INIT_ITER  (5)
 #define BUFF_DESC_COUNT     (5)
-#define FRAME_COUNT         (1)
+#define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
+#endif
 
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
 #define TEST_FRAMES_COUNT   (2)

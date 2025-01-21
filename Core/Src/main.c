@@ -28,8 +28,10 @@
 #include "adin1110.h"
 #include "boardsupport.h"
 #include "frames.h"
+#ifdef USE_LWIP
 #include "lwIP_adin1110_app.h"
 #include "lwip/timeouts.h"
+#endif /* USE_LWIP */
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -53,6 +55,7 @@
 
 /* USER CODE BEGIN PV */
 
+#ifndef USE_LWIP
 adin1110_DeviceStruct_t dev;
 adin1110_DeviceHandle_t hDevice = &dev;
 
@@ -61,8 +64,8 @@ uint8_t devMem[ADIN1110_DEVICE_SIZE];
 adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
 		sizeof(devMem), .fcsCheckEn = false, };
 
-void printStats(adin1110_DeviceHandle_t hDevice);
 
+void printStats(adin1110_DeviceHandle_t hDevice);
 uint8_t dest_mac[6] = { 0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33 };  // Dell MAC
 uint8_t mySourceMac[6] = { 0x00, 0xE0, 0x22, 0xFE, 0xDA, 0xCA };
 uint16_t myEtherType = 0x88B5;
@@ -81,9 +84,13 @@ static uint8_t txBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] __attribute__((aligned
 
 bool txBufAvailable[BUFF_DESC_COUNT];
 
+#else /* USE_LWIP defined */
 board_t boardDetails;
 LwIP_ADIN1110_t myConn;
 
+#endif  /* USE_LWIP */
+
+#ifndef USE_LWIP
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	adi_eth_BufDesc_t *pTxBufDesc = (adi_eth_BufDesc_t*) pArg;
 	uint32_t idx;
@@ -130,7 +137,7 @@ void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET); // Turn off LD3
 	}
 }
-
+#endif  /* USE_LWIP */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -140,6 +147,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#ifndef USE_LWIP
 void printStats(adin1110_DeviceHandle_t hDevice) {
 	adi_eth_Result_e result = ADI_ETH_SUCCESS;
 	adi_eth_MacStatCounters_t stats;
@@ -198,6 +206,7 @@ void printStats(adin1110_DeviceHandle_t hDevice) {
 	DEBUG_MESSAGE("         RX_DROP_FILT_CNT   = %" PRIu32 "\r",
 			stats.RX_DROP_FILT_CNT);
 }
+#endif  /* USE_LWIP */
 
 /* USER CODE END 0 */
 
@@ -232,11 +241,14 @@ int main(void) {
 	MX_DMA_Init();
 	MX_SPI1_Init();
 	MX_LPUART1_UART_Init();
+
 	/* USER CODE BEGIN 2 */
+	#ifndef USE_LWIP
 	adi_eth_Result_e result;
 	adin1110_DeviceStruct_t deviceStruct;
 	adin1110_DeviceHandle_t hDevice = &deviceStruct;
 
+	#else /* USE_LWIP defined */
 	boardDetails.mac[0] = 0x00;
 	boardDetails.mac[1] = 0xE0;
 	boardDetails.mac[2] = 0x22;
@@ -256,7 +268,9 @@ int main(void) {
 	boardDetails.gateway[2] = 1;
 	boardDetails.gateway[3] = 1;
 	boardDetails.ip_addr_fixed = IP_DYNAMIC;
+	#endif  /* USE_LWIP */
 
+	#ifndef USE_LWIP
 	for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++) {
 		result = adin1110_Init(hDevice, &drvConfig);
 		if (result == ADI_ETH_SUCCESS) {
@@ -310,6 +324,7 @@ int main(void) {
 	expectedTxIdx = 0;
 	errorTxIdx = 0;
 	errorRxIdx = 0;
+	#else /* USE_LWIP defined */
 
 	/* Initialize lwIP stack */
 	result = discoveradin1110(&hDevice);
@@ -321,22 +336,41 @@ int main(void) {
 	BSP_delayMs(500);
 	netif_set_link_up(&myConn.netif);
 
+	#endif  /* USE_LWIP */
+
 	uint32_t heartbeatCheckTime = BSP_SysNow();
 
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
+	/* Uncomment these variable declarations when using lwIP stack*/
+	#ifdef USE_LWIP
+	while (1) {
+	#endif  /* USE_LWIP */
+	#ifndef USE_LWIP
 	while (!FRAME_COUNT || (txIdx < FRAME_COUNT)) {
+	#endif  /* USE_LWIP */
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
+	#ifdef USE_LWIP
+		uint32_t now = BSP_SysNow();
+		if ((now - heartbeatCheckTime) >= 250) {
+			heartbeatCheckTime = now;
+			BSP_HeartBeat();
+			sys_check_timeouts();
+		}
+		LwIP_ADIN1110LinkInput(&myConn.netif);
+	}
+	#endif  /* USE_LWIP */
+
+	#ifndef USE_LWIP
 		uint32_t now = BSP_SysNow();
 
 		if ((now - heartbeatCheckTime) >= 250) {
 			heartbeatCheckTime = now;
 			BSP_HeartBeat();
-			sys_check_timeouts();
 			heartbeatTicks++;
 
 			if (heartbeatTicks >= 8) {
@@ -344,7 +378,6 @@ int main(void) {
 				printStats(hDevice);
 			}
 		}
-		LwIP_ADIN1110LinkInput(&myConn.netif);
 
 		if (txBufAvailable[txBufDescIdx]) {
 
@@ -395,6 +428,7 @@ int main(void) {
 	DEBUG_RESULT("adin1110_UnInit", uninitRes, ADI_ETH_SUCCESS);
 	while (1) {
 	}
+	#endif  /* USE_LWIP */
 
 	/* USER CODE END 3 */
 }
