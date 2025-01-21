@@ -48,7 +48,7 @@ extern "C" {
 #define ADIN1110_INIT_ITER  (5)
 #define BUFF_DESC_COUNT     (5)
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
-#endif
+
 
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
 #define TEST_FRAMES_COUNT   (2)
@@ -66,7 +66,7 @@ extern "C" {
 #define MAC_ADDR_1_3  (0xFE)
 #define MAC_ADDR_1_4  (0xDA)
 #define MAC_ADDR_1_5  (0xCA)
-
+#endif
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

@@ -1,5 +1,6 @@
 #include "frames.h"
 
+#ifndef USE_LWIP
 uint8_t macAddr[2][6] = {
     {MAC_ADDR_0_0, MAC_ADDR_0_1, MAC_ADDR_0_2, MAC_ADDR_0_3, MAC_ADDR_0_4, MAC_ADDR_0_5},
     {MAC_ADDR_1_0, MAC_ADDR_1_1, MAC_ADDR_1_2, MAC_ADDR_1_3, MAC_ADDR_1_4, MAC_ADDR_1_5},
@@ -398,3 +399,4 @@ uint8_t testFrames[TEST_FRAMES_COUNT][MAX_FRAME_SIZE] =
 
 
 };
+#endif

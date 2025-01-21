@@ -18,7 +18,7 @@
 #include "lwip/init.h"
 #include "lwip/timeouts.h"
 #include "lwip/arch.h"
-#include "apps/httpd.h"
+#include "lwip/apps/httpd.h"
 
 #define ADIN1110_INIT_ITER  (5)
 /* Extra 4 bytes for FCS and 2 bytes for the frame header */
@@ -263,10 +263,10 @@ static err_t LwipADIN1110Init(struct netif *netif)
    netif->mtu = ETHERNET_MTU;
    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP;
 
-#if LWIP_NETIF_HOSTNAME
+	#if LWIP_NETIF_HOSTNAME
     /* Initialize interface hostname */
     netif->hostname = HOSTNAME;
-#endif /* LWIP_NETIF_HOSTNAME */
+	#endif /* LWIP_NETIF_HOSTNAME */
 
 
    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP;
@@ -294,7 +294,7 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t* eth)
     result = adin1110_SyncConfig(*hDevice);
     DEBUG_RESULT("adin1110_SyncConfig", result, ADI_ETH_SUCCESS);
 
-    result = adin1110_RegisterCallback(*hDevice, cbLinkChange, ADI_MAC_EVT_LINK_CHANGE);
+    result = adin1110_RegisterCallback(hDevice, cbLinkChange, ADI_MAC_EVT_LINK_CHANGE);
     DEBUG_RESULT("adin1110_RegisterCallback (ADI_MAC_EVT_LINK_CHANGE)", result, ADI_ETH_SUCCESS);
 
         /* Prepare Rx buffers */

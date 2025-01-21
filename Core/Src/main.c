@@ -55,10 +55,11 @@
 
 /* USER CODE BEGIN PV */
 
-#ifndef USE_LWIP
+
 adin1110_DeviceStruct_t dev;
 adin1110_DeviceHandle_t hDevice = &dev;
 
+#ifndef USE_LWIP
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
 
 adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
@@ -327,7 +328,7 @@ int main(void) {
 	#else /* USE_LWIP defined */
 
 	/* Initialize lwIP stack */
-	result = discoveradin1110(&hDevice);
+	uint32_t result = discoveradin1110(&hDevice);
 	DEBUG_RESULT("Failed to access ADIN1110", result, 0);
 
 	LwIP_StructInit(&myConn, &hDevice, boardDetails.mac);

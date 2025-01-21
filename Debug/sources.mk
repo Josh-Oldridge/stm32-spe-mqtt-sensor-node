@@ -25,4 +25,21 @@ SUBDIRS := \
 Core/Src \
 Core/Startup \
 Drivers/STM32L4xx_HAL_Driver/Src \
+lwip/src/api \
+lwip/src/apps/altcp_tls \
+lwip/src/apps/http \
+lwip/src/apps/lwiperf \
+lwip/src/apps/mdns \
+lwip/src/apps/mqtt \
+lwip/src/apps/netbiosns \
+lwip/src/apps/smtp \
+lwip/src/apps/snmp \
+lwip/src/apps/sntp \
+lwip/src/apps/tftp \
+lwip/src/core \
+lwip/src/core/ipv4 \
+lwip/src/core/ipv6 \
+lwip/src/netif \
+lwip/src/netif/ppp \
+lwip/src/netif/ppp/polarssl \
 

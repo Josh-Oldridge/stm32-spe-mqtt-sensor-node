@@ -9,6 +9,23 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include lwip/src/netif/ppp/polarssl/subdir.mk
+-include lwip/src/netif/ppp/subdir.mk
+-include lwip/src/netif/subdir.mk
+-include lwip/src/core/ipv6/subdir.mk
+-include lwip/src/core/ipv4/subdir.mk
+-include lwip/src/core/subdir.mk
+-include lwip/src/apps/tftp/subdir.mk
+-include lwip/src/apps/sntp/subdir.mk
+-include lwip/src/apps/snmp/subdir.mk
+-include lwip/src/apps/smtp/subdir.mk
+-include lwip/src/apps/netbiosns/subdir.mk
+-include lwip/src/apps/mqtt/subdir.mk
+-include lwip/src/apps/mdns/subdir.mk
+-include lwip/src/apps/lwiperf/subdir.mk
+-include lwip/src/apps/http/subdir.mk
+-include lwip/src/apps/altcp_tls/subdir.mk
+-include lwip/src/api/subdir.mk
 -include Drivers/STM32L4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk

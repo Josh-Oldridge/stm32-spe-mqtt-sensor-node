@@ -50,9 +50,13 @@
 #include <time.h>
 
 #ifdef PROCESSOR_LITTLE_ENDIAN
-#define BYTE_ORDER LITTLE_ENDIAN
+  #ifndef BYTE_ORDER
+    #define BYTE_ORDER LITTLE_ENDIAN
+  #endif
 #else
-#define BYTE_ORDER BIG_ENDIAN
+  #ifndef BYTE_ORDER
+    #define BYTE_ORDER BIG_ENDIAN
+  #endif
 #endif
 
 #if 0
