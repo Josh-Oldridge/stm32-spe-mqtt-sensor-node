@@ -49,7 +49,7 @@ extern "C" {
 #define BUFF_DESC_COUNT     (5)
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
 
-
+#define FRAME_COUNT (10)
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
 #define TEST_FRAMES_COUNT   (2)
 
@@ -98,6 +98,8 @@ void SystemClock_Config(void);
 #define SPI1_CS_GPIO_Port GPIOD
 #define Reset_Pin GPIO_PIN_15
 #define Reset_GPIO_Port GPIOD
+#define LD1_Pin GPIO_PIN_7
+#define LD1_GPIO_Port GPIOC
 #define LD2_Pin GPIO_PIN_7
 #define LD2_GPIO_Port GPIOB
 

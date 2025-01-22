@@ -249,7 +249,11 @@ void SPI1_IRQHandler(void)
 void EXTI15_10_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-	HAL_GPIO_EXTI_IRQHandler(ETH_INT_N_Pin);
+	if (__HAL_GPIO_EXTI_GET_IT(ETH_INT_N_Pin) != RESET)
+	    {
+	        __HAL_GPIO_EXTI_CLEAR_IT(ETH_INT_N_Pin);
+	        HAL_GPIO_EXTI_IRQHandler(ETH_INT_N_Pin);
+	    }
   /* USER CODE END EXTI15_10_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(Interrupt_Pin);
   HAL_GPIO_EXTI_IRQHandler(Reset_Button_Pin);

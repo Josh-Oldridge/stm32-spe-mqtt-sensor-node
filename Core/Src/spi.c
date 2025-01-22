@@ -172,16 +172,20 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi->Instance == SPI1)
     {
-
+        DEBUG_MESSAGE("SPI transaction completed. Deselecting chip.\n");
         ADIN1110_CS_Deselect();
 
         if (spiCallbackData.callback != NULL)
         {
-            // Usually the ADI driver sets up 'spiCallbackData.userData' as the MAC device
-            // The signature is callback(void *pCBParam, uint32_t Event, void *pArg)
+            DEBUG_MESSAGE("Calling registered SPI callback.\n");
             spiCallbackData.callback(spiCallbackData.userData, 0, NULL);
+        }
+        else
+        {
+            DEBUG_MESSAGE("No SPI callback registered.\n");
         }
     }
 }
+
 
 /* USER CODE END 1 */

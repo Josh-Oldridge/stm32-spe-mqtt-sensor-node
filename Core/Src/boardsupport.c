@@ -176,10 +176,21 @@ void BSP_LedToggleAll(void)
 
 uint32_t BSP_spi2_write_and_read(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma)
 {
+    DEBUG_MESSAGE("BSP_spi2_write_and_read: Starting SPI transaction.\n");
     ADIN1110_CS_Select();
+
     HAL_SPI_TransmitReceive_DMA(&hspi1, pBufferTx, pBufferRx, nbBytes);
-    return 0;
+   /* if (status != HAL_OK)
+    {
+        DEBUG_MESSAGE("HAL_SPI_TransmitReceive_DMA failed with status: %d\n", status);
+        ADIN1110_CS_Deselect();
+        return 1; // Error
+    }*/
+
+    DEBUG_MESSAGE("SPI transaction initiated.\n");
+    return 0; // Success
 }
+
 
 /*at
  * @brief Helper for Access BSP EEPROM, chip select is active high
@@ -306,7 +317,9 @@ void common_Perf(char *InfoString)
 uint32_t BSP_RegisterIRQCallback(ADI_CB const *intCallback, void *hDevice) {
     if (intCallback != NULL) {
         HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+        DEBUG_MESSAGE("Enabling IRQ for EXTI15_10_IRQn...");
         HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+        DEBUG_MESSAGE("IRQ Enabled.");
         return 0;
     }
     return 1;

@@ -10,4 +10,4 @@
 ../Core/Src/stm32l4xx_it.c:207:6:DMA1_Channel2_IRQHandler	1
 ../Core/Src/stm32l4xx_it.c:221:6:DMA1_Channel3_IRQHandler	1
 ../Core/Src/stm32l4xx_it.c:235:6:SPI1_IRQHandler	1
-../Core/Src/stm32l4xx_it.c:249:6:EXTI15_10_IRQHandler	1
+../Core/Src/stm32l4xx_it.c:249:6:EXTI15_10_IRQHandler	2
