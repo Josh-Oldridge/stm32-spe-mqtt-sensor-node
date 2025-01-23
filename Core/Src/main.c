@@ -67,6 +67,7 @@ adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
 
 
 void printStats(adin1110_DeviceHandle_t hDevice);
+
 uint8_t dest_mac[6] = { 0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33 };  // Dell MAC
 uint8_t mySourceMac[6] = { 0x00, 0xE0, 0x22, 0xFE, 0xDA, 0xCA };
 uint16_t myEtherType = 0x88B5;
@@ -337,34 +338,37 @@ int main(void)
 	HAL_Delay(3000);
 	netif_set_link_up(&myConn.netif);
 
-	#endif  /* USE_LWIP */
+#endif  /* USE_LWIP */
 
 	uint32_t heartbeatCheckTime = 0;
 
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	/* Uncomment these variable declarations when using lwIP stack*/
-	#ifdef USE_LWIP
+#ifdef USE_LWIP
 	while (1) {
-	#endif  /* USE_LWIP */
-	#ifndef USE_LWIP
+#endif  /* USE_LWIP */
+#ifndef USE_LWIP
 	while (!FRAME_COUNT || (txIdx < FRAME_COUNT)) {
 	#endif  /* USE_LWIP */
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-	#ifdef USE_LWIP
+		/* USER CODE BEGIN 3 */
+#ifdef USE_LWIP
 		uint32_t now = BSP_SysNow();
-		if ((now - heartbeatCheckTime) >= 250) {
-			heartbeatCheckTime = now;
-			BSP_HeartBeat();
-			sys_check_timeouts();
-		}
-		LwIP_ADIN1110LinkInput(&myConn.netif);
-	}
-	#endif  /* USE_LWIP */
+		        if ((now - heartbeatCheckTime) >= 250) {
+		            heartbeatCheckTime = now;
+		            BSP_HeartBeat();
+		            sys_check_timeouts();
+		        }
+		        LwIP_ADIN1110LinkInput(&myConn.netif);
+
+		        // Process the UDP query/response state machine.
+		        process_udp_query();
+		    }
+#endif  /* USE_LWIP */
 
 	#ifndef USE_LWIP
 		uint32_t now = BSP_SysNow();

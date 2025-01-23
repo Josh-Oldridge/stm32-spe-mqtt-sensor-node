@@ -19,6 +19,7 @@
 #include "lwip/timeouts.h"
 #include "lwip/arch.h"
 #include "lwip/apps/httpd.h"
+#include "lwip/udp.h"
 
 #define ADIN1110_INIT_ITER  (5)
 /* Extra 4 bytes for FCS and 2 bytes for the frame header */
@@ -77,6 +78,23 @@ adi_eth_LinkStatus_e    linkStatus;
 bool linkStatusChanged;
 adi_eth_LinkStatus_e linkState ;
 
+
+
+#define QUERY_TIMEOUT 60000  // 60 seconds timeout
+
+// Define your query message (you can adjust the format as needed):
+static const char queryMsg[]       = "CMD:QUERY:LD1_ON?";
+static const char responseOnMsg[]  = "CMD:RESPONSE:LD1_ON";
+static const char responseOffMsg[] = "CMD:RESPONSE:LD1_OFF";
+
+// Define the remote IP and port; for example:
+static ip4_addr_t remoteIP;
+#define REMOTE_UDP_PORT 5000
+#define LOCAL_UDP_PORT  5001
+volatile QueryState_t queryState = STATE_IDLE;
+volatile uint32_t querySentTime = 0;
+static struct udp_pcb *query_udp_pcb = NULL;
+
 #ifdef USE_LWIP
 
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg)
@@ -84,31 +102,31 @@ static void txCallback(void *pCBParam, uint32_t Event, void *pArg)
     txBufAvailable[0] = true;
 }
 
-static void rxCallback(void *pCBParam, uint32_t Event, void *pArg)
-{
+static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
     adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t)pCBParam;
-    adi_eth_BufDesc_t       *pRxBufDesc;
-
-    pRxBufDesc = (adi_eth_BufDesc_t *)pArg;
-
+    adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t *)pArg;
     uint16_t frmLen = pRxBufDesc->trxSize;
 
-    int unicast = ((pRxBufDesc->pBuf[0] & 0x01) == 0);
-
-    LINK_STATS_INC(link.recv);
-    MIB2_STATS_NETIF_ADD(netif, ifinoctets, p->tot_len);
-    if (unicast)
-    {
-      MIB2_STATS_NETIF_INC(netif, ifinucastpkts);
+    // Extract payload assuming it starts at offset 18.
+    char receivedCmd[128] = {0};
+    if (frmLen > 18 && frmLen < sizeof(receivedCmd)) {
+        memcpy(receivedCmd, &pRxBufDesc->pBuf[18], frmLen - 18);
+        DEBUG_MESSAGE("Received command: %s\r\n", receivedCmd);
+        // Check if response matches our expected strings.
+        if (strncmp(receivedCmd, responseOnMsg, strlen(responseOnMsg)) == 0) {
+            queryState = STATE_RESPONSE_RECEIVED;
+            // Turn on LD1:
+            HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+            DEBUG_MESSAGE("LD1 turned ON\r\n");
+        } else if (strncmp(receivedCmd, responseOffMsg, strlen(responseOffMsg)) == 0) {
+            queryState = STATE_RESPONSE_RECEIVED;
+            // Turn off LD1:
+            HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+            DEBUG_MESSAGE("LD1 turned OFF\r\n");
+        }
     }
-    else
-    {
-      MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
-    }
 
-    writePQ(&pQ[0], pRxBufDesc->pBuf, frmLen);
-    /* Since we're not doing anything with the Rx buffer in this example, */
-    /* we are re-submitting it to the queue. */
+    // Resubmit the Rx buffer.
     rxBufDesc[0].pBuf = &rxBuf[0][0];
     rxBufDesc[0].bufSize = MAX_FRAME_BUF_SIZE;
     rxBufDesc[0].cbFunc = rxCallback;
@@ -141,6 +159,100 @@ uint32_t sys_now(void)
 {
   return BSP_SysNow();
 }
+
+static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p,
+                                const ip_addr_t *addr, u16_t port)
+{
+    char recv_buf[128] = {0};
+    if (p != NULL) {
+        size_t copy_len = (p->len < sizeof(recv_buf)-1) ? p->len : sizeof(recv_buf)-1;
+        memcpy(recv_buf, p->payload, copy_len);
+        recv_buf[copy_len] = '\0';
+        DEBUG_MESSAGE("UDP Received: %s\r\n", recv_buf);
+
+        // Process the reply:
+        if (strncmp(recv_buf, responseOnMsg, strlen(responseOnMsg)) == 0) {
+            queryState = STATE_RESPONSE_RECEIVED;
+            HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+            DEBUG_MESSAGE("LD1 turned ON via UDP response\r\n");
+        } else if (strncmp(recv_buf, responseOffMsg, strlen(responseOffMsg)) == 0) {
+            queryState = STATE_RESPONSE_RECEIVED;
+            HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+            DEBUG_MESSAGE("LD1 turned OFF via UDP response\r\n");
+        }
+        pbuf_free(p);
+    }
+}
+
+
+err_t udp_send_query(void)
+{
+    struct pbuf *p;
+    err_t err;
+
+    // Allocate a pbuf to hold the query message.
+    p = pbuf_alloc(PBUF_TRANSPORT, sizeof(queryMsg) - 1, PBUF_RAM);
+    if (p == NULL) {
+        DEBUG_MESSAGE("Failed to allocate pbuf for UDP query\r\n");
+        return ERR_MEM;
+    }
+    memcpy(p->payload, queryMsg, sizeof(queryMsg) - 1);
+
+    // Create the UDP PCB if it is not already created.
+    if (query_udp_pcb == NULL) {
+        query_udp_pcb = udp_new();
+        if (query_udp_pcb == NULL) {
+            DEBUG_MESSAGE("Failed to create UDP PCB\r\n");
+            pbuf_free(p);
+            return ERR_MEM;
+        }
+        // Bind the PCB to the local port.
+        err = udp_bind(query_udp_pcb, IP4_ADDR_ANY, LOCAL_UDP_PORT);
+        if (err != ERR_OK) {
+            DEBUG_MESSAGE("UDP bind failed: %d\r\n", err);
+            pbuf_free(p);
+            return err;
+        }
+        // Install the receive callback.
+        udp_recv(query_udp_pcb, udp_recv_callback, NULL);
+    }
+
+    // Initialize remoteIP if not already done.
+    // Use the IP4_ADDR macro to set remoteIP to 192.168.1.10.
+    IP4_ADDR(&remoteIP, 192, 168, 1, 10);
+
+    // Send the UDP packet.
+    err = udp_sendto(query_udp_pcb, p, &remoteIP, REMOTE_UDP_PORT);
+    if (err == ERR_OK) {
+        querySentTime = BSP_SysNow();
+        queryState = STATE_WAITING_FOR_RESPONSE;
+        DEBUG_MESSAGE("UDP Query sent at %lu ms\r\n", querySentTime);
+    } else {
+        DEBUG_MESSAGE("UDP send failed: %d\r\n", err);
+    }
+    pbuf_free(p);
+    return err;
+}
+
+// Optionally, provide a single function that processes the query state (called from main loop).
+void process_udp_query(void)
+{
+    uint32_t now = BSP_SysNow();
+    if (queryState == STATE_WAITING_FOR_RESPONSE) {
+        if ((now - querySentTime) >= QUERY_TIMEOUT) {
+            DEBUG_MESSAGE("UDP Query timeout reached (%lu ms); resending query\r\n", (unsigned long)QUERY_TIMEOUT);
+            udp_send_query();
+        }
+    } else if (queryState == STATE_IDLE) {
+        // If idle, send query.
+        udp_send_query();
+    } else if (queryState == STATE_RESPONSE_RECEIVED) {
+        // After processing the response, go back to idle to allow new query cycle.
+        queryState = STATE_IDLE;
+    }
+}
+
+
 
 err_t LwIP_ADIN1110LinkInput(struct netif *netif)
 {
