@@ -60,6 +60,17 @@
 
 #define LWIP_TIMERS 1
 
+#ifndef LWIP_ICMP
+#define LWIP_ICMP 1
+#endif
+
+#ifndef LWIP_IPV4
+#define LWIP_IPV4 1
+#endif
+
+#ifndef MEMP_NUM_RAW_PCB
+#define MEMP_NUM_RAW_PCB 4
+#endif
 /*
  ------------------------------------
  ---------- Memory options ----------
@@ -404,12 +415,12 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  4
+#define PBUF_POOL_SIZE                  16
 #endif
 #define PBUF_POOL_BUFSIZE 1700
 #define PBUF_LINK_HLEN 16
 
-#define ARP_TABLE_SIZE 10
+#define ARP_TABLE_SIZE 20
 #define ARP_QUEUEING 1
 
 #define ICMP_TTL 255
@@ -494,7 +505,7 @@
  * LWIP_RAW==1: Enable application layer to hook into the IP layer itself.
  */
 #ifndef LWIP_RAW
-#define LWIP_RAW                0
+#define LWIP_RAW                1
 #endif
 
 #define CHECKSUM_GEN_TCP 	1

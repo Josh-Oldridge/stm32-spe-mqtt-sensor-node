@@ -37,7 +37,29 @@ lwip/src/core/raw.o: ../lwip/src/core/raw.c \
  ../Core/Inc/spi.h ../Core/Inc/usart.h ../Core/Inc/gpio.h \
  ../Core/Inc/hal.h ../Core/Inc/adi_eth_common.h \
  ../Core/Inc/hal_port_specific.h \
- ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l496xx.h
+ ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l496xx.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/def.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/memp.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/priv/memp_std.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/priv/memp_priv.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/mem.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/priv/mem_priv.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/stats.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip_addr.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip4_addr.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip6_addr.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/def.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/netif.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/err.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/pbuf.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/raw.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip4.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/prot/ip4.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip6.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/prot/ip.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/priv/raw_priv.h \
+ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/inet_chksum.h
 C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/opt.h:
 ../Core/Inc/lwipopts.h:
 C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/debug.h:
@@ -85,3 +107,25 @@ C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lw
 ../Core/Inc/adi_eth_common.h:
 ../Core/Inc/hal_port_specific.h:
 ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l496xx.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/def.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/memp.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/priv/memp_std.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/priv/memp_priv.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/mem.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/priv/mem_priv.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/stats.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip_addr.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip4_addr.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip6_addr.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/def.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/netif.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/err.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/pbuf.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/raw.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip4.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/prot/ip4.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/ip6.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/prot/ip.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/priv/raw_priv.h:
+C:/Users/ZOJOLDRI/STM32CubeIDE/workspace_InProgress/ADIN1110/lwip/src/include/lwip/inet_chksum.h:

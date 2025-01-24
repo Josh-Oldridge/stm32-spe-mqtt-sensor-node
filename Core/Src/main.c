@@ -340,12 +340,13 @@ int main(void)
 
 #endif  /* USE_LWIP */
 
-	uint32_t heartbeatCheckTime = 0;
+	 uint32_t heartbeatCheckTime = 0;
+	 uint32_t lastPollTime = 0;
+	 uint32_t pollIntervalMs = 1;
+  /* USER CODE END 2 */
 
-	/* USER CODE END 2 */
-
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	/* Uncomment these variable declarations when using lwIP stack*/
 #ifdef USE_LWIP
 	while (1) {
@@ -353,30 +354,30 @@ int main(void)
 #ifndef USE_LWIP
 	while (!FRAME_COUNT || (txIdx < FRAME_COUNT)) {
 	#endif  /* USE_LWIP */
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 #ifdef USE_LWIP
 		uint32_t now = BSP_SysNow();
-		        if ((now - heartbeatCheckTime) >= 250) {
+
+		        // Poll lwIP every 'pollIntervalMs'
+		        if ((now - lastPollTime) >= pollIntervalMs)
+		        {
+		            lastPollTime = now;
+		            sys_check_timeouts();
+		            LwIP_ADIN1110LinkInput(&myConn.netif);
+		            if (netif_is_up(&myConn.netif) && !ip4_addr_isany_val(myConn.netif.ip_addr))
+		            {
+		                process_udp_query();
+		            }
+		        }
+
+		        if ((now - heartbeatCheckTime) >= 250)
+		        {
 		            heartbeatCheckTime = now;
 		            BSP_HeartBeat();
-		            sys_check_timeouts();
 		        }
-		        LwIP_ADIN1110LinkInput(&myConn.netif);
-
-		        // Process the UDP query/response state machine.
-		        if (netif_is_up(&myConn.netif) &&
-		            !ip4_addr_isany_val(myConn.netif.ip_addr))
-		        {
-		           // Safe to send UDP
-		           process_udp_query();
-		        }
-		        else
-		        {
-		           // Retry later
-		           DEBUG_MESSAGE("Network interface not ready.\n");
-		        }
+		        HAL_Delay(1);
 		    }
 #endif  /* USE_LWIP */
 

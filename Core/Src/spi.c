@@ -50,7 +50,7 @@ void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -172,17 +172,14 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi->Instance == SPI1)
     {
-        DEBUG_MESSAGE("SPI transaction completed. Deselecting chip.\n");
         ADIN1110_CS_Deselect();
 
         if (spiCallbackData.callback != NULL)
         {
-            DEBUG_MESSAGE("Calling registered SPI callback.\n");
             spiCallbackData.callback(spiCallbackData.userData, 0, NULL);
         }
         else
         {
-            DEBUG_MESSAGE("No SPI callback registered.\n");
         }
     }
 }

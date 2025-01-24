@@ -176,19 +176,10 @@ void BSP_LedToggleAll(void)
 
 uint32_t BSP_spi2_write_and_read(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma)
 {
-    DEBUG_MESSAGE("BSP_spi2_write_and_read: Starting SPI transaction.\n");
+
     ADIN1110_CS_Select();
-
     HAL_SPI_TransmitReceive_DMA(&hspi1, pBufferTx, pBufferRx, nbBytes);
-   /* if (status != HAL_OK)
-    {
-        DEBUG_MESSAGE("HAL_SPI_TransmitReceive_DMA failed with status: %d\n", status);
-        ADIN1110_CS_Deselect();
-        return 1; // Error
-    }*/
-
-    DEBUG_MESSAGE("SPI transaction initiated.\n");
-    return 0; // Success
+    return 0;
 }
 
 

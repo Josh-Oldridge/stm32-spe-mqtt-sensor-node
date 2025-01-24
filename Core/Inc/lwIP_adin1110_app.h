@@ -64,12 +64,10 @@ typedef enum {
     STATE_RESPONSE_RECEIVED
 } QueryState_t;
 
-// Declare global query variables (if you really need external access)
 extern volatile QueryState_t queryState;
 extern volatile uint32_t querySentTime;
-#define QUERY_TIMEOUT 60000  // 60 seconds timeout (ms)
+#define QUERY_TIMEOUT 60000
 
-// Declare UDP query function(s)
 err_t udp_send_query(void);
 void process_udp_query(void);
 #endif /*LWIP_ADIN1110__H*/

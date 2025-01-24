@@ -22,14 +22,8 @@
 #include "lwip/udp.h"
 
 #define ADIN1110_INIT_ITER  (5)
-/* Extra 4 bytes for FCS and 2 bytes for the frame header */
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
-
-/* Frame size in bytes, applies to each of the transmitted frames. */
-/* The value should be between 64 and 1518. */
 #define FRAME_SIZE          (1518)
-
-/* Number of buffer descriptors to use for both Tx and Rx in this example */
 #define BUFF_DESC_COUNT     (4)
 
 #define ETHERNET_MTU        (1500)
@@ -50,20 +44,16 @@ int                     txBufIndex = 0;
 HAL_ALIGNED_PRAGMA(4)
 pQueue_t pQ[MAX_PQ] HAL_ALIGNED_ATTRIBUTE(4);;
 
-/* Define name of the network interface. */
 #define IFNAME0         'e'
 #define IFNAME1         '0'
 #define HOSTNAME         "ADI_10BASE-T1L_Demo"
 #define NETIF_LINK_SPEED_IN_BPS 10000000
 
-
-/*Function Prototypes*/
 static void            initPQueue(pQueue_t* pQ);
 static void*           readPQ(pQueue_t* pQ);
 static void            writePQ(pQueue_t* pQ, uint8_t *ethFrame, int lenEthFrame);
 static uint32_t        pDataAvailable(pQueue_t* pQ);
 
-/* Example configuration */
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
 
 adin1110_DriverConfig_t drvConfig = {
@@ -80,14 +70,12 @@ adi_eth_LinkStatus_e linkState ;
 
 
 
-#define QUERY_TIMEOUT 60000  // 60 seconds timeout
+#define QUERY_TIMEOUT 60000
 
-// Define your query message (you can adjust the format as needed):
 static const char queryMsg[]       = "CMD:QUERY:LD1_ON?";
 static const char responseOnMsg[]  = "CMD:RESPONSE:LD1_ON";
 static const char responseOffMsg[] = "CMD:RESPONSE:LD1_OFF";
 
-// Define the remote IP and port; for example:
 static ip4_addr_t remoteIP;
 #define REMOTE_UDP_PORT 5000
 #define LOCAL_UDP_PORT  5001
@@ -107,8 +95,6 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg)
     adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t)pCBParam;
     adi_eth_BufDesc_t *pRxBufDesc   = (adi_eth_BufDesc_t *)pArg;
     uint16_t frmLen                = pRxBufDesc->trxSize;
-
-    // Optional: If you want to parse some bytes from the frame for debugging:
     if (frmLen > 18)
     {
         char receivedCmd[128] = {0};
@@ -118,8 +104,6 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg)
 
         memcpy(receivedCmd, &pRxBufDesc->pBuf[18], copyLen);
         DEBUG_MESSAGE("Received command: %s\r\n", receivedCmd);
-
-        // Example check for some custom string...
         if (strncmp(receivedCmd, responseOnMsg, strlen(responseOnMsg)) == 0)
         {
             queryState = STATE_RESPONSE_RECEIVED;
@@ -133,12 +117,7 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg)
             DEBUG_MESSAGE("LD1 turned OFF\r\n");
         }
     }
-
-    // 1) Enqueue the entire received frame so LwIP_ADIN1110LinkInput() can read it later.
     writePQ(&pQ[0], pRxBufDesc->pBuf, frmLen);
-
-    // 2) Re-submit the same Rx buffer descriptor so the driver can continue receiving.
-    //    *Do not* overwrite pRxBufDesc->pBuf or the cbFunc again. Just re-submit as is:
     adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 
@@ -178,8 +157,6 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p,
         memcpy(recv_buf, p->payload, copy_len);
         recv_buf[copy_len] = '\0';
         DEBUG_MESSAGE("UDP Received: %s\r\n", recv_buf);
-
-        // Process the reply:
         if (strncmp(recv_buf, responseOnMsg, strlen(responseOnMsg)) == 0) {
             queryState = STATE_RESPONSE_RECEIVED;
             HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
@@ -198,16 +175,12 @@ err_t udp_send_query(void)
 {
     struct pbuf *p;
     err_t err;
-
-    // Allocate a pbuf to hold the query message.
     p = pbuf_alloc(PBUF_TRANSPORT, sizeof(queryMsg) - 1, PBUF_RAM);
     if (p == NULL) {
         DEBUG_MESSAGE("Failed to allocate pbuf for UDP query\r\n");
         return ERR_MEM;
     }
     memcpy(p->payload, queryMsg, sizeof(queryMsg) - 1);
-
-    // Create the UDP PCB if it is not already created.
     if (query_udp_pcb == NULL) {
         query_udp_pcb = udp_new();
         if (query_udp_pcb == NULL) {
@@ -215,22 +188,15 @@ err_t udp_send_query(void)
             pbuf_free(p);
             return ERR_MEM;
         }
-        // Bind the PCB to the local port.
         err = udp_bind(query_udp_pcb, IP4_ADDR_ANY, LOCAL_UDP_PORT);
         if (err != ERR_OK) {
             DEBUG_MESSAGE("UDP bind failed: %d\r\n", err);
             pbuf_free(p);
             return err;
         }
-        // Install the receive callback.
         udp_recv(query_udp_pcb, udp_recv_callback, NULL);
     }
-
-    // Initialize remoteIP if not already done.
-    // Use the IP4_ADDR macro to set remoteIP to 192.168.1.10.
     IP4_ADDR(&remoteIP, 192, 168, 1, 10);
-
-    // Send the UDP packet.
     err = udp_sendto(query_udp_pcb, p, &remoteIP, REMOTE_UDP_PORT);
     if (err == ERR_OK) {
         querySentTime = BSP_SysNow();
@@ -243,7 +209,6 @@ err_t udp_send_query(void)
     return err;
 }
 
-// Optionally, provide a single function that processes the query state (called from main loop).
 void process_udp_query(void)
 {
     uint32_t now = BSP_SysNow();
@@ -253,10 +218,8 @@ void process_udp_query(void)
             udp_send_query();
         }
     } else if (queryState == STATE_IDLE) {
-        // If idle, send query.
         udp_send_query();
     } else if (queryState == STATE_RESPONSE_RECEIVED) {
-        // After processing the response, go back to idle to allow new query cycle.
         queryState = STATE_IDLE;
     }
 }
@@ -319,7 +282,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
     LINK_STATS_INC(link.xmit);
     MIB2_STATS_NETIF_ADD(netif, ifoutoctets, total_len);
 
-    if(total_len < MIN_FRAME_SIZE) // Pad to minimum ETH size
+    if(total_len < MIN_FRAME_SIZE)
     {
       total_len = MIN_FRAME_SIZE;
     }
@@ -332,12 +295,10 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 
     if ((txBufDesc[txBufIndex].pBuf[0] & 1) != 0)
     {
-      /* broadcast or multicast packet*/
       MIB2_STATS_NETIF_INC(netif, ifoutnucastpkts);
     }
     else
     {
-      /* unicast packet */
       MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
     }
 
@@ -395,9 +356,8 @@ static err_t LwipADIN1110Init(struct netif *netif)
    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP;
 
 	#if LWIP_NETIF_HOSTNAME
-    /* Initialize interface hostname */
     netif->hostname = HOSTNAME;
-	#endif /* LWIP_NETIF_HOSTNAME */
+	#endif
 
 
    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP;
@@ -415,48 +375,36 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t* eth)
     adi_eth_Result_e result;
     adin1110_DeviceHandle_t hDevice = eth->hDevice;
     uint8_t brcstMAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-    // Discover and initialize ADIN1110
     result = discoveradin1110(hDevice);
     if (result != ADI_ETH_SUCCESS)
     {
         DEBUG_MESSAGE("Error: ADIN1110 discovery failed.\r\n");
         return result;
     }
-
-    // Add broadcast MAC address filter
     result = adin1110_AddAddressFilter(hDevice, brcstMAC, NULL, 0);
     if (result != ADI_ETH_SUCCESS)
     {
         DEBUG_MESSAGE("Error: Adding broadcast MAC address filter failed. Code: 0x%08X\r\n", result);
         return result;
     }
-
-    // Add device MAC address filter
     result = adin1110_AddAddressFilter(hDevice, eth->macAddress, NULL, 0);
     if (result != ADI_ETH_SUCCESS)
     {
         DEBUG_MESSAGE("Error: Adding device MAC address filter failed.\r\n");
         return result;
     }
-
-    // Synchronize device configuration
     result = adin1110_SyncConfig(hDevice);
     if (result != ADI_ETH_SUCCESS)
     {
         DEBUG_MESSAGE("Error: Synchronizing configuration failed.\r\n");
         return result;
     }
-
-    // Register callback for link change
     result = adin1110_RegisterCallback(hDevice, cbLinkChange, ADI_MAC_EVT_LINK_CHANGE);
     if (result != ADI_ETH_SUCCESS)
     {
         DEBUG_MESSAGE("Error: Registering link change callback failed.\r\n");
         return result;
     }
-
-    // Prepare Rx buffers
     for (uint32_t i = 0; i < BUFF_DESC_COUNT; i++)
     {
         txBufAvailable[i] = true;
@@ -472,8 +420,6 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t* eth)
             return result;
         }
     }
-
-    // Enable device
     result = adin1110_Enable(hDevice);
     if (result != ADI_ETH_SUCCESS)
     {
@@ -519,7 +465,6 @@ void LwIP_Init( LwIP_ADIN1110_t* eth,  board_t *boardDetails)
 
       dhcp_start(&eth->netif);
     }
-//   netif_set_status_callback(&eth->netif, LwipADIN1110NetifStatusCallback);
 }
 
 void initPQueue(pQueue_t* pQ)
@@ -574,7 +519,6 @@ uint32_t discoveradin1110(adin1110_DeviceHandle_t hDevice)
             break;
         }
     }
-   // DEBUG_RESULT("No MACPHY device found", result, ADI_ETH_SUCCESS);
     return error;
 }
 #endif
