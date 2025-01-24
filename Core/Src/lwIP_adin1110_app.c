@@ -102,34 +102,43 @@ static void txCallback(void *pCBParam, uint32_t Event, void *pArg)
     txBufAvailable[0] = true;
 }
 
-static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
+static void rxCallback(void *pCBParam, uint32_t Event, void *pArg)
+{
     adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t)pCBParam;
-    adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t *)pArg;
-    uint16_t frmLen = pRxBufDesc->trxSize;
+    adi_eth_BufDesc_t *pRxBufDesc   = (adi_eth_BufDesc_t *)pArg;
+    uint16_t frmLen                = pRxBufDesc->trxSize;
 
-    // Extract payload assuming it starts at offset 18.
-    char receivedCmd[128] = {0};
-    if (frmLen > 18 && frmLen < sizeof(receivedCmd)) {
-        memcpy(receivedCmd, &pRxBufDesc->pBuf[18], frmLen - 18);
+    // Optional: If you want to parse some bytes from the frame for debugging:
+    if (frmLen > 18)
+    {
+        char receivedCmd[128] = {0};
+        size_t copyLen = (frmLen - 18 < sizeof(receivedCmd))
+                           ? (frmLen - 18)
+                           : (sizeof(receivedCmd) - 1);
+
+        memcpy(receivedCmd, &pRxBufDesc->pBuf[18], copyLen);
         DEBUG_MESSAGE("Received command: %s\r\n", receivedCmd);
-        // Check if response matches our expected strings.
-        if (strncmp(receivedCmd, responseOnMsg, strlen(responseOnMsg)) == 0) {
+
+        // Example check for some custom string...
+        if (strncmp(receivedCmd, responseOnMsg, strlen(responseOnMsg)) == 0)
+        {
             queryState = STATE_RESPONSE_RECEIVED;
-            // Turn on LD1:
             HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
             DEBUG_MESSAGE("LD1 turned ON\r\n");
-        } else if (strncmp(receivedCmd, responseOffMsg, strlen(responseOffMsg)) == 0) {
+        }
+        else if (strncmp(receivedCmd, responseOffMsg, strlen(responseOffMsg)) == 0)
+        {
             queryState = STATE_RESPONSE_RECEIVED;
-            // Turn off LD1:
             HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
             DEBUG_MESSAGE("LD1 turned OFF\r\n");
         }
     }
 
-    // Resubmit the Rx buffer.
-    rxBufDesc[0].pBuf = &rxBuf[0][0];
-    rxBufDesc[0].bufSize = MAX_FRAME_BUF_SIZE;
-    rxBufDesc[0].cbFunc = rxCallback;
+    // 1) Enqueue the entire received frame so LwIP_ADIN1110LinkInput() can read it later.
+    writePQ(&pQ[0], pRxBufDesc->pBuf, frmLen);
+
+    // 2) Re-submit the same Rx buffer descriptor so the driver can continue receiving.
+    //    *Do not* overwrite pRxBufDesc->pBuf or the cbFunc again. Just re-submit as is:
     adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 

@@ -366,7 +366,17 @@ int main(void)
 		        LwIP_ADIN1110LinkInput(&myConn.netif);
 
 		        // Process the UDP query/response state machine.
-		        process_udp_query();
+		        if (netif_is_up(&myConn.netif) &&
+		            !ip4_addr_isany_val(myConn.netif.ip_addr))
+		        {
+		           // Safe to send UDP
+		           process_udp_query();
+		        }
+		        else
+		        {
+		           // Retry later
+		           DEBUG_MESSAGE("Network interface not ready.\n");
+		        }
 		    }
 #endif  /* USE_LWIP */
 
