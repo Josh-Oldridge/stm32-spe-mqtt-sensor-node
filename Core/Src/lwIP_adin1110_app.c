@@ -20,6 +20,8 @@
 #include "lwip/arch.h"
 #include "lwip/apps/httpd.h"
 #include "lwip/udp.h"
+#include "lwip/netif.h"
+
 
 #define ADIN1110_INIT_ITER  (5)
 /* Extra 4 bytes for FCS and 2 bytes for the frame header */
@@ -143,6 +145,16 @@ void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg)
     (void)linkStatus;
 }
 
+void netif_status_callback(struct netif *netif)
+{
+    if (netif_is_up(netif)) {
+        printf("Network interface is up.\n");
+        printf("Assigned IP address: %s\n", ipaddr_ntoa(&netif->ip_addr));
+    } else {
+        printf("Network interface is down.\n");
+    }
+}
+
 #endif
 
 
@@ -219,7 +231,7 @@ err_t udp_send_query(void)
 
     // Initialize remoteIP if not already done.
     // Use the IP4_ADDR macro to set remoteIP to 192.168.1.10.
-    IP4_ADDR(&remoteIP, 192, 168, 1, 10);
+    IP4_ADDR(&remoteIP, 192, 168, 1, 12);
 
     // Send the UDP packet.
     err = udp_sendto(query_udp_pcb, p, &remoteIP, REMOTE_UDP_PORT);
@@ -480,7 +492,7 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t* eth)
 
 
 
-void LwIP_Init( LwIP_ADIN1110_t* eth,  board_t *boardDetails)
+void LwIP_Init(LwIP_ADIN1110_t* eth, board_t *boardDetails)
 {
     ADIN1110Init(eth);
     lwip_init();
@@ -488,29 +500,27 @@ void LwIP_Init( LwIP_ADIN1110_t* eth,  board_t *boardDetails)
     httpd_init();
     if (boardDetails->ip_addr_fixed == 1)
     {
-      ip4_addr_t ip, mask, gw;
+        ip4_addr_t ip, mask, gw;
 
-      IP4_ADDR(&ip, boardDetails->ip_addr[0], boardDetails->ip_addr[1], boardDetails->ip_addr[2], boardDetails->ip_addr[3]);
-      IP4_ADDR(&mask,  boardDetails->net_mask[0], boardDetails->net_mask[1], boardDetails->net_mask[2], boardDetails->net_mask[3]);
-      IP4_ADDR(&gw,   boardDetails->gateway[0], boardDetails->gateway[1], boardDetails->gateway[2], boardDetails->gateway[3]);
+        IP4_ADDR(&ip, boardDetails->ip_addr[0], boardDetails->ip_addr[1], boardDetails->ip_addr[2], boardDetails->ip_addr[3]);
+        IP4_ADDR(&mask, boardDetails->net_mask[0], boardDetails->net_mask[1], boardDetails->net_mask[2], boardDetails->net_mask[3]);
+        IP4_ADDR(&gw, boardDetails->gateway[0], boardDetails->gateway[1], boardDetails->gateway[2], boardDetails->gateway[3]);
 
-      netif_add(&eth->netif, &ip, &mask, &gw, eth,
-      LwipADIN1110Init, ethernet_input);
-
-      netif_set_default(&eth->netif);
-      netif_set_up(&eth->netif);
+        netif_add(&eth->netif, &ip, &mask, &gw, eth,
+                  LwipADIN1110Init, ethernet_input);
     }
     else
     {
-      netif_add(&eth->netif, IPADDR_ANY, IPADDR_ANY, IPADDR_ANY, eth,
-      LwipADIN1110Init, ethernet_input);
+        netif_add(&eth->netif, IPADDR_ANY, IPADDR_ANY, IPADDR_ANY, eth,
+                  LwipADIN1110Init, ethernet_input);
 
-      netif_set_default(&eth->netif);
-      netif_set_up(&eth->netif);
-
-      dhcp_start(&eth->netif);
+        dhcp_start(&eth->netif);
     }
-//   netif_set_status_callback(&eth->netif, LwipADIN1110NetifStatusCallback);
+
+    netif_set_default(&eth->netif);
+    netif_set_up(&eth->netif);
+    netif_set_status_callback(&eth->netif, netif_status_callback);
+
 }
 
 void initPQueue(pQueue_t* pQ)

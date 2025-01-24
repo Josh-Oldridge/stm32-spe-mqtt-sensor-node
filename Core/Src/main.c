@@ -257,18 +257,6 @@ int main(void)
 	boardDetails.mac[3] = 0xFE;
 	boardDetails.mac[4] = 0xDA;
 	boardDetails.mac[5] = 0xCA;
-	boardDetails.ip_addr[0] = 192;
-	boardDetails.ip_addr[1] = 168;
-	boardDetails.ip_addr[2] = 1;
-	boardDetails.ip_addr[3] = 100;
-	boardDetails.net_mask[0] = 255;
-	boardDetails.net_mask[1] = 255;
-	boardDetails.net_mask[2] = 255;
-	boardDetails.net_mask[3] = 0;
-	boardDetails.gateway[0] = 192;
-	boardDetails.gateway[1] = 168;
-	boardDetails.gateway[2] = 1;
-	boardDetails.gateway[3] = 1;
 	boardDetails.ip_addr_fixed = IP_DYNAMIC;
 	#endif  /* USE_LWIP */
 
@@ -366,7 +354,15 @@ int main(void)
 		        LwIP_ADIN1110LinkInput(&myConn.netif);
 
 		        // Process the UDP query/response state machine.
-		        process_udp_query();
+		        if (netif_is_up(&myConn.netif) && !ip4_addr_isany_val(myConn.netif.ip_addr))
+		           {
+		               // Process the UDP query/response state machine.
+		               process_udp_query();
+		           }
+		           else
+		           {
+		               printf("Network interface not ready. Waiting for IP address...\n");
+		           }
 		    }
 #endif  /* USE_LWIP */
 
