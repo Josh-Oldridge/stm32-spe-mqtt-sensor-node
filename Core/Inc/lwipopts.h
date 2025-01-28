@@ -514,6 +514,8 @@
 #define CHECKSUM_CHECK_TCP      1
 #define CHECKSUM_CHECK_UDP      1
 #define CHECKSUM_CHECK_IP 	1
+#define CHECKSUM_GEN_ICMP   1
+#define CHECKSUM_CHECK_ICMP 1
 
 /**
  * MEMP_NUM_FRAG_PBUF: the number of IP fragments simultaneously sent
