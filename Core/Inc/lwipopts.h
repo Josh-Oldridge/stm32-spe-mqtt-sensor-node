@@ -226,7 +226,7 @@
  */
 #ifndef MEMP_NUM_PBUF
 #ifdef DEBUG
-#define MEMP_NUM_PBUF                   4
+#define MEMP_NUM_PBUF                   16
 #else
 #define MEMP_NUM_PBUF                   8
 #endif
