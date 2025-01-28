@@ -91,14 +91,21 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 		return;
 	}
 
-	DEBUG_MESSAGE("Received packet of length: %d\r\n", frmLen);
-
 	uint8_t *payload = pRxBufDesc->pBuf;
 	uint16_t ethType = (payload[12] << 8) | payload[13];
 
+	if (ethType == 0x0806) {
+		DEBUG_MESSAGE("Processing ARP packet immediately\r\n");
+		etharp_input(pRxBufDesc->pBuf, &myConn.netif);
+		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+		return;
+	}
+
+	DEBUG_MESSAGE("Received packet of length: %d\r\n", frmLen);
+
 	if (ethType == 0x0800) {
 		uint8_t ipProtocol = payload[23];
-		if (ipProtocol == 0x01) { // ICMP
+		if (ipProtocol == 0x01) {
 			DEBUG_MESSAGE("ICMP packet detected. Preparing to enqueue...\r\n");
 			uint8_t icmpType = payload[34];
 			uint8_t icmpCode = payload[35];
@@ -139,36 +146,55 @@ uint32_t sys_now(void) {
 
 static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p,
 		const ip_addr_t *addr, u16_t port) {
-	char recv_buf[128] = { 0 };
-	if (p != NULL) {
-		size_t copy_len =
-				(p->len < sizeof(recv_buf) - 1) ? p->len : sizeof(recv_buf) - 1;
-		memcpy(recv_buf, p->payload, copy_len);
-		recv_buf[copy_len] = '\0';
-		DEBUG_MESSAGE("UDP Received: %s\r\n", recv_buf);
-		if (strncmp(recv_buf, responseOnMsg, strlen(responseOnMsg)) == 0) {
-			queryState = STATE_RESPONSE_RECEIVED;
-			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
-			DEBUG_MESSAGE("LD1 turned ON via UDP response\r\n");
-		} else if (strncmp(recv_buf, responseOffMsg, strlen(responseOffMsg))
-				== 0) {
-			queryState = STATE_RESPONSE_RECEIVED;
-			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
-			DEBUG_MESSAGE("LD1 turned OFF via UDP response\r\n");
-		}
-		pbuf_free(p);
+	if (p == NULL) {
+		DEBUG_MESSAGE("Received NULL pbuf in UDP callback\r\n");
+		return;
 	}
+
+	char recv_buf[128] = { 0 };
+	size_t copy_len =
+			(p->len < sizeof(recv_buf) - 1) ? p->len : sizeof(recv_buf) - 1;
+	memcpy(recv_buf, p->payload, copy_len);
+	recv_buf[copy_len] = '\0';
+	DEBUG_MESSAGE("UDP Received: %s\r\n", recv_buf);
+
+	if (strncmp(recv_buf, responseOnMsg, strlen(responseOnMsg)) == 0) {
+		queryState = STATE_RESPONSE_RECEIVED;
+		HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+		DEBUG_MESSAGE("LD1 turned ON via UDP response\r\n");
+	} else if (strncmp(recv_buf, responseOffMsg, strlen(responseOffMsg)) == 0) {
+		queryState = STATE_RESPONSE_RECEIVED;
+		HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+		DEBUG_MESSAGE("LD1 turned OFF via UDP response\r\n");
+	} else {
+		DEBUG_MESSAGE("Unknown UDP message received: %s\r\n", recv_buf);
+	}
+
+	pbuf_free(p);
 }
 
 err_t udp_send_query(void) {
 	struct pbuf *p;
 	err_t err;
+
+	if (etharp_get_entry(&remoteIP, NULL) == NULL) {
+		DEBUG_MESSAGE("ARP entry for remote IP not found, resolving...\r\n");
+		err = etharp_request(&myConn.netif, &remoteIP);
+		if (err != ERR_OK) {
+			DEBUG_MESSAGE("ARP request failed: %d\r\n", err);
+			return err;
+		}
+		HAL_Delay(500);
+	}
+
 	p = pbuf_alloc(PBUF_TRANSPORT, sizeof(queryMsg) - 1, PBUF_RAM);
 	if (p == NULL) {
 		DEBUG_MESSAGE("Failed to allocate pbuf for UDP query\r\n");
 		return ERR_MEM;
 	}
+
 	memcpy(p->payload, queryMsg, sizeof(queryMsg) - 1);
+
 	if (query_udp_pcb == NULL) {
 		query_udp_pcb = udp_new();
 		if (query_udp_pcb == NULL) {
@@ -184,6 +210,7 @@ err_t udp_send_query(void) {
 		}
 		udp_recv(query_udp_pcb, udp_recv_callback, NULL);
 	}
+
 	IP4_ADDR(&remoteIP, 192, 168, 1, 12);
 	err = udp_sendto(query_udp_pcb, p, &remoteIP, REMOTE_UDP_PORT);
 	if (err == ERR_OK) {
@@ -193,24 +220,26 @@ err_t udp_send_query(void) {
 	} else {
 		DEBUG_MESSAGE("UDP send failed: %d\r\n", err);
 	}
+
 	pbuf_free(p);
 	return err;
 }
 
 void process_udp_query(void) {
-	uint32_t now = BSP_SysNow();
-	if (queryState == STATE_WAITING_FOR_RESPONSE) {
-		if ((now - querySentTime) >= QUERY_TIMEOUT) {
-			DEBUG_MESSAGE(
-					"UDP Query timeout reached (%lu ms); resending query\r\n",
-					(unsigned long)QUERY_TIMEOUT);
-			udp_send_query();
-		}
-	} else if (queryState == STATE_IDLE) {
-		udp_send_query();
-	} else if (queryState == STATE_RESPONSE_RECEIVED) {
-		queryState = STATE_IDLE;
-	}
+    uint32_t now = BSP_SysNow();
+
+    if (queryState == STATE_WAITING_FOR_RESPONSE) {
+        if ((now - querySentTime) >= QUERY_TIMEOUT) {
+            DEBUG_MESSAGE("UDP Query timeout reached (%lu ms); resending query\r\n",
+                          (unsigned long)QUERY_TIMEOUT);
+            udp_send_query();
+        }
+    } else if (queryState == STATE_IDLE) {
+        DEBUG_MESSAGE("Initiating new UDP query...\r\n");
+        udp_send_query();
+    } else if (queryState == STATE_RESPONSE_RECEIVED) {
+        queryState = STATE_IDLE;
+    }
 }
 
 err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
