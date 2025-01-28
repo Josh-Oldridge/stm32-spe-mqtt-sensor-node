@@ -1,4 +1,0 @@
-../Core/Src/spi.c:36:6:MX_SPI1_Init	8	static
-../Core/Src/spi.c:70:6:HAL_SPI_MspInit	48	static
-../Core/Src/spi.c:139:6:HAL_SPI_MspDeInit	16	static
-../Core/Src/spi.c:171:6:HAL_SPI_TxRxCpltCallback	16	static

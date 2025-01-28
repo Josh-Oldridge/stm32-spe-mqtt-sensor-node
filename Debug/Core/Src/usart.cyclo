@@ -1,7 +1,0 @@
-../Core/Src/usart.c:31:6:MX_LPUART1_UART_Init	2
-../Core/Src/usart.c:60:6:HAL_UART_MspInit	3
-../Core/Src/usart.c:102:6:HAL_UART_MspDeInit	2
-../Core/Src/usart.c:127:19:submitRxBuffer	1
-../Core/Src/usart.c:133:19:submitTxBuffer	1
-../Core/Src/usart.c:146:6:HAL_UART_RxCpltCallback	1
-../Core/Src/usart.c:150:6:HAL_UART_ErrorCallback	1
