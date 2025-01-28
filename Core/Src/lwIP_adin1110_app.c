@@ -234,18 +234,25 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif)
     }
     else
     {
-      struct pbuf *p = (struct pbuf *)readPQ(&pQ[0]);
-      if (p == NULL)
-      {
-        return ERR_MEM;
-      }
+		struct pbuf *p = (struct pbuf*) readPQ(&pQ[0]);
+		if (p == NULL) {
+			return ERR_MEM;
+		}
 
-      if (netif->input(p, netif) != ERR_OK)
-      {
-        LWIP_DEBUGF(NETIF_DEBUG, ("IP input error\r\n"));
-        pbuf_free(p);
-        p = NULL;
-      }
+		uint8_t *payload = (uint8_t*) p->payload;
+		uint16_t ethType = (payload[12] << 8) | payload[13];
+		if (ethType == 0x0800) {
+			uint8_t ipProtocol = payload[23];
+			if (ipProtocol == 0x01) {
+				DEBUG_MESSAGE("ICMP packet passed to LWIP\r\n");
+			}
+		}
+
+		if (netif->input(p, netif) != ERR_OK) {
+			LWIP_DEBUGF(NETIF_DEBUG, ("IP input error\r\n"));
+			pbuf_free(p);
+			p = NULL;
+		}
     }
    return  ERR_OK;
 }
