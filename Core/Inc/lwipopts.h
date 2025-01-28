@@ -422,6 +422,9 @@
 
 #define ARP_TABLE_SIZE 20
 #define ARP_QUEUEING 1
+#ifndef ARP_MAXAGE
+#define ARP_MAXAGE 300
+#endif
 
 #define ICMP_TTL 255
 
