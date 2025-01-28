@@ -386,6 +386,12 @@ int main(void)
 			etharp_tmr();
 		}
 
+		static uint8_t link_was_up = 0;
+		if (netif_is_link_up(&myConn.netif) != link_was_up) {
+			link_was_up = netif_is_link_up(&myConn.netif);
+			DEBUG_MESSAGE(link_was_up ? "Link is UP\r\n" : "Link is DOWN\r\n");
+		}
+
 		HAL_Delay(1);
 	}
 #endif  /* USE_LWIP */
