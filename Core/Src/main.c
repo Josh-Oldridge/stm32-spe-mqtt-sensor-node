@@ -367,9 +367,6 @@ int main(void)
 
 			LwIP_ADIN1110LinkInput(&myConn.netif);
 
-			DEBUG_MESSAGE("Polled LwIP for packets and timeouts at %lu ms\r\n",
-					now);
-
 			if (netif_is_up(
 					&myConn.netif) && !ip4_addr_isany_val(myConn.netif.ip_addr)) {
 				process_udp_query();
