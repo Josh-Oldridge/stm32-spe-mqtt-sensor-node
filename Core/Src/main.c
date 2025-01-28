@@ -343,6 +343,8 @@ int main(void)
 	uint32_t heartbeatCheckTime = 0;
 	uint32_t lastPollTime = 0;
 	uint32_t pollIntervalMs = 1;
+	uint32_t last_arp_time = 0;
+
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -376,6 +378,11 @@ int main(void)
 		if ((now - heartbeatCheckTime) >= 250) {
 			heartbeatCheckTime = now;
 			BSP_HeartBeat();
+		}
+
+		if ((now - last_arp_time) >= 500) {
+			last_arp_time = now;
+			etharp_tmr();
 		}
 
 		HAL_Delay(1);
