@@ -524,12 +524,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		}
 	}
 	if (GPIO_Pin == ETH_INT_N_Pin) {
-
-		HAL_INT_N_DisableIRQ();
-		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
-		if (result != ADI_ETH_SUCCESS) {
-		}
-		HAL_INT_N_EnableIRQ();
+	    DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
+	    HAL_INT_N_DisableIRQ();
+	    adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
+	    if (result != ADI_ETH_SUCCESS) {
+	        DEBUG_MESSAGE("adin1110_HandleInterrupt failed with error: %d\r\n", result);
+	    }
+	    HAL_INT_N_EnableIRQ();
 	}
 
 	if (GPIO_Pin == Interrupt_Pin) {
