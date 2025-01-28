@@ -474,47 +474,62 @@ void LwIP_Init( LwIP_ADIN1110_t* eth,  board_t *boardDetails)
     }
 }
 
-void initPQueue(pQueue_t* pQ)
-{
-    pQ->nWrQ = 0;
-    pQ->nRdQ = 0;
+void initPQueue(pQueue_t *pQ) {
+	pQ->nWrQ = 0;
+	pQ->nRdQ = 0;
 }
 
-
-uint32_t pDataAvailable(pQueue_t* pQ)
-{
-  if (pQ->nWrQ != pQ->nRdQ)
-  {
-    return 1;
-  }
-  return 0;
+uint32_t pDataAvailable(pQueue_t *pQ) {
+	if (pQ->nWrQ != pQ->nRdQ) {
+		return 1;
+	}
+	return 0;
 }
 
-void writePQ(pQueue_t* pQ, uint8_t *ethFrame, int lenEthFrame)
-{
-    memcpy(&pQ->pData[pQ->nWrQ][0] , ethFrame, lenEthFrame);
-    pQ->lenData[pQ->nWrQ] = lenEthFrame;
-    pQ->nWrQ++;
-    pQ->nWrQ %= MAX_P_QUEUE;
+void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame) {
+	if ((pQ->nWrQ + 1) % MAX_P_QUEUE == pQ->nRdQ) {
+		DEBUG_MESSAGE("Queue overflow: dropping packet of length %d\r\n",
+				lenEthFrame);
+		return;
+	}
+	memcpy(&pQ->pData[pQ->nWrQ][0], ethFrame, lenEthFrame);
+	pQ->lenData[pQ->nWrQ] = lenEthFrame;
+	DEBUG_MESSAGE("Packet enqueued at index %d, length: %d\r\n", pQ->nWrQ,
+			lenEthFrame);
+	pQ->nWrQ++;
+	pQ->nWrQ %= MAX_P_QUEUE;
+	DEBUG_MESSAGE("Queue state after enqueue: nWrQ=%d, nRdQ=%d\r\n", pQ->nWrQ,
+			pQ->nRdQ);
 }
 
-void* readPQ(pQueue_t* pQ)
-{
-    int ehtFrmLen = pQ->lenData[pQ->nRdQ] ;
-    struct pbuf* p = pbuf_alloc(PBUF_RAW, MAX_FRAME_BUF_SIZE, PBUF_RAM);
-    memcpy(((uint8_t*) p->payload) , &pQ->pData[pQ->nRdQ][0], ehtFrmLen);
+void* readPQ(pQueue_t *pQ) {
+	if (pQ->nWrQ == pQ->nRdQ) {
+		DEBUG_MESSAGE("Queue underflow: no packets to dequeue\r\n");
+		return NULL;
+	}
+	int ehtFrmLen = pQ->lenData[pQ->nRdQ];
+	struct pbuf *p = pbuf_alloc(PBUF_RAW, MAX_FRAME_BUF_SIZE, PBUF_RAM);
+	if (p == NULL) {
+		DEBUG_MESSAGE("Failed to allocate pbuf for packet of length %d\r\n",
+				ehtFrmLen);
+		return NULL;
+	}
+	memcpy(((uint8_t*) p->payload), &pQ->pData[pQ->nRdQ][0], ehtFrmLen);
+	DEBUG_MESSAGE("Packet dequeued from index %d, length: %d\r\n", pQ->nRdQ,
+			ehtFrmLen);
 
-    pQ->nRdQ++;
-    pQ->nRdQ %= MAX_P_QUEUE;
+	pQ->nRdQ++;
+	pQ->nRdQ %= MAX_P_QUEUE;
 
-    return (void*)p;
+	DEBUG_MESSAGE("Queue state after dequeue: nWrQ=%d, nRdQ=%d\r\n", pQ->nWrQ,
+			pQ->nRdQ);
+
+	return (void*) p;
 }
 
-
-uint32_t discoveradin1110(adin1110_DeviceHandle_t hDevice)
-{
-    adi_eth_Result_e        result;
-    uint32_t                error = 1;
+uint32_t discoveradin1110(adin1110_DeviceHandle_t hDevice) {
+	adi_eth_Result_e result;
+	uint32_t                error = 1;
 
     /****** Driver Init *****/
     for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++)
