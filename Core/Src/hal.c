@@ -144,9 +144,9 @@ uint32_t HAL_SpiReadWrite(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbByt
  *
  * @sa
  */
-uint32_t HAL_SpiRegisterCallback(HAL_Callback_t const *spiCallback, void * hDevice)
+uint32_t HAL_SpiRegisterCallback(HAL_Callback_t spiCallback, void *hDevice)
 {
-	return BSP_spi2_register_callback(*spiCallback, hDevice);
+    return BSP_spi2_register_callback((ADI_CB)spiCallback, hDevice);
 }
 
 uint32_t HAL_Init_Hook(void)

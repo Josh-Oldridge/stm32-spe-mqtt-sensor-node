@@ -349,7 +349,7 @@ uint32_t        HAL_RegisterCallback    (HAL_Callback_t const *intCallback, void
  *
  * @sa
  */
-uint32_t        HAL_SpiRegisterCallback (HAL_Callback_t const *spiCallback, void * hDevice);
+uint32_t HAL_SpiRegisterCallback (HAL_Callback_t spiCallback, void *hDevice);
 
 /*!
  * @brief           HAL SPI read/write.
