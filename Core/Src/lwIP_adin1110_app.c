@@ -90,36 +90,39 @@ static void txCallback(void *pCBParam, uint32_t Event, void *pArg)
     txBufAvailable[0] = true;
 }
 
-static void rxCallback(void *pCBParam, uint32_t Event, void *pArg)
-{
+static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
     adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t)pCBParam;
-    adi_eth_BufDesc_t *pRxBufDesc   = (adi_eth_BufDesc_t *)pArg;
-    uint16_t frmLen                = pRxBufDesc->trxSize;
-    if (frmLen > 18)
-    {
-        char receivedCmd[128] = {0};
-        size_t copyLen = (frmLen - 18 < sizeof(receivedCmd))
-                           ? (frmLen - 18)
-                           : (sizeof(receivedCmd) - 1);
+    adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t *)pArg;
+    uint16_t frmLen = pRxBufDesc->trxSize;
 
-        memcpy(receivedCmd, &pRxBufDesc->pBuf[18], copyLen);
-        DEBUG_MESSAGE("Received command: %s\r\n", receivedCmd);
-        if (strncmp(receivedCmd, responseOnMsg, strlen(responseOnMsg)) == 0)
-        {
-            queryState = STATE_RESPONSE_RECEIVED;
-            HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
-            DEBUG_MESSAGE("LD1 turned ON\r\n");
-        }
-        else if (strncmp(receivedCmd, responseOffMsg, strlen(responseOffMsg)) == 0)
-        {
-            queryState = STATE_RESPONSE_RECEIVED;
-            HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
-            DEBUG_MESSAGE("LD1 turned OFF\r\n");
-        }
+    if (frmLen < 14) {
+        DEBUG_MESSAGE("Received packet is too small, length: %d\r\n", frmLen);
+        adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+        return;
     }
-    writePQ(&pQ[0], pRxBufDesc->pBuf, frmLen);
+
+    DEBUG_MESSAGE("Received packet of length: %d\r\n", frmLen);
+
+    uint8_t *payload = pRxBufDesc->pBuf;
+    uint16_t ethType = (payload[12] << 8) | payload[13];
+
+    if (ethType == 0x0800) { // IPv4
+        uint8_t ipProtocol = payload[23];
+        if (ipProtocol == 0x01) { // ICMP
+            DEBUG_MESSAGE("ICMP packet received. Length: %d\r\n", frmLen);
+
+            uint8_t icmpType = payload[34];
+            uint8_t icmpCode = payload[35];
+            DEBUG_MESSAGE("ICMP Type: %d, Code: %d\r\n", icmpType, icmpCode);
+        }
+    } else {
+        DEBUG_MESSAGE("Unhandled EtherType: 0x%04X\r\n", ethType);
+    }
+
+    writePQ(&pQ[0], payload, frmLen);
     adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
+
 
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg)
 {
