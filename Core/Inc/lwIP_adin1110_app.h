@@ -19,7 +19,7 @@
 #define IP_FIXED 1
 #define IP_DYNAMIC 0
 #define MAX_P_QUEUE_SZ 1518
-#define MAX_P_QUEUE 5
+#define MAX_P_QUEUE 16
 
 
 typedef struct _pQueue
