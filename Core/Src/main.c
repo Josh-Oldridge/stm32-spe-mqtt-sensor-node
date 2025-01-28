@@ -31,6 +31,7 @@
 #ifdef USE_LWIP
 #include "lwIP_adin1110_app.h"
 #include "lwip/timeouts.h"
+#include "lwip/etharp.h"
 #endif /* USE_LWIP */
 #include <inttypes.h>
 #include <stdio.h>
