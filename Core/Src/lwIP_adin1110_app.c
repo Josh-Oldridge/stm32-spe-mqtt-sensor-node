@@ -228,33 +228,38 @@ void process_udp_query(void)
 
 err_t LwIP_ADIN1110LinkInput(struct netif *netif)
 {
-    if (pDataAvailable(&pQ[0]) == 0)
-    {
-      return ERR_OK;
+    if (pDataAvailable(&pQ[0]) == 0) {
+        DEBUG_MESSAGE("No data available in the packet queue.\r\n");
+        return ERR_OK;
     }
-    else
-    {
-		struct pbuf *p = (struct pbuf*) readPQ(&pQ[0]);
-		if (p == NULL) {
-			return ERR_MEM;
-		}
 
-		uint8_t *payload = (uint8_t*) p->payload;
-		uint16_t ethType = (payload[12] << 8) | payload[13];
-		if (ethType == 0x0800) {
-			uint8_t ipProtocol = payload[23];
-			if (ipProtocol == 0x01) {
-				DEBUG_MESSAGE("ICMP packet passed to LWIP\r\n");
-			}
-		}
-
-		if (netif->input(p, netif) != ERR_OK) {
-			LWIP_DEBUGF(NETIF_DEBUG, ("IP input error\r\n"));
-			pbuf_free(p);
-			p = NULL;
-		}
+    struct pbuf *p = (struct pbuf *)readPQ(&pQ[0]);
+    if (p == NULL) {
+        DEBUG_MESSAGE("Failed to read packet from the queue.\r\n");
+        return ERR_MEM;
     }
-   return  ERR_OK;
+
+    uint8_t *payload = (uint8_t *)p->payload;
+    uint16_t ethType = (payload[12] << 8) | payload[13];
+
+    DEBUG_MESSAGE("Received packet with EtherType: 0x%04X\r\n", ethType);
+
+    if (ethType == 0x0800) {
+        uint8_t ipProtocol = payload[23];
+        DEBUG_MESSAGE("IPv4 packet detected. Protocol: 0x%02X\r\n", ipProtocol);
+
+        if (ipProtocol == 0x01) {
+            DEBUG_MESSAGE("ICMP packet passed to LWIP\r\n");
+        }
+    }
+
+    if (netif->input(p, netif) != ERR_OK) {
+        DEBUG_MESSAGE("Error: LwIP input processing failed.\r\n");
+        pbuf_free(p);
+        return ERR_MEM;
+    }
+
+    return ERR_OK;
 }
 
 
