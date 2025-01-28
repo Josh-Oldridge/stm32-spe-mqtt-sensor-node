@@ -28,6 +28,9 @@
 
 #define ETHERNET_MTU        (1500)
 
+extern LwIP_ADIN1110_t myConn;
+
+
 HAL_ALIGNED_PRAGMA(4)static uint8_t rxBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
 static adi_eth_BufDesc_t rxBufDesc[BUFF_DESC_COUNT];
 
@@ -96,7 +99,12 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 
 	if (ethType == 0x0806) {
 		DEBUG_MESSAGE("Processing ARP packet immediately\r\n");
-		etharp_input(pRxBufDesc->pBuf, &myConn.netif);
+		struct pbuf *p = pbuf_alloc(PBUF_RAW, frmLen, PBUF_POOL);
+		if (p != NULL) {
+		    memcpy(p->payload, pRxBufDesc->pBuf, frmLen);
+		    etharp_input(p, &myConn.netif);
+		    pbuf_free(p);
+		}
 		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 		return;
 	}
@@ -177,7 +185,22 @@ err_t udp_send_query(void) {
 	struct pbuf *p;
 	err_t err;
 
-	if (etharp_get_entry(&remoteIP, NULL) == NULL) {
+	ip4_addr_t *resolved_ip;
+	struct netif *resolved_netif;
+	struct eth_addr *resolved_mac;
+	bool arp_entry_found = false;
+
+	for (size_t i = 0; i < ARP_TABLE_SIZE; ++i) {
+		if (etharp_get_entry(i, &resolved_ip, &resolved_netif, &resolved_mac)
+				== ERR_OK) {
+			if (ip4_addr_cmp(resolved_ip, &remoteIP)) {
+				arp_entry_found = true;
+				break;
+			}
+		}
+	}
+
+	if (!arp_entry_found) {
 		DEBUG_MESSAGE("ARP entry for remote IP not found, resolving...\r\n");
 		err = etharp_request(&myConn.netif, &remoteIP);
 		if (err != ERR_OK) {
