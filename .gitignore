@@ -1,1 +1,9 @@
+# Ignore STM32CubeIDE workspace-specific settings
 .metadata
+
+# Ignore build outputs
+Debug/
+Release/
+
+# Ignore local debug/run configurations
+*.launch
