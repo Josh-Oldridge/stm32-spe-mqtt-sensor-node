@@ -229,7 +229,6 @@ void process_udp_query(void)
 err_t LwIP_ADIN1110LinkInput(struct netif *netif)
 {
     if (pDataAvailable(&pQ[0]) == 0) {
-        DEBUG_MESSAGE("No data available in the packet queue.\r\n");
         return ERR_OK;
     }
 
