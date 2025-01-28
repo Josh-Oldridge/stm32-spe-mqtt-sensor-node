@@ -415,7 +415,7 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  16
+#define PBUF_POOL_SIZE                  32
 #endif
 #define PBUF_POOL_BUFSIZE 1700
 #define PBUF_LINK_HLEN 16
