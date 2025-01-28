@@ -97,17 +97,18 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	uint16_t ethType = (payload[12] << 8) | payload[13];
 
 	if (ethType == 0x0800) {
-	    uint8_t ipProtocol = payload[23];
-	    if (ipProtocol == 0x01) {
-	        DEBUG_MESSAGE("ICMP packet received. Length: %d\r\n", frmLen);
-	        uint8_t icmpType = payload[34];
-	        uint8_t icmpCode = payload[35];
-	        DEBUG_MESSAGE("ICMP Type: %d, Code: %d\r\n", icmpType, icmpCode);
-	    } else {
-	        DEBUG_MESSAGE("IPv4 packet with protocol: 0x%02X\r\n", ipProtocol);
-	    }
+		uint8_t ipProtocol = payload[23];
+		if (ipProtocol == 0x01) { // ICMP
+			DEBUG_MESSAGE("ICMP packet detected. Preparing to enqueue...\r\n");
+			uint8_t icmpType = payload[34];
+			uint8_t icmpCode = payload[35];
+			DEBUG_MESSAGE("ICMP Type: %d, Code: %d, Length: %d\r\n", icmpType,
+					icmpCode, frmLen);
+		} else {
+			DEBUG_MESSAGE("IPv4 packet with protocol: 0x%02X\r\n", ipProtocol);
+		}
 	} else if (ethType != 0x0806) {
-	    DEBUG_MESSAGE("Unhandled EtherType: 0x%04X\r\n", ethType);
+		DEBUG_MESSAGE("Unhandled EtherType: 0x%04X\r\n", ethType);
 	}
 
 	writePQ(&pQ[0], payload, frmLen);
