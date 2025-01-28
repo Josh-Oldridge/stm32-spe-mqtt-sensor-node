@@ -196,7 +196,7 @@ err_t udp_send_query(void)
         }
         udp_recv(query_udp_pcb, udp_recv_callback, NULL);
     }
-    IP4_ADDR(&remoteIP, 192, 168, 1, 10);
+    IP4_ADDR(&remoteIP, 192, 168, 1, 12);
     err = udp_sendto(query_udp_pcb, p, &remoteIP, REMOTE_UDP_PORT);
     if (err == ERR_OK) {
         querySentTime = BSP_SysNow();
