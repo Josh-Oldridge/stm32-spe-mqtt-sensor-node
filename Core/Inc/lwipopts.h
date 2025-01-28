@@ -533,7 +533,11 @@
 
 #define LWIP_DHCP                       1
 #define DHCP_DOES_ARP_CHECK             1
-#define LWIP_DEBUG LWIP_DBG_OFF         1
+#define LWIP_DEBUG LWIP_DBG_ON  		1
+#define ICMP_DEBUG LWIP_DBG_ON
+#define NETIF_DEBUG LWIP_DBG_ON
+#define ETHARP_DEBUG LWIP_DBG_ON
+
 #define CONFIG_LINKSPEED_AUTODETECT     1
 
 
