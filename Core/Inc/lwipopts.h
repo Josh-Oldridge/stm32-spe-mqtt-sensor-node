@@ -226,7 +226,7 @@
  */
 #ifndef MEMP_NUM_PBUF
 #ifdef DEBUG
-#define MEMP_NUM_PBUF                   16
+#define MEMP_NUM_PBUF                   8
 #else
 #define MEMP_NUM_PBUF                   8
 #endif
@@ -270,7 +270,7 @@
  * (requires the LWIP_TCP option)
  */
 #ifndef MEMP_NUM_TCP_SEG
-#define MEMP_NUM_TCP_SEG                16
+#define MEMP_NUM_TCP_SEG                8
 #endif
 
 /**
@@ -415,12 +415,20 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  32
+#define PBUF_POOL_SIZE                  16
 #endif
-#define PBUF_POOL_BUFSIZE 1700
-#define PBUF_LINK_HLEN 16
+#define PBUF_POOL_BUFSIZE 1500
+#define PBUF_LINK_HLEN 14
 
-#define ARP_TABLE_SIZE 20
+#define LWIP_ARP 1
+#define LWIP_ETHERNET 1
+#define ETHARP_SUPPORT_STATIC_ENTRIES 1
+#define ETHARP_SUPPORT_VLAN 0
+#define ETHARP_VLAN_CHECK 0
+#define ETH_PAD_SIZE 0
+#define ETHARP_TABLE_MATCH_NETIF 1
+#define ARP_QUEUE_LEN 5
+#define ARP_TABLE_SIZE 10
 #define ARP_QUEUEING 1
 #ifndef ARP_MAXAGE
 #define ARP_MAXAGE 300
@@ -540,8 +548,9 @@
 #define DHCP_DOES_ARP_CHECK             1
 #define LWIP_DEBUG LWIP_DBG_ON  		1
 #define ICMP_DEBUG LWIP_DBG_ON
-#define NETIF_DEBUG LWIP_DBG_OFF
-#define ETHARP_DEBUG LWIP_DBG_OFF
+#define NETIF_DEBUG LWIP_DBG_ON
+#define IP_DEBUG LWIP_DBG_ON
+#define ETHARP_DEBUG LWIP_DBG_ON
 
 #define CONFIG_LINKSPEED_AUTODETECT     1
 

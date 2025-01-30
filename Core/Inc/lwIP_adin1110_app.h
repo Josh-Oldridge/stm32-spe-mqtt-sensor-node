@@ -15,11 +15,12 @@
 
 #include "lwip/netif.h"
 
-
 #define IP_FIXED 1
 #define IP_DYNAMIC 0
 #define MAX_P_QUEUE_SZ 1518
-#define MAX_P_QUEUE 16
+#define MAX_P_QUEUE 8
+#define MAX_PQ 8
+#define MAX_QUERY_RETRIES 5
 
 
 typedef struct _pQueue
@@ -32,6 +33,9 @@ typedef struct _pQueue
   int32_t nWrQ;
 
 } pQueue_t;
+
+extern pQueue_t pQ[MAX_PQ];
+struct pbuf *readPQ(pQueue_t *pQ);
 
 typedef struct
 {
@@ -57,6 +61,8 @@ void LwIP_Init( LwIP_ADIN1110_t* eth,  board_t *boardDetails);
 err_t LwIP_ADIN1110LinkInput(struct netif *netif);
 uint32_t discoveradin1110(adin1110_DeviceHandle_t hDevice);
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg);
+void print_lwip_arp_table(void);
+
 
 typedef enum {
     STATE_IDLE,
@@ -64,6 +70,7 @@ typedef enum {
     STATE_RESPONSE_RECEIVED
 } QueryState_t;
 
+extern LwIP_ADIN1110_t myConn;
 extern volatile QueryState_t queryState;
 extern volatile uint32_t querySentTime;
 #define QUERY_TIMEOUT 60000

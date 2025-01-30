@@ -71,7 +71,8 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define DHCP_CHECK_INTERVAL_MS 500
+#define DHCP_WAIT_TIMEOUT_MS 30000
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -104,7 +105,6 @@ void SystemClock_Config(void);
 #define LD2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

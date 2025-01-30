@@ -198,7 +198,7 @@ etharp_tmr(void)
 {
   int i;
 
-  LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer\n"));
+  //LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer\n"));
   /* remove expired entries from the ARP table */
   for (i = 0; i < ARP_TABLE_SIZE; ++i) {
     u8_t state = arp_table[i].state;
@@ -651,6 +651,13 @@ etharp_input(struct pbuf *p, struct netif *netif)
 
   hdr = (struct etharp_hdr *)p->payload;
 
+  LWIP_DEBUGF(ETHARP_DEBUG, ("[DEBUG] Dumping ARP header before validation:\n"));
+  LWIP_DEBUGF(ETHARP_DEBUG, ("  hwtype: 0x%04X (expected 0x0001)\n", lwip_ntohs(hdr->hwtype)));
+  LWIP_DEBUGF(ETHARP_DEBUG, ("  proto:  0x%04X (expected 0x0800)\n", lwip_ntohs(hdr->proto)));
+  LWIP_DEBUGF(ETHARP_DEBUG, ("  hwlen:  %u (expected 6)\n", hdr->hwlen));
+  LWIP_DEBUGF(ETHARP_DEBUG, ("  protolen: %u (expected 4)\n", hdr->protolen));
+  LWIP_DEBUGF(ETHARP_DEBUG, ("  opcode: 0x%04X\n", lwip_ntohs(hdr->opcode)));
+
   /* RFC 826 "Packet Reception": */
   if ((hdr->hwtype != PP_HTONS(LWIP_IANA_HWTYPE_ETHERNET)) ||
       (hdr->hwlen != ETH_HWADDR_LEN) ||
@@ -693,6 +700,23 @@ etharp_input(struct pbuf *p, struct netif *netif)
       ->  update the source IP address in the cache, if present */
   etharp_update_arp_entry(netif, &sipaddr, &(hdr->shwaddr),
                           for_us ? ETHARP_FLAG_TRY_HARD : ETHARP_FLAG_FIND_ONLY);
+
+  err_t arp_result = etharp_update_arp_entry(netif, &sipaddr, &(hdr->shwaddr),
+                                             for_us ? ETHARP_FLAG_TRY_HARD : ETHARP_FLAG_FIND_ONLY);
+
+  if (arp_result == ERR_OK) {
+      LWIP_DEBUGF(ETHARP_DEBUG, ("[ARP] ADDED: %s -> %02X:%02X:%02X:%02X:%02X:%02X\n",
+                                 ip4addr_ntoa(&sipaddr),
+                                 hdr->shwaddr.addr[0], hdr->shwaddr.addr[1], hdr->shwaddr.addr[2],
+                                 hdr->shwaddr.addr[3], hdr->shwaddr.addr[4], hdr->shwaddr.addr[5]));
+  } else if (arp_result == ERR_MEM) {
+      LWIP_DEBUGF(ETHARP_DEBUG, ("[ARP] FAILED to add: %s (NO MEMORY)\n", ip4addr_ntoa(&sipaddr)));
+  } else {
+      LWIP_DEBUGF(ETHARP_DEBUG, ("[ARP] IGNORED: %s -> %02X:%02X:%02X:%02X:%02X:%02X\n",
+                                 ip4addr_ntoa(&sipaddr),
+                                 hdr->shwaddr.addr[0], hdr->shwaddr.addr[1], hdr->shwaddr.addr[2],
+                                 hdr->shwaddr.addr[3], hdr->shwaddr.addr[4], hdr->shwaddr.addr[5]));
+  }
 
   /* now act on the message itself */
   switch (hdr->opcode) {

@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os2.h"
 #include "dma.h"
 #include "usart.h"
 #include "spi.h"
@@ -145,11 +146,14 @@ void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
 #ifndef USE_LWIP
 void printStats(adin1110_DeviceHandle_t hDevice) {
 	adi_eth_Result_e result = ADI_ETH_SUCCESS;
@@ -258,10 +262,10 @@ int main(void)
 	boardDetails.mac[3] = 0xFE;
 	boardDetails.mac[4] = 0xDA;
 	boardDetails.mac[5] = 0xCA;
-	boardDetails.ip_addr[0] = 192;
+	/*boardDetails.ip_addr[0] = 192;
 	boardDetails.ip_addr[1] = 168;
 	boardDetails.ip_addr[2] = 1;
-	boardDetails.ip_addr[3] = 100;
+	boardDetails.ip_addr[3] = 5;
 	boardDetails.net_mask[0] = 255;
 	boardDetails.net_mask[1] = 255;
 	boardDetails.net_mask[2] = 255;
@@ -269,7 +273,7 @@ int main(void)
 	boardDetails.gateway[0] = 192;
 	boardDetails.gateway[1] = 168;
 	boardDetails.gateway[2] = 1;
-	boardDetails.gateway[3] = 1;
+	boardDetails.gateway[3] = 1;*/
 	boardDetails.ip_addr_fixed = IP_DYNAMIC;
 	#endif  /* USE_LWIP */
 
@@ -339,17 +343,29 @@ int main(void)
 	HAL_Delay(3000);
 	netif_set_link_up(&myConn.netif);
 
+
+
+
+
 #endif  /* USE_LWIP */
 
-	uint32_t heartbeatCheckTime = 0;
-	uint32_t lastPollTime = 0;
-	uint32_t pollIntervalMs = 1;
-	uint32_t last_arp_time = 0;
 
-	/* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	/* Uncomment these variable declarations when using lwIP stack*/
 #ifdef USE_LWIP
 	while (1) {
@@ -357,42 +373,10 @@ int main(void)
 #ifndef USE_LWIP
 	while (!FRAME_COUNT || (txIdx < FRAME_COUNT)) {
 	#endif  /* USE_LWIP */
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 #ifdef USE_LWIP
-		uint32_t now = BSP_SysNow();
-
-		if ((now - lastPollTime) >= pollIntervalMs) {
-			lastPollTime = now;
-
-			sys_check_timeouts();
-
-			LwIP_ADIN1110LinkInput(&myConn.netif);
-
-			if (netif_is_up(
-					&myConn.netif) && !ip4_addr_isany_val(myConn.netif.ip_addr)) {
-				process_udp_query();
-			}
-		}
-
-		if ((now - heartbeatCheckTime) >= 250) {
-			heartbeatCheckTime = now;
-			BSP_HeartBeat();
-		}
-
-		if ((now - last_arp_time) >= 500) {
-			last_arp_time = now;
-			etharp_tmr();
-		}
-
-		static uint8_t link_was_up = 0;
-		if (netif_is_link_up(&myConn.netif) != link_was_up) {
-			link_was_up = netif_is_link_up(&myConn.netif);
-			DEBUG_MESSAGE(link_was_up ? "Link is UP\r\n" : "Link is DOWN\r\n");
-		}
-
-		HAL_Delay(1);
 	}
 #endif  /* USE_LWIP */
 
@@ -554,6 +538,27 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 }
 
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
