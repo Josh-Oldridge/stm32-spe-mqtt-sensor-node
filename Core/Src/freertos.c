@@ -29,6 +29,9 @@
 #include "lwip/timeouts.h"
 #include "lwip/dhcp.h"
 #include "netif/etharp.h"
+#include "udp_query.h"
+#include "lwip/udp.h"
+#include "lwip/netif.h"
 
 /* USER CODE END Includes */
 
@@ -41,7 +44,8 @@
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
-
+#define DHCP_CHECK_INTERVAL_MS 500
+#define DHCP_WAIT_TIMEOUT_MS 30000
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
@@ -130,7 +134,6 @@ void StartDefaultTask(void *argument) {
 /* USER CODE BEGIN Application */
 void NetworkTask(void *argument) {
 	uint32_t lastPollTime = 0;
-	uint32_t lastArpPrint = 0;
 	uint32_t last_arp_time = 0;
 	uint32_t heartbeatCheckTime = 0;
 	uint32_t pollIntervalMs = 500;

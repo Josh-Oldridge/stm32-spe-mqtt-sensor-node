@@ -20,61 +20,42 @@
 #define MAX_P_QUEUE_SZ 1528
 #define MAX_P_QUEUE 8
 #define MAX_PQ 8
-#define MAX_QUERY_RETRIES 5
 
+typedef struct _pQueue {
 
-typedef struct _pQueue
-{
+	uint8_t pData[MAX_P_QUEUE][MAX_P_QUEUE_SZ];
+	int lenData[MAX_P_QUEUE];
+	int32_t nRdQ;
 
-  uint8_t pData[MAX_P_QUEUE][MAX_P_QUEUE_SZ];
-  int lenData[MAX_P_QUEUE];
-  int32_t nRdQ;
-
-  int32_t nWrQ;
+	int32_t nWrQ;
 
 } pQueue_t;
 
 extern pQueue_t pQ[MAX_PQ];
-struct pbuf *readPQ(pQueue_t *pQ);
+struct pbuf* readPQ(pQueue_t *pQ);
 
-typedef struct
-{
-    uint8_t adin1110Error;// problem with the phy
-    uint8_t ip_addr_fixed;//DHCP or fixed IP
-    uint8_t ip_addr[4];/*IP address*/
-    uint8_t net_mask[4];/*network mask*/
-    uint8_t gateway[4];/*IP address*/
-    uint8_t mac[6];/*MAC address*/
- }board_t;
+typedef struct {
+	uint8_t adin1110Error; // problem with the phy
+	uint8_t ip_addr_fixed; //DHCP or fixed IP
+	uint8_t ip_addr[4];/*IP address*/
+	uint8_t net_mask[4];/*network mask*/
+	uint8_t gateway[4];/*IP address*/
+	uint8_t mac[6];/*MAC address*/
+} board_t;
 
-typedef struct Lwip_adin1110_s
-{
-    adin1110_DeviceHandle_t hDevice;
-    struct netif netif;
-    uint8_t macAddress[6];
+typedef struct Lwip_adin1110_s {
+	adin1110_DeviceHandle_t hDevice;
+	struct netif netif;
+	uint8_t macAddress[6];
 } LwIP_ADIN1110_t;
 
-
 uint32_t sys_now(void);
-adi_eth_Result_e LwIP_StructInit(LwIP_ADIN1110_t* eth, adin1110_DeviceHandle_t hDevice,  uint8_t macAddress[6]);
-void LwIP_Init( LwIP_ADIN1110_t* eth,  board_t *boardDetails);
+adi_eth_Result_e LwIP_StructInit(LwIP_ADIN1110_t *eth,
+		adin1110_DeviceHandle_t hDevice, uint8_t macAddress[6]);
+void LwIP_Init(LwIP_ADIN1110_t *eth, board_t *boardDetails);
 err_t LwIP_ADIN1110LinkInput(struct netif *netif);
 uint32_t discoveradin1110(adin1110_DeviceHandle_t hDevice);
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg);
 void print_lwip_arp_table(void);
-
-
-typedef enum {
-    STATE_IDLE,
-    STATE_WAITING_FOR_RESPONSE,
-    STATE_RESPONSE_RECEIVED
-} QueryState_t;
-
 extern LwIP_ADIN1110_t myConn;
-extern volatile QueryState_t queryState;
-extern volatile uint32_t querySentTime;
-#define QUERY_TIMEOUT 60000
-
-err_t udp_send_query(void);
-void process_udp_query(void);
 #endif /*LWIP_ADIN1110__H*/

@@ -9,6 +9,7 @@
  *---------------------------------------------------------------------------
  */
 #ifdef USE_LWIP
+
 #include "lwIP_adin1110_app.h"
 #include "adin1110.h"
 #include "netif/etharp.h"
@@ -19,7 +20,6 @@
 #include "lwip/timeouts.h"
 #include "lwip/arch.h"
 #include "lwip/apps/httpd.h"
-#include "lwip/udp.h"
 #include <lwip/inet.h>
 #define ADIN1110_INIT_ITER  (5)
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2 + 4)
@@ -28,7 +28,6 @@
 
 #define ETHERNET_MTU        (1500)
 
-#define ARP_DUPLICATE_WINDOW_MS 1000
 
 HAL_ALIGNED_PRAGMA(4)static uint8_t rxBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
 static adi_eth_BufDesc_t rxBufDesc[BUFF_DESC_COUNT];
@@ -61,18 +60,6 @@ adi_eth_LinkStatus_e linkStatus;
 bool linkStatusChanged;
 adi_eth_LinkStatus_e linkState;
 
-#define QUERY_TIMEOUT 60000
-
-static const char queryMsg[] = "CMD:QUERY:LD1_ON?";
-static const char responseOnMsg[] = "CMD:RESPONSE:LD1_ON";
-static const char responseOffMsg[] = "CMD:RESPONSE:LD1_OFF";
-
-static ip4_addr_t remoteIP;
-#define REMOTE_UDP_PORT 5000
-#define LOCAL_UDP_PORT  5001
-volatile QueryState_t queryState = STATE_IDLE;
-volatile uint32_t querySentTime = 0;
-static struct udp_pcb *query_udp_pcb = NULL;
 
 #ifdef USE_LWIP
 
@@ -92,18 +79,11 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t) pCBParam;
 	adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t*) pArg;
 	uint16_t frmLen = pRxBufDesc->trxSize;
-
-	if (frmLen < 42) {
-		DEBUG_MESSAGE("[RX] Packet too small, length: %d\r\n", frmLen);
-		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-		return;
-	}
-
 	uint8_t *payload = pRxBufDesc->pBuf;
 
+#ifdef TCP_IP_DEBUG
 	DEBUG_MESSAGE("[DEBUG] RX Buffer Descriptor Address: %p\n", pRxBufDesc);
 	DEBUG_MESSAGE("[DEBUG] RX Buffer Address: %p\n", payload);
-
 	DEBUG_MESSAGE("[DEBUG] Dumping First 64 Bytes of RX Buffer:\n");
 	for (int i = 0; i < 64 && i < frmLen; i++) {
 		DEBUG_MESSAGE("0x%02X ", payload[i]);
@@ -111,7 +91,6 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 			DEBUG_MESSAGE("\n");
 	}
 	DEBUG_MESSAGE("\n");
-
 	DEBUG_MESSAGE("[DEBUG] Corrected Frame Dump (%d bytes):\n", frmLen);
 	for (int i = 0; i < frmLen; i++) {
 		DEBUG_MESSAGE("0x%02X ", payload[i]);
@@ -119,15 +98,16 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 			DEBUG_MESSAGE("\n");
 	}
 	DEBUG_MESSAGE("\n");
-
+#endif /* TCP/IP_DEBUG */
 	uint16_t ethType = swap32(*(uint16_t*) &payload[12]);
+#ifdef TCP_IP_DEBUG
 	DEBUG_MESSAGE("[RX] Incoming Ethernet Frame (Len=%d, EtherType=0x%04X)\n",
 			frmLen, ethType);
 	DEBUG_MESSAGE("    Dest MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", payload[0],
 			payload[1], payload[2], payload[3], payload[4], payload[5]);
 	DEBUG_MESSAGE("    Src MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", payload[6],
 			payload[7], payload[8], payload[9], payload[10], payload[11]);
-
+#endif /* TCP/IP_DEBUG */
 	if (ethType == 0x0806) {
 		uint16_t arp_hwtype = swap32(*(uint16_t*) &payload[14]);
 		uint16_t arp_proto = swap32(*(uint16_t*) &payload[16]);
@@ -145,6 +125,8 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 
 		uint32_t target_ip = swap32(*(uint32_t*) &payload[38]);
 
+
+#ifdef TCP_IP_DEBUG
 		DEBUG_MESSAGE(
 				"[ARP] Parsed Values - HW Type: 0x%04X, Proto: 0x%04X, HW Len: %u, Protolen: %u, Opcode: 0x%04X\n",
 				arp_hwtype, arp_proto, arp_hwlen, arp_protolen, arp_opcode);
@@ -160,7 +142,7 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 				target_mac[4], target_mac[5], (target_ip >> 24) & 0xFF,
 				(target_ip >> 16) & 0xFF, (target_ip >> 8) & 0xFF,
 				target_ip & 0xFF);
-
+#endif /* TCP/IP_DEBUG */
 		if (arp_hwtype != 0x0001 || arp_proto != 0x0800 || arp_hwlen != 6
 				|| arp_protolen != 4) {
 			DEBUG_MESSAGE(
@@ -179,13 +161,17 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 
 		struct pbuf *p = pbuf_alloc(PBUF_RAW, frmLen, PBUF_POOL);
 		if (p == NULL) {
+
 			DEBUG_MESSAGE(
 					"[ARP] Failed to allocate pbuf for lwIP processing!\n");
+
 			adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 			return;
 		}
 		pbuf_take(p, pRxBufDesc->pBuf, frmLen);
+
 		DEBUG_MESSAGE("[ARP] Passing ARP packet to lwIP\n");
+
 		etharp_input(p, &myConn.netif);
 		pbuf_free(p);
 		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
@@ -221,6 +207,7 @@ uint32_t sys_now(void) {
 	return BSP_SysNow();
 }
 
+#ifdef TCP_IP_DEBUG
 void print_lwip_arp_table(void) {
 	printf("\n[DEBUG] Current ARP Table:\n");
 	for (int i = 0; i < ARP_TABLE_SIZE; i++) {
@@ -244,142 +231,8 @@ void print_lwip_arp_table(void) {
 		}
 	}
 }
+#endif /* TCP/IP_DEBUG */
 
-static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p,
-		const ip_addr_t *addr, u16_t port) {
-	if (p == NULL) {
-		DEBUG_MESSAGE("Received NULL pbuf in UDP callback\r\n");
-		return;
-	}
-
-	char recv_buf[128] = { 0 };
-	size_t copy_len =
-			(p->len < sizeof(recv_buf) - 1) ? p->len : sizeof(recv_buf) - 1;
-	memcpy(recv_buf, p->payload, copy_len);
-	recv_buf[copy_len] = '\0';
-	DEBUG_MESSAGE("UDP Received: %s\r\n", recv_buf);
-
-	if (strncmp(recv_buf, responseOnMsg, strlen(responseOnMsg)) == 0) {
-		queryState = STATE_RESPONSE_RECEIVED;
-		HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
-		DEBUG_MESSAGE("LD1 turned ON via UDP response\r\n");
-	} else if (strncmp(recv_buf, responseOffMsg, strlen(responseOffMsg)) == 0) {
-		queryState = STATE_RESPONSE_RECEIVED;
-		HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
-		DEBUG_MESSAGE("LD1 turned OFF via UDP response\r\n");
-	} else {
-		DEBUG_MESSAGE("Unknown UDP message received: %s\r\n", recv_buf);
-	}
-
-	pbuf_free(p);
-}
-
-err_t udp_send_query(void) {
-	struct pbuf *p;
-	err_t err;
-	if (myConn.netif.ip_addr.addr == 0) {
-		DEBUG_MESSAGE(
-				"[NETWORK] Skipping UDP query: No valid IP assigned yet.\r\n");
-		return ERR_CONN;
-	}
-
-	ip4_addr_t *resolved_ip;
-	struct netif *resolved_netif;
-	struct eth_addr *resolved_mac;
-	bool arp_entry_found = false;
-	for (size_t i = 0; i < ARP_TABLE_SIZE; ++i) {
-		if (etharp_get_entry(i, &resolved_ip, &resolved_netif, &resolved_mac)
-				== ERR_OK) {
-			if (ip4_addr_cmp(resolved_ip, &remoteIP)) {
-				arp_entry_found = true;
-				break;
-			}
-		}
-	}
-
-	if (!arp_entry_found) {
-		DEBUG_MESSAGE(
-				"[NETWORK] ARP entry for remote IP not found. Requesting ARP resolution...\r\n");
-		err = etharp_request(&myConn.netif, &remoteIP);
-		if (err != ERR_OK) {
-			DEBUG_MESSAGE("[ERROR] ARP request failed: %d\r\n", err);
-			return err;
-		}
-		HAL_Delay(500);
-	}
-
-	p = pbuf_alloc(PBUF_TRANSPORT, sizeof(queryMsg) - 1, PBUF_RAM);
-	if (p == NULL) {
-		DEBUG_MESSAGE("[ERROR] Failed to allocate pbuf for UDP query\r\n");
-		return ERR_MEM;
-	}
-
-	memcpy(p->payload, queryMsg, sizeof(queryMsg) - 1);
-
-	if (query_udp_pcb == NULL) {
-		query_udp_pcb = udp_new();
-		if (query_udp_pcb == NULL) {
-			DEBUG_MESSAGE("[ERROR] Failed to create UDP PCB\r\n");
-			pbuf_free(p);
-			return ERR_MEM;
-		}
-		err = udp_bind(query_udp_pcb, IP4_ADDR_ANY, LOCAL_UDP_PORT);
-		if (err != ERR_OK) {
-			DEBUG_MESSAGE("[ERROR] UDP bind failed: %d\r\n", err);
-			pbuf_free(p);
-			return err;
-		}
-		udp_recv(query_udp_pcb, udp_recv_callback, NULL);
-	}
-
-	IP4_ADDR(&remoteIP, 192, 168, 1, 11);
-	err = udp_sendto(query_udp_pcb, p, &remoteIP, REMOTE_UDP_PORT);
-	if (err == ERR_OK) {
-		querySentTime = BSP_SysNow();
-		queryState = STATE_WAITING_FOR_RESPONSE;
-		DEBUG_MESSAGE("[NETWORK] UDP Query sent at %lu ms\r\n", querySentTime);
-	} else {
-		DEBUG_MESSAGE("[ERROR] UDP send failed: %d\r\n", err);
-	}
-
-	pbuf_free(p);
-	return err;
-}
-
-void process_udp_query(void) {
-	static int queryRetryCount = 0;
-	uint32_t now = BSP_SysNow();
-
-	if (myConn.netif.ip_addr.addr == 0) {
-		DEBUG_MESSAGE(
-				"[NETWORK] Skipping UDP query: No valid IP assigned yet.\r\n");
-		return;
-	}
-
-	if (queryState == STATE_WAITING_FOR_RESPONSE) {
-		if ((now - querySentTime) >= QUERY_TIMEOUT) {
-			if (queryRetryCount < MAX_QUERY_RETRIES) {
-				DEBUG_MESSAGE(
-						"[NETWORK] UDP Query timeout, retrying in 3 seconds... (%d/%d)\r\n",
-						queryRetryCount + 1, MAX_QUERY_RETRIES);
-				HAL_Delay(3000);
-				udp_send_query();
-				queryRetryCount++;
-			} else {
-				DEBUG_MESSAGE(
-						"[NETWORK] Max UDP Query retries reached. Stopping retries.\r\n");
-				queryState = STATE_IDLE;
-			}
-		}
-	} else if (queryState == STATE_IDLE) {
-		DEBUG_MESSAGE("[NETWORK] Initiating new UDP query...\r\n");
-		udp_send_query();
-		queryRetryCount = 0;
-	} else if (queryState == STATE_RESPONSE_RECEIVED) {
-		queryState = STATE_IDLE;
-		queryRetryCount = 0;
-	}
-}
 
 err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 	if (pDataAvailable(&pQ[0]) == 0) {
@@ -394,7 +247,7 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 
 	uint8_t *payload = (uint8_t*) p->payload;
 	uint16_t ethType = (payload[12] << 8) | payload[13];
-
+#ifdef TCP_IP_DEBUG
 	DEBUG_MESSAGE("\n==============================================");
 	DEBUG_MESSAGE("\nSTART OF PACKET");
 	DEBUG_MESSAGE("\nPacket Type: 0x%04X, Length: %d\n", ethType, p->len);
@@ -405,6 +258,7 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 			DEBUG_MESSAGE("\n");
 	}
 	DEBUG_MESSAGE("\n");
+#endif /* TCP/IP_DEBUG */
 
 	if (ethType == 0x0800) {
 		uint8_t ipProtocol = payload[23];
@@ -431,15 +285,16 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 	} else {
 		DEBUG_MESSAGE("🔹 [UNKNOWN] Unrecognized Packet Type: 0x%04X", ethType);
 	}
-
+#ifdef TCP_IP_DEBUG
 	DEBUG_MESSAGE("\nEND OF PACKET");
 	DEBUG_MESSAGE("\n==============================================\n");
-
+#endif /* TCP/IP_DEBUG */
 	if (netif->input(p, netif) != ERR_OK) {
 		DEBUG_MESSAGE("Error: LwIP input processing failed.\r\n");
 		pbuf_free(p);
 		return ERR_MEM;
 	}
+	//HAL_Delay(5);
 
 	return ERR_OK;
 }
@@ -449,27 +304,18 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	uint16_t ethType = ((uint8_t*) p->payload)[12] << 8
 			| ((uint8_t*) p->payload)[13];
 
-	if (ethType == 0x0800) {
-		uint8_t ipProtocol = ((uint8_t*) p->payload)[23];
-		if (ipProtocol == 17) {
-			uint16_t udpSrcPort = ((uint8_t*) p->payload)[34] << 8
-					| ((uint8_t*) p->payload)[35];
-			uint16_t udpDstPort = ((uint8_t*) p->payload)[36] << 8
-					| ((uint8_t*) p->payload)[37];
 
-		}
-	}
 	LwIP_ADIN1110_t *eth = (LwIP_ADIN1110_t*) netif->state;
 	adin1110_DeviceHandle_t hDevice = eth->hDevice;
 
 	struct pbuf *pp;
 	uint16_t frameLen = 0;
 	int total_len = 0;
-
+#ifdef TCP_IP_DEBUG
 	DEBUG_MESSAGE("\n==============================================");
 	DEBUG_MESSAGE("\nSTART OF TRANSMIT PACKET");
 	DEBUG_MESSAGE("\nPacket Type: 0x%04X, Length: %d\n", ethType, p->tot_len);
-
+#endif /* TCP/IP_DEBUG */
 	for (pp = p, total_len = 0; pp != NULL; pp = pp->next) {
 		frameLen = pp->len;
 
@@ -487,7 +333,8 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	}
 
 	uint8_t *payload = (uint8_t*) p->payload;
-	for (int i = 0; i < p->tot_len - 4; i++) {
+#ifdef TCP_IP_DEBUG
+	for (int i = 0; i < p->tot_len; i++) {
 		DEBUG_MESSAGE("0x%02X ", payload[i]);
 		if ((i + 1) % 16 == 0)
 			DEBUG_MESSAGE("\n");
@@ -495,6 +342,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	DEBUG_MESSAGE("\n");
 	DEBUG_MESSAGE("\nEND OF TRANSMIT PACKET");
 	DEBUG_MESSAGE("\n==============================================\n");
+#endif /* TCP/IP_DEBUG */
 	LINK_STATS_INC(link.xmit);MIB2_STATS_NETIF_ADD(netif, ifoutoctets, total_len);
 
 	if (total_len < MIN_FRAME_SIZE) {
@@ -502,21 +350,21 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	}
 
 	txBufDesc[txBufIndex].pBuf = &txBuf[txBufIndex][0];
-	txBufDesc[txBufIndex].trxSize = total_len;
-	txBufDesc[txBufIndex].bufSize = MAX_FRAME_BUF_SIZE;
-	txBufDesc[txBufIndex].egressCapt = ADI_MAC_EGRESS_CAPTURE_NONE;
-	txBufDesc[txBufIndex].cbFunc = txCallback;
+		txBufDesc[txBufIndex].trxSize = total_len;
+		txBufDesc[txBufIndex].bufSize = MAX_FRAME_BUF_SIZE;
+		txBufDesc[txBufIndex].egressCapt = ADI_MAC_EGRESS_CAPTURE_NONE;
+		txBufDesc[txBufIndex].cbFunc = txCallback;
 
-	while (adin1110_SubmitTxBuffer(hDevice, &txBufDesc[txBufIndex])
-			== ADI_ETH_QUEUE_FULL) {
-		;
-	}
+		while (adin1110_SubmitTxBuffer(hDevice, &txBufDesc[txBufIndex])
+				== ADI_ETH_QUEUE_FULL) {
+			;
+		}
 
-	if (txBufIndex++ >= 1) {
-		txBufIndex = 0;
+		if (txBufIndex++ >= 1) {
+			txBufIndex = 0;
+		}
+		return ERR_OK;
 	}
-	return ERR_OK;
-}
 
 static err_t LwIP_ADIN1110LinkOutput(struct netif *netif, struct pbuf *p) {
 	low_level_output(netif, p);
