@@ -77,121 +77,123 @@ static struct udp_pcb *query_udp_pcb = NULL;
 #ifdef USE_LWIP
 
 static inline uint16_t swap16(uint16_t val) {
-    return __builtin_bswap16(val);
+	return __builtin_bswap16(val);
 }
 
-
 static inline uint32_t swap32(uint32_t val) {
-    return __builtin_bswap32(val);
+	return __builtin_bswap32(val);
 }
 
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
-    txBufAvailable[0] = true;
+	txBufAvailable[0] = true;
 }
 
-
 static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
-    adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t)pCBParam;
-    adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t*)pArg;
-    uint16_t frmLen = pRxBufDesc->trxSize;
+	adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t) pCBParam;
+	adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t*) pArg;
+	uint16_t frmLen = pRxBufDesc->trxSize;
 
-    if (frmLen < 42) {
-        DEBUG_MESSAGE("[RX] Packet too small, length: %d\r\n", frmLen);
-        adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-        return;
-    }
+	if (frmLen < 42) {
+		DEBUG_MESSAGE("[RX] Packet too small, length: %d\r\n", frmLen);
+		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+		return;
+	}
 
-    uint8_t *payload = pRxBufDesc->pBuf;
+	uint8_t *payload = pRxBufDesc->pBuf;
 
-    DEBUG_MESSAGE("[DEBUG] RX Buffer Descriptor Address: %p\n", pRxBufDesc);
-    DEBUG_MESSAGE("[DEBUG] RX Buffer Address: %p\n", payload);
+	DEBUG_MESSAGE("[DEBUG] RX Buffer Descriptor Address: %p\n", pRxBufDesc);
+	DEBUG_MESSAGE("[DEBUG] RX Buffer Address: %p\n", payload);
 
-    DEBUG_MESSAGE("[DEBUG] Dumping First 64 Bytes of RX Buffer:\n");
-    for (int i = 0; i < 64 && i < frmLen; i++) {
-        DEBUG_MESSAGE("0x%02X ", payload[i]);
-        if ((i + 1) % 16 == 0)
-            DEBUG_MESSAGE("\n");
-    }
-    DEBUG_MESSAGE("\n");
+	DEBUG_MESSAGE("[DEBUG] Dumping First 64 Bytes of RX Buffer:\n");
+	for (int i = 0; i < 64 && i < frmLen; i++) {
+		DEBUG_MESSAGE("0x%02X ", payload[i]);
+		if ((i + 1) % 16 == 0)
+			DEBUG_MESSAGE("\n");
+	}
+	DEBUG_MESSAGE("\n");
 
+	DEBUG_MESSAGE("[DEBUG] Corrected Frame Dump (%d bytes):\n", frmLen);
+	for (int i = 0; i < frmLen; i++) {
+		DEBUG_MESSAGE("0x%02X ", payload[i]);
+		if ((i + 1) % 16 == 0)
+			DEBUG_MESSAGE("\n");
+	}
+	DEBUG_MESSAGE("\n");
 
+	uint16_t ethType = swap32(*(uint16_t*) &payload[12]);
+	DEBUG_MESSAGE("[RX] Incoming Ethernet Frame (Len=%d, EtherType=0x%04X)\n",
+			frmLen, ethType);
+	DEBUG_MESSAGE("    Dest MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", payload[0],
+			payload[1], payload[2], payload[3], payload[4], payload[5]);
+	DEBUG_MESSAGE("    Src MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", payload[6],
+			payload[7], payload[8], payload[9], payload[10], payload[11]);
 
-    DEBUG_MESSAGE("[DEBUG] Corrected Frame Dump (%d bytes):\n", frmLen);
-    for (int i = 0; i < frmLen; i++) {
-        DEBUG_MESSAGE("0x%02X ", payload[i]);
-        if ((i + 1) % 16 == 0)
-            DEBUG_MESSAGE("\n");
-    }
-    DEBUG_MESSAGE("\n");
+	if (ethType == 0x0806) {
+		uint16_t arp_hwtype = swap32(*(uint16_t*) &payload[14]);
+		uint16_t arp_proto = swap32(*(uint16_t*) &payload[16]);
+		uint8_t arp_hwlen = payload[18];
+		uint8_t arp_protolen = payload[19];
+		uint16_t arp_opcode = swap32(*(uint16_t*) &payload[20]);
 
-    uint16_t ethType = swap32(*(uint16_t*)&payload[12]);
-    DEBUG_MESSAGE("[RX] Incoming Ethernet Frame (Len=%d, EtherType=0x%04X)\n", frmLen, ethType);
-       DEBUG_MESSAGE("    Dest MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                     payload[0], payload[1], payload[2], payload[3], payload[4], payload[5]);
-       DEBUG_MESSAGE("    Src MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                     payload[6], payload[7], payload[8], payload[9], payload[10], payload[11]);
+		uint8_t sender_mac[6];
+		memcpy(sender_mac, &payload[22], 6);
 
-    if (ethType == 0x0806) {
-    	uint16_t arp_hwtype  = swap32(*(uint16_t*)&payload[14]);
-    	        uint16_t arp_proto   = swap32(*(uint16_t*)&payload[16]);
-    	        uint8_t  arp_hwlen   = payload[18];
-    	        uint8_t  arp_protolen = payload[19];
-    	        uint16_t arp_opcode  = swap32(*(uint16_t*)&payload[20]);
+		uint32_t sender_ip = swap32(*(uint32_t*) &payload[28]);
 
-    	        uint8_t sender_mac[6];
-    	        memcpy(sender_mac, &payload[22], 6);
+		uint8_t target_mac[6];
+		memcpy(target_mac, &payload[32], 6);
 
-    	        uint32_t sender_ip = swap32(*(uint32_t*)&payload[28]);
+		uint32_t target_ip = swap32(*(uint32_t*) &payload[38]);
 
-    	        uint8_t target_mac[6];
-    	        memcpy(target_mac, &payload[32], 6);
+		DEBUG_MESSAGE(
+				"[ARP] Parsed Values - HW Type: 0x%04X, Proto: 0x%04X, HW Len: %u, Protolen: %u, Opcode: 0x%04X\n",
+				arp_hwtype, arp_proto, arp_hwlen, arp_protolen, arp_opcode);
+		DEBUG_MESSAGE(
+				"[ARP] Sender MAC: %02X:%02X:%02X:%02X:%02X:%02X, Sender IP: %d.%d.%d.%d\n",
+				sender_mac[0], sender_mac[1], sender_mac[2], sender_mac[3],
+				sender_mac[4], sender_mac[5], (sender_ip >> 24) & 0xFF,
+				(sender_ip >> 16) & 0xFF, (sender_ip >> 8) & 0xFF,
+				sender_ip & 0xFF);
+		DEBUG_MESSAGE(
+				"[ARP] Target MAC: %02X:%02X:%02X:%02X:%02X:%02X, Target IP: %d.%d.%d.%d\n",
+				target_mac[0], target_mac[1], target_mac[2], target_mac[3],
+				target_mac[4], target_mac[5], (target_ip >> 24) & 0xFF,
+				(target_ip >> 16) & 0xFF, (target_ip >> 8) & 0xFF,
+				target_ip & 0xFF);
 
-    	        uint32_t target_ip = swap32(*(uint32_t*)&payload[38]);
+		if (arp_hwtype != 0x0001 || arp_proto != 0x0800 || arp_hwlen != 6
+				|| arp_protolen != 4) {
+			DEBUG_MESSAGE(
+					"[ERROR] Invalid ARP packet format! Dropping packet.\n");
+			adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+			return;
+		}
 
-        DEBUG_MESSAGE("[ARP] Parsed Values - HW Type: 0x%04X, Proto: 0x%04X, HW Len: %u, Protolen: %u, Opcode: 0x%04X\n",
-                      arp_hwtype, arp_proto, arp_hwlen, arp_protolen, arp_opcode);
-        DEBUG_MESSAGE("[ARP] Sender MAC: %02X:%02X:%02X:%02X:%02X:%02X, Sender IP: %d.%d.%d.%d\n",
-                      sender_mac[0], sender_mac[1], sender_mac[2],
-                      sender_mac[3], sender_mac[4], sender_mac[5],
-                      (sender_ip >> 24) & 0xFF, (sender_ip >> 16) & 0xFF,
-                      (sender_ip >> 8) & 0xFF, sender_ip & 0xFF);
-        DEBUG_MESSAGE("[ARP] Target MAC: %02X:%02X:%02X:%02X:%02X:%02X, Target IP: %d.%d.%d.%d\n",
-                      target_mac[0], target_mac[1], target_mac[2],
-                      target_mac[3], target_mac[4], target_mac[5],
-                      (target_ip >> 24) & 0xFF, (target_ip >> 16) & 0xFF,
-                      (target_ip >> 8) & 0xFF, target_ip & 0xFF);
+		if (sender_ip == 0) {
+			DEBUG_MESSAGE("[ARP] Ignoring ARP packet with sender IP 0.0.0.0\n");
+			adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+			return;
+		}
 
-        if (arp_hwtype != 0x0001 || arp_proto != 0x0800 || arp_hwlen != 6 || arp_protolen != 4) {
-            DEBUG_MESSAGE("[ERROR] Invalid ARP packet format! Dropping packet.\n");
-            adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-            return;
-        }
+		DEBUG_MESSAGE("[ARP] Processing ARP packet in lwIP.\n");
 
-        if (sender_ip == 0) {
-            DEBUG_MESSAGE("[ARP] Ignoring ARP packet with sender IP 0.0.0.0\n");
-            adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-            return;
-        }
+		struct pbuf *p = pbuf_alloc(PBUF_RAW, frmLen, PBUF_POOL);
+		if (p == NULL) {
+			DEBUG_MESSAGE(
+					"[ARP] Failed to allocate pbuf for lwIP processing!\n");
+			adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+			return;
+		}
+		pbuf_take(p, pRxBufDesc->pBuf, frmLen);
+		DEBUG_MESSAGE("[ARP] Passing ARP packet to lwIP\n");
+		etharp_input(p, &myConn.netif);
+		pbuf_free(p);
+		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+		return;
+	}
 
-
-        DEBUG_MESSAGE("[ARP] Processing ARP packet in lwIP.\n");
-
-        struct pbuf *p = pbuf_alloc(PBUF_RAW, frmLen, PBUF_POOL);
-        if (p == NULL) {
-            DEBUG_MESSAGE("[ARP] Failed to allocate pbuf for lwIP processing!\n");
-            adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-            return;
-        }
-        pbuf_take(p, pRxBufDesc->pBuf, frmLen);
-                DEBUG_MESSAGE("[ARP] Passing ARP packet to lwIP\n");
-                etharp_input(p, &myConn.netif);
-                pbuf_free(p);
-                adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-                return;
-    }
-
-    writePQ(&pQ[0], payload, frmLen);
-        adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+	writePQ(&pQ[0], payload, frmLen);
+	adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
 	adi_eth_LinkStatus_e linkStatus;
