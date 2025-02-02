@@ -18,7 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os2.h"
+#include "cmsis_os.h"
 #include "dma.h"
 #include "usart.h"
 #include "spi.h"
@@ -56,7 +56,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
 
 adin1110_DeviceStruct_t dev;
 adin1110_DeviceHandle_t hDevice = &dev;
@@ -153,7 +152,6 @@ void MX_FREERTOS_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-
 #ifndef USE_LWIP
 void printStats(adin1110_DeviceHandle_t hDevice) {
 	adi_eth_Result_e result = ADI_ETH_SUCCESS;
@@ -218,39 +216,38 @@ void printStats(adin1110_DeviceHandle_t hDevice) {
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
 
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_SPI1_Init();
-  MX_LPUART1_UART_Init();
-  /* USER CODE BEGIN 2 */
-	#ifndef USE_LWIP
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_SPI1_Init();
+	MX_LPUART1_UART_Init();
+	/* USER CODE BEGIN 2 */
+#ifndef USE_LWIP
 	adi_eth_Result_e result;
 	adin1110_DeviceStruct_t deviceStruct;
 	adin1110_DeviceHandle_t hDevice = &deviceStruct;
@@ -262,22 +259,24 @@ int main(void)
 	boardDetails.mac[3] = 0xFE;
 	boardDetails.mac[4] = 0xDA;
 	boardDetails.mac[5] = 0xCA;
-	/*boardDetails.ip_addr[0] = 192;
-	boardDetails.ip_addr[1] = 168;
-	boardDetails.ip_addr[2] = 1;
-	boardDetails.ip_addr[3] = 5;
-	boardDetails.net_mask[0] = 255;
-	boardDetails.net_mask[1] = 255;
-	boardDetails.net_mask[2] = 255;
-	boardDetails.net_mask[3] = 0;
-	boardDetails.gateway[0] = 192;
-	boardDetails.gateway[1] = 168;
-	boardDetails.gateway[2] = 1;
-	boardDetails.gateway[3] = 1;*/
-	boardDetails.ip_addr_fixed = IP_DYNAMIC;
-	#endif  /* USE_LWIP */
 
-	#ifndef USE_LWIP
+	/*For IP Address Fixed Settings, make sure to setup a static DHCP lease in the 2303-8SP1 switch and uncomment the ip address, net_mask and gateway. Most importantly, change from IP_DYNAMIC to IP_FIXED*/
+	/*boardDetails.ip_addr[0] = 192;
+	 boardDetails.ip_addr[1] = 168;
+	 boardDetails.ip_addr[2] = 1;
+	 boardDetails.ip_addr[3] = 5;
+	 boardDetails.net_mask[0] = 255;
+	 boardDetails.net_mask[1] = 255;
+	 boardDetails.net_mask[2] = 255;
+	 boardDetails.net_mask[3] = 0;
+	 boardDetails.gateway[0] = 192;
+	 boardDetails.gateway[1] = 168;
+	 boardDetails.gateway[2] = 1;
+	 boardDetails.gateway[3] = 1;*/
+	boardDetails.ip_addr_fixed = IP_DYNAMIC;
+#endif  /* USE_LWIP */
+
+#ifndef USE_LWIP
 	for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++) {
 		result = adin1110_Init(hDevice, &drvConfig);
 		if (result == ADI_ETH_SUCCESS) {
@@ -343,29 +342,21 @@ int main(void)
 	HAL_Delay(3000);
 	netif_set_link_up(&myConn.netif);
 
-
-
-
-
 #endif  /* USE_LWIP */
 
+	/* USER CODE END 2 */
 
+	/* Init scheduler */
+	osKernelInitialize();
 
-  /* USER CODE END 2 */
+	/* Call init function for freertos objects (in cmsis_os2.c) */
+	MX_FREERTOS_Init();
 
-  /* Init scheduler */
-  osKernelInitialize();
+	/* Start scheduler */
+	osKernelStart();
 
-  /* Call init function for freertos objects (in cmsis_os2.c) */
-  MX_FREERTOS_Init();
-
-  /* Start scheduler */
-  osKernelStart();
-
-  /* We should never get here as control is now taken by the scheduler */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	/* Uncomment these variable declarations when using lwIP stack*/
 #ifdef USE_LWIP
 	while (1) {
@@ -373,9 +364,9 @@ int main(void)
 #ifndef USE_LWIP
 	while (!FRAME_COUNT || (txIdx < FRAME_COUNT)) {
 	#endif  /* USE_LWIP */
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
 #ifdef USE_LWIP
 	}
 #endif  /* USE_LWIP */
@@ -445,56 +436,53 @@ int main(void)
 	}
 	#endif  /* USE_LWIP */
 
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
-  /** Configure the main internal regulator output voltage
-  */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Configure the main internal regulator output voltage
+	 */
+	if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1)
+			!= HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 10;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
-  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+	RCC_OscInitStruct.PLL.PLLM = 1;
+	RCC_OscInitStruct.PLL.PLLN = 10;
+	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+	RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+	RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
 /* USER CODE BEGIN 4 */
@@ -523,13 +511,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		}
 	}
 	if (GPIO_Pin == ETH_INT_N_Pin) {
-	    DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
-	    HAL_INT_N_DisableIRQ();
-	    adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
-	    if (result != ADI_ETH_SUCCESS) {
-	        DEBUG_MESSAGE("adin1110_HandleInterrupt failed with error: %d\r\n", result);
-	    }
-	    HAL_INT_N_EnableIRQ();
+		DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
+		HAL_INT_N_DisableIRQ();
+		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
+		if (result != ADI_ETH_SUCCESS) {
+			DEBUG_MESSAGE("adin1110_HandleInterrupt failed with error: %d\r\n",
+					result);
+		}
+		HAL_INT_N_EnableIRQ();
 	}
 
 	if (GPIO_Pin == Interrupt_Pin) {
@@ -540,38 +529,35 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 /* USER CODE END 4 */
 
 /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM6 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM6 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	/* USER CODE BEGIN Callback 0 */
 
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
+	/* USER CODE END Callback 0 */
+	if (htim->Instance == TIM6) {
+		HAL_IncTick();
+	}
+	/* USER CODE BEGIN Callback 1 */
 
-  /* USER CODE END Callback 1 */
+	/* USER CODE END Callback 1 */
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-	/* User can add his own implementation to report the HAL error return state */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
 	__disable_irq();
 	while (1) {
 	}
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
