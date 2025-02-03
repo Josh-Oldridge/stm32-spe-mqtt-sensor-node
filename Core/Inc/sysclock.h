@@ -25,7 +25,7 @@ extern "C" {
 #include "stm32l4xx_ll_rcc.h"
 #include "bsp_config.h"
  
-HAL_StatusTypeDef SystemClock_Config(void);
+//HAL_StatusTypeDef SystemClock_Config(void);
 
 #ifdef __cplusplus
 }

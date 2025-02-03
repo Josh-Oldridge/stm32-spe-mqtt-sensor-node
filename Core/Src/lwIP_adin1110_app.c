@@ -12,6 +12,7 @@
 
 #include "lwIP_adin1110_app.h"
 #include "adin1110.h"
+#include "main.h"
 #include "netif/etharp.h"
 #include "lwip/ip_addr.h"
 #include "lwip/snmp.h"
@@ -270,8 +271,10 @@ void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
 	linkStatus = *(adi_eth_LinkStatus_e*) pArg;
 
 	if (linkStatus == ADI_ETH_LINK_STATUS_UP) {
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_9, GPIO_PIN_SET);
 		DEBUG_MESSAGE("Ethernet Link Status: UP\r\n");
 	} else {
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_9, GPIO_PIN_RESET);
 		DEBUG_MESSAGE("Ethernet Link Status: DOWN\r\n");
 	}
 }
