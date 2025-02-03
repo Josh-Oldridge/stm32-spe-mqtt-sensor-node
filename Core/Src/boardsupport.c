@@ -10,10 +10,7 @@
  */
 
 #include "boardsupport.h"
-#include "main.h"
-#include "stm32l4xx_hal_spi.h"
-#include "hal.h"
-#include "bsp_config.h"
+
 #include <string.h>
 
 #define RESET_DELAY       (1)
@@ -24,29 +21,6 @@ SPI_CallbackData spiCallbackData;
 
 SPI_HandleTypeDef hEthSpi;
 
-void ETH_SPI_Init(void) {
-    hEthSpi.Instance = SPI1;
-    hEthSpi.Init.Mode = SPI_MODE_MASTER;
-    hEthSpi.Init.Direction = SPI_DIRECTION_2LINES;
-    hEthSpi.Init.DataSize = SPI_DATASIZE_8BIT;
-    hEthSpi.Init.CLKPolarity = SPI_POLARITY_HIGH;
-    hEthSpi.Init.CLKPhase = SPI_PHASE_2EDGE;
-    hEthSpi.Init.NSS = SPI_NSS_SOFT;
-    hEthSpi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-    hEthSpi.Init.FirstBit = SPI_FIRSTBIT_MSB;
-    hEthSpi.Init.TIMode = SPI_TIMODE_DISABLE;
-    hEthSpi.Init.CRCCalculation = SPI_CRCCALCULATION_ENABLE;
-    hEthSpi.Init.CRCPolynomial = 7;
-    hEthSpi.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
-    hEthSpi.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
-
-    if (HAL_SPI_Init(&hEthSpi) != HAL_OK) {
-        Error_Handler();
-    }
-}
-
-void ADIN1110_CS_Select(void);
-void ADIN1110_CS_Deselect(void);
 
 /*
  * @brief Blocking delay function
@@ -89,11 +63,11 @@ void BSP_HWReset(bool set)
 {
     DEBUG_MESSAGE("BSP_HWReset: Driving Reset_Pin LOW\r\n");
     HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_RESET);
-    BSP_delayMs(2000);
+    BSP_delayMs(RESET_DELAY);
 
     DEBUG_MESSAGE("BSP_HWReset: Driving Reset_Pin HIGH\r\n");
     HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_SET);
-    BSP_delayMs(500);
+    BSP_delayMs(AFTER_RESET_DELAY);
 
     DEBUG_MESSAGE("BSP_HWReset: Reset sequence completed\r\n");
 }
@@ -158,15 +132,15 @@ void BSP_FuncLed1Toggle(void)
 /*
  * Custom function 2 LED
  */
-void BSP_FuncLed2(bool on)
-{
-    bspLedSet(BSP_LED4_PORT, BSP_LED4_PIN, on);
-}
-
-void BSP_FuncLed2Toggle(void)
-{
-    bspLedToggle(BSP_LED4_PORT, BSP_LED4_PIN);
-}
+//void BSP_FuncLed2(bool on)
+//{
+//    bspLedSet(BSP_LED4_PORT, BSP_LED4_PIN, on);
+//}
+//
+//void BSP_FuncLed2Toggle(void)
+//{
+//    bspLedToggle(BSP_LED4_PORT, BSP_LED4_PIN);
+//}
 
 /* All LEDs toggle, used to indicate hardware failure on the board */
 void BSP_LedToggleAll(void)
@@ -176,10 +150,22 @@ void BSP_LedToggleAll(void)
 
 uint32_t BSP_spi2_write_and_read(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma)
 {
+    HAL_SPI_Write_Read(pBufferTx,  pBufferRx,  nbBytes, useDma);
 
-    ADIN1110_CS_Select();
-    HAL_SPI_TransmitReceive_DMA(&hspi1, pBufferTx, pBufferRx, nbBytes);
     return 0;
+}
+
+extern uint32_t HAL_SPI_Register_Callback(ADI_CB const *pfCallback, void *const pCBParam);
+uint32_t BSP_spi2_register_callback(ADI_CB const *pfCallback, void *const pCBParam)
+{
+  HAL_SPI_Register_Callback(pfCallback,  pCBParam);
+  return 0;
+}
+
+extern uint32_t HAL_INT_N_Register_Callback(ADI_CB const *pfCallback, void *const pCBParam);
+uint32_t BSP_RegisterIRQCallback(ADI_CB const *intCallback, void * hDevice)
+{
+  return HAL_INT_N_Register_Callback(intCallback,  hDevice);
 }
 
 
@@ -305,34 +291,5 @@ void common_Perf(char *InfoString)
     msgWrite(term);
 }
 
-uint32_t BSP_RegisterIRQCallback(ADI_CB const *intCallback, void *hDevice) {
-    if (intCallback != NULL) {
-        HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
-        DEBUG_MESSAGE("Enabling IRQ for EXTI15_10_IRQn...");
-        HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-        DEBUG_MESSAGE("IRQ Enabled.");
-        return 0;
-    }
-    return 1;
-}
-
-uint32_t BSP_spi2_register_callback(ADI_CB pfCallback, void *const pCBParam) {
-    if (pfCallback != NULL) {
-    	spiCallbackData.callback = pfCallback;
-        spiCallbackData.userData = pCBParam;
-        return 0;
-    }
-    return 1;
-}
-
-void ADIN1110_CS_Select(void)
-{
-    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
-}
-
-void ADIN1110_CS_Deselect(void)
-{
-    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_SET);
-}
 
 

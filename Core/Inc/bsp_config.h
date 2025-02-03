@@ -18,47 +18,47 @@
 #define ETH_RESET_Pin GPIO_PIN_7
 #define ETH_RESET_GPIO_Port GPIOC
 #else
-#define ETH_RESET_Pin GPIO_PIN_15								//Reset an Pin 15
-#define ETH_RESET_GPIO_Port GPIOD								//Reset an GPIOD
+#define ETH_RESET_Pin GPIO_PIN_15
+#define ETH_RESET_GPIO_Port GPIOD
 #endif
 
 
-#define ETH_SPI                 SPI1							//SPI1 statt SPI2
-#define ETH_SPI_IRQn            SPI1_IRQn						//SPI1 statt SPI2
-#define ETH_SPI_IRQ_HANDLER     SPI1_IRQHandler					//SPI1 statt SPI2
-#define ETH_SPI_CLK_ENABLE		__HAL_RCC_SPI1_CLK_ENABLE		//SPI1 statt SPI2
-#define ETH_SPI_CLK_DISABLE 	__HAL_RCC_SPI1_CLK_DISABLE		//SPI1 statt SPI2
+#define ETH_SPI                 SPI1
+#define ETH_SPI_IRQn            SPI1_IRQn
+#define ETH_SPI_IRQ_HANDLER     SPI1_IRQHandler
+#define ETH_SPI_CLK_ENABLE		__HAL_RCC_SPI1_CLK_ENABLE
+#define ETH_SPI_CLK_DISABLE 	__HAL_RCC_SPI1_CLK_DISABLE
 
-#define ETH_SPI_SS_Pin          GPIO_PIN_14						//CS an Pin 14
-#define ETH_SPI_SS_GPIO_Port    GPIOD							//CS an GPIOD
-#define ETH_SPI_MOSI_Pin        GPIO_PIN_7						//MOSI an Pin 7
-#define ETH_SPI_MOSI_GPIO_Port  GPIOA							//MOSI an GPIOA
-#define ETH_SPI_MOSI_AF         GPIO_AF5_SPI1					//SPI1 statt SPI2
+#define ETH_SPI_SS_Pin          GPIO_PIN_14
+#define ETH_SPI_SS_GPIO_Port    GPIOD
+#define ETH_SPI_MOSI_Pin        GPIO_PIN_7
+#define ETH_SPI_MOSI_GPIO_Port  GPIOA
+#define ETH_SPI_MOSI_AF         GPIO_AF5_SPI1
 #if defined(USE_NUCLEO)
-#define ETH_SPI_MISO_Pin        GPIO_PIN_2
-#define ETH_SPI_MISO_GPIO_Port  GPIOC
+#define ETH_SPI_MISO_Pin        GPIO_PIN_6
+#define ETH_SPI_MISO_GPIO_Port  GPIOA
 #else
-#define ETH_SPI_MISO_Pin        GPIO_PIN_6						//MISO an Pin 6
-#define ETH_SPI_MISO_GPIO_Port  GPIOA							//MISO an GPIOA
+#define ETH_SPI_MISO_Pin        GPIO_PIN_14
+#define ETH_SPI_MISO_GPIO_Port  GPIOB
 #endif
-#define ETH_SPI_MISO_AF         GPIO_AF5_SPI1					//SPI1 statt SPI2
-#define ETH_SPI_CLK_Pin         GPIO_PIN_5						//SCK an Pin 5
-#define ETH_SPI_CLK_GPIO_Port   GPIOA							//SCK an GPIOA
-#define ETH_SPI_CLK_AF          GPIO_AF5_SPI1					//SPI1 statt SPI2
+#define ETH_SPI_MISO_AF         GPIO_AF5_SPI1
+#define ETH_SPI_CLK_Pin         GPIO_PIN_5
+#define ETH_SPI_CLK_GPIO_Port   GPIOA
+#define ETH_SPI_CLK_AF          GPIO_AF5_SPI1
 
 
-#define ETH_SPI_DMA_REQ_TX      DMA_REQUEST_SPI1_TX				//SPI1 statt SPI2
-#define ETH_SPI_DMA_REQ_RX      DMA_REQUEST_SPI1_RX				//SPI1 statt SPI2
+#define ETH_SPI_DMA_REQ_TX      DMA_REQUEST_3
+#define ETH_SPI_DMA_REQ_RX      DMA_REQUEST_2
 
 #if defined(EVAL_ADIN1110EBZ)
 #define ETH_INT_N_Pin           GPIO_PIN_11
 #define ETH_INT_N_GPIO_Port     GPIOB
 #else
-#define ETH_INT_N_Pin           GPIO_PIN_12						//INT an Pin 12
-#define ETH_INT_N_GPIO_Port     GPIOF							//INT an GPIOF
+#define ETH_INT_N_Pin           GPIO_PIN_12
+#define ETH_INT_N_GPIO_Port     GPIOF
 #endif
 #define ETH_INT_N_IRQn          EXTI15_10_IRQn
-//#define ETH_INT_N_IRQ_HANDLER   EXTI15_10_IRQHandler
+#define ETH_INT_N_IRQ_HANDLER   EXTI15_10_IRQHandler
 
 #if defined(EVAL_ADIN1110EBZ)
 #define BSP_LED1_PORT           GPIOC
@@ -70,16 +70,16 @@
 #define BSP_LED4_PORT           GPIOG
 #define BSP_LED4_PIN            GPIO_PIN_15
 #else
-#define BSP_LED1_PORT           GPIOB
-#define BSP_LED1_PIN            GPIO_PIN_6
-#define BSP_LED2_PORT           GPIOE
-#define BSP_LED2_PIN            GPIO_PIN_6
+#define BSP_LED1_PORT           GPIOC
+#define BSP_LED1_PIN            GPIO_PIN_7
+#define BSP_LED2_PORT           GPIOB
+#define BSP_LED2_PIN            GPIO_PIN_7
 #define BSP_LED3_PORT           GPIOB
-#define BSP_LED3_PIN            GPIO_PIN_11
-#define BSP_LED4_PORT           GPIOE
-#define BSP_LED4_PIN            GPIO_PIN_2
-#define BSP_LED5_PORT           GPIOB
-#define BSP_LED5_PIN            GPIO_PIN_10
+#define BSP_LED3_PIN            GPIO_PIN_14
+//#define BSP_LED4_PORT           GPIOB
+//#define BSP_LED4_PIN            GPIO_PIN_2
+//#define BSP_LED5_PORT           GPIOB
+//#define BSP_LED5_PIN            GPIO_PIN_10
 #endif
 
 #define ETH_GPIO_ENABLE         do { \

@@ -132,6 +132,7 @@ uint32_t HAL_SpiReadWrite(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbByt
     return BSP_spi2_write_and_read (pBufferTx, pBufferRx, nbBytes, useDma);
 }
 
+
 /*
  * @brief  Register SPI Callback function
  *
@@ -144,10 +145,11 @@ uint32_t HAL_SpiReadWrite(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbByt
  *
  * @sa
  */
-uint32_t HAL_SpiRegisterCallback(HAL_Callback_t spiCallback, void *hDevice)
+uint32_t HAL_SpiRegisterCallback(HAL_Callback_t const *spiCallback, void * hDevice)
 {
-    return BSP_spi2_register_callback((ADI_CB)spiCallback, hDevice);
+    return BSP_spi2_register_callback (spiCallback, hDevice);
 }
+
 
 uint32_t HAL_Init_Hook(void)
 {

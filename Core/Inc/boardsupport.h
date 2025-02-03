@@ -26,7 +26,7 @@
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
-#include "hal.h"
+#include "sysclock.h"
 
 
 /* Buffer for debug messages written to UART. */
@@ -64,6 +64,7 @@ typedef struct {
 } SPI_CallbackData;
 
 extern SPI_CallbackData spiCallbackData;
+extern uint32_t HAL_SPI_Register_Callback(ADI_CB const *pfCallback, void *const pCBParam);
 
 void ADIN1110_CS_Select(void);
 void ADIN1110_CS_Deselect(void);
@@ -81,7 +82,7 @@ void            BSP_ChangeMDIPinDir             (bool output);
 uint32_t        BSP_spi0_write_and_read         (uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes);
 uint32_t        BSP_spi0_register_callback      (ADI_CB const *pfCallback, void *const pCBParam);
 uint32_t        BSP_spi2_write_and_read         (uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma);
-uint32_t        BSP_spi2_register_callback      (ADI_CB pfCallback, void *const pCBParam);
+uint32_t        BSP_spi2_register_callback      (ADI_CB const *pfCallback, void *const pCBParam);
 
 void            BSP_HWReset                     (bool set);
 void            BSP_HeartBeat                   (void);
@@ -89,8 +90,8 @@ void            BSP_HeartBeatLed                (bool on);
 void            BSP_ErrorLed                    (bool on);
 void            BSP_FuncLed1                    (bool on);
 void            BSP_FuncLed1Toggle              (void);
-void            BSP_FuncLed2                    (bool on);
-void            BSP_FuncLed2Toggle              (void);
+//void            BSP_FuncLed2                    (bool on);
+//void            BSP_FuncLed2Toggle              (void);
 void            BSP_LedToggleAll                (void);
 void            BSP_delayMs                     (uint32_t delay);
 

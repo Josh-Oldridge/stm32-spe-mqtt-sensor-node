@@ -23,9 +23,9 @@
 /* USER CODE BEGIN 0 */
 #include "boardsupport.h"
 HAL_StatusTypeDef   status;
-extern SPI_CallbackData spiCallbackData;
 
-/* Store the IRQ callback and user parameter locally */
+static          ADI_CB gpfSpiCallback = NULL;
+static void     *gpSpiCBParam = NULL;
 /* USER CODE END 0 */
 
 SPI_HandleTypeDef hspi1;
@@ -50,7 +50,7 @@ void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -168,19 +168,48 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle)
 
 /* USER CODE BEGIN 1 */
 
+void ADIN1110_CS_Select(void)
+{
+    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
+}
+
+void ADIN1110_CS_Deselect(void)
+{
+    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_SET);
+}
+
+HAL_StatusTypeDef HAL_SPI_Write_Read(uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma)
+{
+    HAL_StatusTypeDef   status;
+
+    ADIN1110_CS_Select();
+
+    if (useDma)
+    {
+        status = HAL_SPI_TransmitReceive_DMA(&hspi1, (uint8_t *)pBufferTx, (uint8_t *)pBufferRx, nbBytes);
+    }
+    else
+    {
+        status = HAL_SPI_TransmitReceive_IT(&hEthSpi, (uint8_t *)pBufferTx, (uint8_t *)pBufferRx, nbBytes);
+    }
+
+    return status;
+}
+uint32_t HAL_SPI_Register_Callback(ADI_CB const *pfCallback, void *const pCBParam)
+{
+    gpfSpiCallback = (ADI_CB)pfCallback;
+    gpSpiCBParam = pCBParam ;
+
+    return 0;
+}
+
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi->Instance == SPI1)
     {
         ADIN1110_CS_Deselect();
+        (*gpfSpiCallback)(gpSpiCBParam, 0, NULL);
 
-        if (spiCallbackData.callback != NULL)
-        {
-            spiCallbackData.callback(spiCallbackData.userData, 0, NULL);
-        }
-        else
-        {
-        }
     }
 }
 
