@@ -45,17 +45,17 @@ typedef struct {
 } board_t;
 
 typedef struct Lwip_adin1110_s {
-	adin1110_DeviceHandle_t hDevice;
+	adin1110_DeviceHandle_t* hDevice;
 	struct netif netif;
 	uint8_t macAddress[6];
 } LwIP_ADIN1110_t;
 
 uint32_t sys_now(void);
 adi_eth_Result_e LwIP_StructInit(LwIP_ADIN1110_t *eth,
-		adin1110_DeviceHandle_t hDevice, uint8_t macAddress[6]);
+		adin1110_DeviceHandle_t* hDevice, uint8_t macAddress[6]);
 void LwIP_Init(LwIP_ADIN1110_t *eth, board_t *boardDetails);
 err_t LwIP_ADIN1110LinkInput(struct netif *netif);
-uint32_t discoveradin1110(adin1110_DeviceHandle_t hDevice);
+uint32_t discoveradin1110(adin1110_DeviceHandle_t *hDevice);
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg);
 void print_lwip_arp_table(void);
 extern LwIP_ADIN1110_t myConn;

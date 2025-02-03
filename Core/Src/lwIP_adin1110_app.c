@@ -402,7 +402,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 			| ((uint8_t*) p->payload)[13];
 #endif /* TCP/IP_DEBUG */
 	LwIP_ADIN1110_t *eth = (LwIP_ADIN1110_t*) netif->state;
-	adin1110_DeviceHandle_t hDevice = eth->hDevice;
+	adin1110_DeviceHandle_t *hDevice = eth->hDevice;
 
 	struct pbuf *pp;
 	uint16_t frameLen = 0;
@@ -460,7 +460,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 		/* unicast packet */
 		MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
 	}
-	while (adin1110_SubmitTxBuffer(hDevice, &txBufDesc[txBufIndex])
+	while (adin1110_SubmitTxBuffer(*hDevice, &txBufDesc[txBufIndex])
 			== ADI_ETH_QUEUE_FULL) {
 		;;
 	}
@@ -482,9 +482,9 @@ static u16_t ssiHandler(const char *tag, char *insertBuffer,
 }
 
 adi_eth_Result_e LwIP_StructInit(LwIP_ADIN1110_t *eth,
-		adin1110_DeviceHandle_t hDevice, uint8_t macAddress[6]) {
+		adin1110_DeviceHandle_t* hDevice, uint8_t macAddress[6]) {
 	eth->hDevice = hDevice;
-
+	//eth->macAddress =  macAddress;
 	if (macAddress == NULL) {
 		DEBUG_MESSAGE("Error: MAC Address is NULL\r\n");
 		return ADI_ETH_INVALID_PARAM;
@@ -526,28 +526,28 @@ static err_t LwipADIN1110Init(struct netif *netif) {
 
 static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 	adi_eth_Result_e result;
-	adin1110_DeviceHandle_t hDevice = eth->hDevice;
+	adin1110_DeviceHandle_t *hDevice = eth->hDevice;
 	uint8_t brcstMAC[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-	result = adin1110_AddAddressFilter(hDevice, brcstMAC, NULL, 0);
+	result = adin1110_AddAddressFilter(*hDevice, brcstMAC, NULL, 0);
 	if (result != ADI_ETH_SUCCESS) {
 		DEBUG_MESSAGE(
 				"Error: Adding broadcast MAC address filter failed. Code: 0x%08X\r\n",
 				result);
 		return result;
 	}
-	result = adin1110_AddAddressFilter(hDevice, eth->macAddress, NULL, 0);
+	result = adin1110_AddAddressFilter(*hDevice, eth->macAddress, NULL, 0);
 	if (result != ADI_ETH_SUCCESS) {
 		DEBUG_MESSAGE(
 				"Error: Adding device MAC address filter failed.\r\n");
 		return result;
 	}
-	result = adin1110_SyncConfig(hDevice);
+	result = adin1110_SyncConfig(*hDevice);
 	if (result != ADI_ETH_SUCCESS) {
 		DEBUG_MESSAGE("Error: Synchronizing configuration failed.\r\n");
 		return result;
 	}
-	result = adin1110_RegisterCallback(hDevice, cbLinkChange,
+	result = adin1110_RegisterCallback(*hDevice, cbLinkChange,
 			ADI_MAC_EVT_LINK_CHANGE);
 	if (result != ADI_ETH_SUCCESS) {
 		DEBUG_MESSAGE("Error: Registering link change callback failed.\r\n");
@@ -560,16 +560,16 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 		rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
 		rxBufDesc[i].cbFunc = rxCallback;
 
-		result = adin1110_SubmitRxBuffer(hDevice, &rxBufDesc[i]);
+		result = adin1110_SubmitRxBuffer(*hDevice, &rxBufDesc[i]);
 	}
-	result = adin1110_Enable(hDevice);
+	result = adin1110_Enable(*hDevice);
 	if (result != ADI_ETH_SUCCESS) {
 		DEBUG_MESSAGE("Error: Enabling device failed.\r\n");
 		return result;
 	}
 
 	do {
-		result = adin1110_GetLinkStatus(hDevice, &linkStatus);
+		result = adin1110_GetLinkStatus(*hDevice, &linkStatus);
 		DEBUG_RESULT("adin1110_GetLinkStatus", result, ADI_ETH_SUCCESS);
 	} while (linkStatus != ADI_ETH_LINK_STATUS_UP);
 
@@ -675,13 +675,13 @@ void* readPQ(pQueue_t* pQ) {
 	return (void*) p;
 }
 
-uint32_t discoveradin1110(adin1110_DeviceHandle_t hDevice) {
+uint32_t discoveradin1110(adin1110_DeviceHandle_t *hDevice) {
 	adi_eth_Result_e result;
 	uint32_t error = 1;
 
 	/****** Driver Init *****/
 	for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++) {
-		result = adin1110_Init(hDevice, &drvConfig);
+		result = adin1110_Init(*hDevice, &drvConfig);
 		if (result == ADI_ETH_SUCCESS) {
 			error = 0;
 			break;

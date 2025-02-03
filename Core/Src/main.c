@@ -67,7 +67,7 @@ adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
 		sizeof(devMem), .fcsCheckEn = false, };
 
 
-void printStats(adin1110_DeviceHandle_t hDevice);
+void printStats(adin1110_DeviceHandle_t* hDevice);
 
 uint8_t dest_mac[6] = { 0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33 };  // Dell MAC
 uint8_t mySourceMac[6] = { 0x00, 0xE0, 0x22, 0xFE, 0xDA, 0xCA };
@@ -114,7 +114,7 @@ static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
 }
 
 static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
-	adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t) pCBParam;
+	adin1110_DeviceHandle_t* hDevice = (adin1110_DeviceHandle_t) pCBParam;
 	adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t*) pArg;
 	uint32_t idx;
 
@@ -333,10 +333,10 @@ int main(void) {
 	#else /* USE_LWIP defined */
 
 	/* Initialize lwIP stack */
-	uint32_t result = discoveradin1110(hDevice);
+	uint32_t result = discoveradin1110(&hDevice);
 	DEBUG_RESULT("Failed to access ADIN1110", result, 0);
 
-	LwIP_StructInit(&myConn, hDevice, boardDetails.mac);
+	LwIP_StructInit(&myConn, &hDevice, boardDetails.mac);
 	LwIP_Init(&myConn, &boardDetails);
 	LwIP_ADIN1110LinkInput(&myConn.netif);
 	//HAL_Delay(3000);
