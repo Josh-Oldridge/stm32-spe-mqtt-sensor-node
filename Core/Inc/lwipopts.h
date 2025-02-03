@@ -69,7 +69,7 @@
 #endif
 
 #ifndef MEMP_NUM_RAW_PCB
-#define MEMP_NUM_RAW_PCB 4
+#define MEMP_NUM_RAW_PCB 0
 #endif
 /*
  ------------------------------------
@@ -226,7 +226,7 @@
  */
 #ifndef MEMP_NUM_PBUF
 #ifdef DEBUG
-#define MEMP_NUM_PBUF                   8
+#define MEMP_NUM_PBUF                   4
 #else
 #define MEMP_NUM_PBUF                   8
 #endif
@@ -270,7 +270,7 @@
  * (requires the LWIP_TCP option)
  */
 #ifndef MEMP_NUM_TCP_SEG
-#define MEMP_NUM_TCP_SEG                8
+#define MEMP_NUM_TCP_SEG                16
 #endif
 
 /**
@@ -415,24 +415,15 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  16
+#define PBUF_POOL_SIZE                  4
 #endif
-#define PBUF_POOL_BUFSIZE 1500
-#define PBUF_LINK_HLEN 14
+#define PBUF_POOL_BUFSIZE 1700
+#define PBUF_LINK_HLEN 16
 
 #define LWIP_ARP 1
-#define LWIP_ETHERNET 1
-#define ETHARP_SUPPORT_STATIC_ENTRIES 0
-#define ETHARP_SUPPORT_VLAN 0
-#define ETHARP_VLAN_CHECK 0
-#define ETH_PAD_SIZE 0
-#define ETHARP_TABLE_MATCH_NETIF 0
-#define ARP_QUEUE_LEN 5
 #define ARP_TABLE_SIZE 10
 #define ARP_QUEUEING 1
-#ifndef ARP_MAXAGE
-#define ARP_MAXAGE 300
-#endif
+
 
 #define ICMP_TTL 255
 
@@ -516,7 +507,7 @@
  * LWIP_RAW==1: Enable application layer to hook into the IP layer itself.
  */
 #ifndef LWIP_RAW
-#define LWIP_RAW                1
+#define LWIP_RAW                0
 #endif
 
 #define CHECKSUM_GEN_TCP 	1

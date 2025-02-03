@@ -133,134 +133,160 @@ void StartDefaultTask(void *argument) {
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 void NetworkTask(void *argument) {
-	uint32_t lastPollTime = 0;
-	uint32_t last_arp_time = 0;
+//	uint32_t lastPollTime = 0;
+//	uint32_t last_arp_time = 0;
+//	uint32_t heartbeatCheckTime = 0;
+//	uint32_t pollIntervalMs = 500;
+//	static uint8_t link_was_up = 0;
 	uint32_t heartbeatCheckTime = 0;
-	uint32_t pollIntervalMs = 500;
-	static uint8_t link_was_up = 0;
+	const uint32_t heartbeatIntervalMs = 250;
 
-	DEBUG_MESSAGE("[NETWORK] Waiting for a valid IP address...\n");
+//	DEBUG_MESSAGE("[NETWORK] Waiting for a valid IP address...\n");
+//
+//	while (myConn.netif.ip_addr.addr == 0) {
+//		osDelay(100);            // short delay
+//		sys_check_timeouts();    // let DHCP, ARP, etc. run
+//	}
 
-	while (myConn.netif.ip_addr.addr == 0) {
-		osDelay(DHCP_CHECK_INTERVAL_MS);
-		sys_check_timeouts();
-
-		struct pbuf *p;
-		while ((p = (struct pbuf*) readPQ(&pQ[0])) != NULL) {
-			uint8_t *payload = (uint8_t*) p->payload;
-			uint16_t ethType = (payload[12] << 8) | payload[13];
-
-			if (ethType == 0x0806) {
-				DEBUG_MESSAGE("[ARP] ARP Packet received before DHCP\n");
-				netif_input(p, &myConn.netif);
-			} else if (ethType == 0x0800) {
-				uint8_t ipProtocol = payload[23];
-
-				if (ipProtocol == 17) {
-					uint16_t udpSrcPort = (payload[34] << 8) | payload[35];
-					uint16_t udpDstPort = (payload[36] << 8) | payload[37];
-
-					DEBUG_MESSAGE("UDP Packet - Src Port: %d, Dst Port: %d\n",
-							udpSrcPort, udpDstPort);
-
-					if (udpDstPort == 67 || udpDstPort == 68) {
-						DEBUG_MESSAGE("[DHCP] DHCP Packet received!\n");
-					}
-
-					netif_input(p, &myConn.netif);
-				} else {
-					DEBUG_MESSAGE(
-							"[NETWORK] Ignoring non-DHCP IPv4 packet...\n");
-					pbuf_free(p);
-				}
-			} else {
-				DEBUG_MESSAGE("[NETWORK] Unknown EtherType: 0x%04X\n", ethType);
-				pbuf_free(p);
-			}
-		}
-
-		if (myConn.netif.ip_addr.addr
-				!= 0&& myConn.netif.ip_addr.addr != IPADDR_ANY) {
-			DEBUG_MESSAGE("[NETWORK] IP Assigned: %s\n",
-					ip4addr_ntoa(&myConn.netif.ip_addr));
-			break;
-		}
-		DEBUG_MESSAGE("[NETWORK] Still waiting for IP assignment...\n");
-	}
-	if (myConn.netif.ip_addr.addr != 0
-			&& dhcp_supplied_address(&myConn.netif)) {
-		DEBUG_MESSAGE("[NETWORK] Successfully obtained IP: %d.%d.%d.%d\n",
-				ip4_addr1(&myConn.netif.ip_addr),
-				ip4_addr2(&myConn.netif.ip_addr),
-				ip4_addr3(&myConn.netif.ip_addr),
-				ip4_addr4(&myConn.netif.ip_addr));
-
-		netif_set_up(&myConn.netif);
-		netif_set_default(&myConn.netif);
-		etharp_gratuitous(&myConn.netif);
-	}
+	// IP assigned
+//	DEBUG_MESSAGE("[NETWORK] IP Assigned: %s\n",
+//			ip4addr_ntoa(&myConn.netif.ip_addr));
+//	netif_set_up(&myConn.netif);
+//	netif_set_default(&myConn.netif);
+//	etharp_gratuitous(&myConn.netif);
 
 	while (1) {
 		uint32_t now = BSP_SysNow();
-
-		if ((now - lastPollTime) >= pollIntervalMs) {
-			lastPollTime = now;
-			sys_check_timeouts();
-			LwIP_ADIN1110LinkInput(&myConn.netif);
-			if (myConn.netif.ip_addr.addr != 0
-					&& dhcp_supplied_address(&myConn.netif)) {
-				process_udp_query();
-			} else {
-				DEBUG_MESSAGE(
-						"[NETWORK] Skipping UDP queries, IP not assigned yet.\r\n");
-			}
-		}
-
-		if ((now - heartbeatCheckTime) >= 250) {
+		if ((now - heartbeatCheckTime) >= heartbeatIntervalMs) {
 			heartbeatCheckTime = now;
 			BSP_HeartBeat();
+			sys_check_timeouts();   // run lwIP timers each loop
 		}
 
-		if ((now - last_arp_time) >= 500) {
-			last_arp_time = now;
-			etharp_tmr();
+		LwIP_ADIN1110LinkInput(&myConn.netif);
+
+		if (dhcp_supplied_address(&myConn.netif)) {
+			process_udp_query();
 		}
 
-		uint8_t current_link_status = netif_is_link_up(&myConn.netif);
-		if (current_link_status != link_was_up) {
-			link_was_up = current_link_status;
-			DEBUG_MESSAGE(link_was_up ? "Link is UP\r\n" : "Link is DOWN\r\n");
-
-			if (!link_was_up) {
-				DEBUG_MESSAGE(
-						"[NETWORK] Link Down - Attempting DHCP Renewal...\n");
-				osDelay(3000);
-
-				if (!dhcp_supplied_address(&myConn.netif)) {
-					DEBUG_MESSAGE(
-							"[NETWORK] DHCP Renewal failed, restarting DHCP...\n");
-					dhcp_release(&myConn.netif);
-					etharp_cleanup_netif(&myConn.netif);
-					dhcp_start(&myConn.netif);
-
-					while (myConn.netif.ip_addr.addr == 0) {
-						osDelay(DHCP_CHECK_INTERVAL_MS);
-						sys_check_timeouts();
-						DEBUG_MESSAGE("[NETWORK] Waiting for new IP...\n");
-					}
-				}
-
-				DEBUG_MESSAGE("[NETWORK] New IP assigned: %d.%d.%d.%d\n",
-						ip4_addr1(&myConn.netif.ip_addr),
-						ip4_addr2(&myConn.netif.ip_addr),
-						ip4_addr3(&myConn.netif.ip_addr),
-						ip4_addr4(&myConn.netif.ip_addr));
-			}
-		}
-
-		osDelay(1);
+		//osDelay(5);
 	}
 }
+
+//	while (myConn.netif.ip_addr.addr == 0) {
+//		osDelay(DHCP_CHECK_INTERVAL_MS);
+//		sys_check_timeouts();
+//
+//		struct pbuf *p;
+//		while ((p = (struct pbuf*) readPQ(&pQ[0])) != NULL) {
+//			uint8_t *payload = (uint8_t*) p->payload;
+//			uint16_t ethType = (payload[12] << 8) | payload[13];
+//
+//			if (ethType == 0x0806) {
+//				DEBUG_MESSAGE("[ARP] ARP Packet received before DHCP\n");
+//				netif_input(p, &myConn.netif);
+//			} else if (ethType == 0x0800) {
+//				uint8_t ipProtocol = payload[23];
+//
+//				if (ipProtocol == 17) {
+//					uint16_t udpSrcPort = (payload[34] << 8) | payload[35];
+//					uint16_t udpDstPort = (payload[36] << 8) | payload[37];
+//
+//					DEBUG_MESSAGE("UDP Packet - Src Port: %d, Dst Port: %d\n",
+//							udpSrcPort, udpDstPort);
+//
+//					if (udpDstPort == 67 || udpDstPort == 68) {
+//						DEBUG_MESSAGE("[DHCP] DHCP Packet received!\n");
+//					}
+//
+//					netif_input(p, &myConn.netif);
+//				} else {
+//					DEBUG_MESSAGE(
+//							"[NETWORK] Ignoring non-DHCP IPv4 packet...\n");
+//					pbuf_free(p);
+//				}
+//			} else {
+//				DEBUG_MESSAGE("[NETWORK] Unknown EtherType: 0x%04X\n", ethType);
+//				pbuf_free(p);
+//			}
+//		}
+//
+//		if (myConn.netif.ip_addr.addr
+//				!= 0&& myConn.netif.ip_addr.addr != IPADDR_ANY) {
+//			DEBUG_MESSAGE("[NETWORK] IP Assigned: %s\n",
+//					ip4addr_ntoa(&myConn.netif.ip_addr));
+//			break;
+//		}
+//		DEBUG_MESSAGE("[NETWORK] Still waiting for IP assignment...\n");
+//	}
+//	if (myConn.netif.ip_addr.addr != 0
+//			&& dhcp_supplied_address(&myConn.netif)) {
+//		DEBUG_MESSAGE("[NETWORK] Successfully obtained IP: %d.%d.%d.%d\n",
+//				ip4_addr1(&myConn.netif.ip_addr),
+//				ip4_addr2(&myConn.netif.ip_addr),
+//				ip4_addr3(&myConn.netif.ip_addr),
+//				ip4_addr4(&myConn.netif.ip_addr));
+//
+//		netif_set_up(&myConn.netif);
+//		netif_set_default(&myConn.netif);
+//		etharp_gratuitous(&myConn.netif);
+//	}
+//
+//	while (1) {
+//		uint32_t now = BSP_SysNow();
+//
+//		if ((now - lastPollTime) >= pollIntervalMs) {
+//			lastPollTime = now;
+//			sys_check_timeouts();
+//			LwIP_ADIN1110LinkInput(&myConn.netif);
+//			if (myConn.netif.ip_addr.addr != 0
+//					&& dhcp_supplied_address(&myConn.netif)) {
+//				process_udp_query();
+//			} else {
+//				DEBUG_MESSAGE(
+//						"[NETWORK] Skipping UDP queries, IP not assigned yet.\r\n");
+//			}
+//		}
+//
+//		if ((now - heartbeatCheckTime) >= 250) {
+//			heartbeatCheckTime = now;
+//			BSP_HeartBeat();
+//		}
+//
+//		uint8_t current_link_status = netif_is_link_up(&myConn.netif);
+//		if (current_link_status != link_was_up) {
+//			link_was_up = current_link_status;
+//			DEBUG_MESSAGE(link_was_up ? "Link is UP\r\n" : "Link is DOWN\r\n");
+//
+//			if (!link_was_up) {
+//				DEBUG_MESSAGE(
+//						"[NETWORK] Link Down - Attempting DHCP Renewal...\n");
+//				osDelay(3000);
+//
+//				if (!dhcp_supplied_address(&myConn.netif)) {
+//					DEBUG_MESSAGE(
+//							"[NETWORK] DHCP Renewal failed, restarting DHCP...\n");
+//					dhcp_release(&myConn.netif);
+//					etharp_cleanup_netif(&myConn.netif);
+//					dhcp_start(&myConn.netif);
+//
+//					while (myConn.netif.ip_addr.addr == 0) {
+//						osDelay(DHCP_CHECK_INTERVAL_MS);
+//						sys_check_timeouts();
+//						DEBUG_MESSAGE("[NETWORK] Waiting for new IP...\n");
+//					}
+//				}
+//
+//				DEBUG_MESSAGE("[NETWORK] New IP assigned: %d.%d.%d.%d\n",
+//						ip4_addr1(&myConn.netif.ip_addr),
+//						ip4_addr2(&myConn.netif.ip_addr),
+//						ip4_addr3(&myConn.netif.ip_addr),
+//						ip4_addr4(&myConn.netif.ip_addr));
+//			}
+//		}
+//
+//		osDelay(1);
+//	}
 
 /* USER CODE END Application */
 

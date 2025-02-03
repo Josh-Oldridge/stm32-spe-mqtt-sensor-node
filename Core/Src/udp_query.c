@@ -64,33 +64,6 @@ err_t udp_send_query(void) {
 		return ERR_CONN;
 	}
 
-
-	{
-		ip4_addr_t *resolved_ip;
-		struct netif *resolved_netif;
-		struct eth_addr *resolved_mac;
-		bool arp_entry_found = false;
-		for (size_t i = 0; i < ARP_TABLE_SIZE; ++i) {
-			if (etharp_get_entry(i, &resolved_ip, &resolved_netif,
-					&resolved_mac) == ERR_OK) {
-				if (ip4_addr_cmp(resolved_ip, &remoteIP)) {
-					arp_entry_found = true;
-					break;
-				}
-			}
-		}
-		if (!arp_entry_found) {
-			DEBUG_MESSAGE(
-					"[NETWORK] ARP entry for remote IP not found. Requesting ARP resolution...\r\n");
-			err = etharp_request(&myConn.netif, &remoteIP);
-			if (err != ERR_OK) {
-				DEBUG_MESSAGE("[ERROR] ARP request failed: %d\r\n", err);
-				return err;
-			}
-			osDelay(500);
-		}
-	}
-
 	p = pbuf_alloc(PBUF_TRANSPORT, sizeof(queryMsg) - 1, PBUF_RAM);
 	if (p == NULL) {
 		DEBUG_MESSAGE("[ERROR] Failed to allocate pbuf for UDP query\r\n");
@@ -127,40 +100,51 @@ err_t udp_send_query(void) {
 }
 
 /**
- * @brief  Processes the UDP query state machine.
- */
+ * @brief  Processes the UDP query state machine.*/
+
 void process_udp_query(void) {
 	static int queryRetryCount = 0;
+	static uint32_t nextRetryTime = 0;
 	uint32_t now = BSP_SysNow();
 
-	if ((now - querySentTime) >= QUERY_TIMEOUT) {
-		if (queryRetryCount < MAX_QUERY_RETRIES) {
-			DEBUG_MESSAGE(
-					"[NETWORK] UDP Query timeout, retrying in 5 seconds... (%d/%d)\r\n",
-					queryRetryCount + 1, MAX_QUERY_RETRIES);
-
-			uint32_t t_start = BSP_SysNow();
-			while ((BSP_SysNow() - t_start) < 5000) {
-				sys_check_timeouts();
-				LwIP_ADIN1110LinkInput(&myConn.netif);
-				osDelay(5);
-			}
-
-			udp_send_query();
-			queryRetryCount++;
-		} else {
-			DEBUG_MESSAGE(
-					"[NETWORK] Max UDP Query retries reached. Stopping retries.\r\n");
-			queryState = STATE_IDLE;
-		}
-	}
-
-	else if (queryState == STATE_IDLE) {
+	switch (queryState) {
+	case STATE_IDLE:
 		DEBUG_MESSAGE("[NETWORK] Initiating new UDP query...\r\n");
 		udp_send_query();
 		queryRetryCount = 0;
-	} else if (queryState == STATE_RESPONSE_RECEIVED) {
+		querySentTime = now;
+		queryState = STATE_WAITING_FOR_RESPONSE;
+		break;
+
+	case STATE_WAITING_FOR_RESPONSE:
+		if ((now - querySentTime) >= QUERY_TIMEOUT) {
+			if (queryRetryCount < MAX_QUERY_RETRIES) {
+				queryRetryCount++;
+				DEBUG_MESSAGE(
+						"[NETWORK] UDP Query timeout, retrying in %d ms... (%d/%d)\r\n",
+						QUERY_TIMEOUT, queryRetryCount, MAX_QUERY_RETRIES);
+				nextRetryTime = now + QUERY_TIMEOUT;
+				queryState = STATE_WAITING_FOR_RETRY;
+			} else {
+				DEBUG_MESSAGE(
+						"[NETWORK] Max UDP Query retries reached. Stopping retries.\r\n");
+				queryState = STATE_IDLE;
+			}
+		}
+		break;
+
+	case STATE_WAITING_FOR_RETRY:
+		if (now >= nextRetryTime) {
+			DEBUG_MESSAGE("[NETWORK] Retrying UDP query...\r\n");
+			udp_send_query();
+			querySentTime = now;
+			queryState = STATE_WAITING_FOR_RESPONSE;
+		}
+		break;
+
+	case STATE_RESPONSE_RECEIVED:
 		queryState = STATE_IDLE;
 		queryRetryCount = 0;
+		break;
 	}
 }

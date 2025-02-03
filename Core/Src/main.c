@@ -339,7 +339,7 @@ int main(void) {
 	LwIP_StructInit(&myConn, hDevice, boardDetails.mac);
 	LwIP_Init(&myConn, &boardDetails);
 	LwIP_ADIN1110LinkInput(&myConn.netif);
-	HAL_Delay(3000);
+	//HAL_Delay(3000);
 	netif_set_link_up(&myConn.netif);
 
 #endif  /* USE_LWIP */

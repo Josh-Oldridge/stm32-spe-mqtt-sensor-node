@@ -17,9 +17,9 @@
 
 #define IP_FIXED 1
 #define IP_DYNAMIC 0
-#define MAX_P_QUEUE_SZ 1528
-#define MAX_P_QUEUE 8
-#define MAX_PQ 8
+#define MAX_P_QUEUE_SZ 1518
+#define MAX_P_QUEUE 5
+
 
 typedef struct _pQueue {
 
@@ -30,9 +30,10 @@ typedef struct _pQueue {
 	int32_t nWrQ;
 
 } pQueue_t;
+#define MAX_PQ 1
 
 extern pQueue_t pQ[MAX_PQ];
-struct pbuf* readPQ(pQueue_t *pQ);
+
 
 typedef struct {
 	uint8_t adin1110Error; // problem with the phy
