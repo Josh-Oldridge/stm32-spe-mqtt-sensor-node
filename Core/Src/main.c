@@ -260,6 +260,7 @@ int main(void)
 	boardDetails.mac[4] = 0xDA;
 	boardDetails.mac[5] = 0xCA;
 
+#ifdef IP_FIXED
 	/*For IP Address Fixed Settings, make sure to setup a static DHCP lease in the 2303-8SP1 switch and uncomment the ip address, net_mask and gateway. Most importantly, change from IP_DYNAMIC to IP_FIXED*/
 	/*boardDetails.ip_addr[0] = 192;
 	 boardDetails.ip_addr[1] = 168;
@@ -273,7 +274,11 @@ int main(void)
 	 boardDetails.gateway[1] = 168;
 	 boardDetails.gateway[2] = 1;
 	 boardDetails.gateway[3] = 1;*/
-	boardDetails.ip_addr_fixed = IP_DYNAMIC;
+#else
+	boardDetails.ip_addr_fixed = IP_DYNAMIC
+
+#endif /* IP_FIXED */
+
 #endif  /* USE_LWIP */
 
 #ifndef USE_LWIP

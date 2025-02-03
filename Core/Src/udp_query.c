@@ -58,11 +58,13 @@ err_t udp_send_query(void) {
 	struct pbuf *p;
 	err_t err;
 
+#ifdef TCP_IP_DEBUG
 	if (myConn.netif.ip_addr.addr == 0) {
 		DEBUG_MESSAGE(
 				"[NETWORK] Skipping UDP query: No valid IP assigned yet.\r\n");
 		return ERR_CONN;
 	}
+#endif /* TCP/IP_DEBUG */
 
 	p = pbuf_alloc(PBUF_TRANSPORT, sizeof(queryMsg) - 1, PBUF_RAM);
 	if (p == NULL) {
