@@ -12,7 +12,7 @@ typedef enum {
 } QueryState_t;
 
 #define MAX_QUERY_RETRIES 5
-#define QUERY_TIMEOUT     20000
+#define QUERY_TIMEOUT     5000
 
 extern volatile QueryState_t queryState;
 extern volatile uint32_t querySentTime;
