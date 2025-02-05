@@ -64,6 +64,8 @@
 #define LWIP_ICMP 1
 #endif
 
+#define LWIP_RAW 1
+
 #ifndef LWIP_IPV4
 #define LWIP_IPV4 1
 #endif
@@ -299,7 +301,7 @@
  * (requires the ARP_QUEUEING option)
  */
 #ifndef MEMP_NUM_ARP_QUEUE
-#define MEMP_NUM_ARP_QUEUE              0
+#define MEMP_NUM_ARP_QUEUE              2
 #endif
 
 /**
@@ -421,8 +423,9 @@
 #define PBUF_LINK_HLEN 16
 
 #define LWIP_ARP 1
+#define LWIP_DHCP 1
 #define ARP_TABLE_SIZE 10
-#define ARP_QUEUEING 0
+#define ARP_QUEUEING 1
 
 
 #define ICMP_TTL 255
@@ -535,7 +538,6 @@
 #define TCP_OVERSIZE                    TCP_MSS
 #endif
 
-#define LWIP_DHCP                       1
 #define DHCP_DOES_ARP_CHECK             1
 #ifdef TCP_IP_DEBUG
 #define LWIP_DEBUG LWIP_DBG_ON
@@ -545,11 +547,13 @@
 #define ETHARP_DEBUG LWIP_DBG_ON
 #endif /* TCP/IP_DEBUG */
 #define LWIP_DEBUG LWIP_DBG_ON
+#define 	TIMERS_DEBUG   LWIP_DBG_ON
 #define ICMP_DEBUG LWIP_DBG_ON
 #define NETIF_DEBUG LWIP_DBG_ON
 #define IP_DEBUG LWIP_DBG_ON
 #define ETHARP_DEBUG LWIP_DBG_ON
 #define CONFIG_LINKSPEED_AUTODETECT     1
+#define ETHARP_QUEUEING 0
 
 
 #define LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS 4

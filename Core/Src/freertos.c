@@ -30,6 +30,7 @@
 #include "lwip/dhcp.h"
 #include "netif/etharp.h"
 #include "udp_query.h"
+#include "net_listen.h"
 #include "lwip/udp.h"
 #include "lwip/netif.h"
 
@@ -42,7 +43,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define HEARTBEAT_INTERVAL 1000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -135,26 +136,70 @@ void StartDefaultTask(void *argument)
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 void NetworkTask(void *argument) {
-	uint32_t heartbeatCheckTime = 0;
-	const uint32_t heartbeatIntervalMs = 250;
+    uint32_t heartbeatCheckTime = 0;
+    const uint32_t heartbeatIntervalMs = 100;
+    uint32_t arpLastTime = 0;
+    const uint32_t arpInterval = 30000;
+
+    static uint32_t lastHeartbeatTime = 0;
+    uint32_t now;
+    err_t err;
+    bool announced = false;
+
+
+    // Initialize the ICMP listener (if used)
+    err = net_listen_init();
+    if (err != ERR_OK) {
+        DEBUG_MESSAGE("[NETWORK] ICMP listener initialization failed: %d\r\n", err);
+    }
+
+
+//    // Initialize the heartbeat UDP PCB
+    err = heartbeat_udp_init();
+    if (err != ERR_OK) {
+        DEBUG_MESSAGE("[HEARTBEAT] Failed to initialize heartbeat UDP PCB: %d\r\n", err);
+    }
 
 	while (1) {
-		uint32_t now = BSP_SysNow();
+		now = BSP_SysNow();
+
 		if ((now - heartbeatCheckTime) >= heartbeatIntervalMs) {
 			heartbeatCheckTime = now;
 			BSP_HeartBeat();
 			sys_check_timeouts();
 		}
 
+		if (dhcp_supplied_address(&myConn.netif)) {
+			// If we haven't yet sent a gratuitous ARP after obtaining a valid IP,
+			// do it now and initialize arpLastTime.
+			if (!announced) {
+				etharp_gratuitous(&myConn.netif);
+				arpLastTime = now;
+				announced = true;
+			}
+
+			// Optionally, periodically send gratuitous ARP every 60 seconds
+			if ((now - arpLastTime) >= arpInterval) {
+				arpLastTime = now;
+				etharp_gratuitous(&myConn.netif);
+			}
+		}
+
 		LwIP_ADIN1110LinkInput(&myConn.netif);
 
 		if (dhcp_supplied_address(&myConn.netif)) {
-			process_udp_query();
+
+			net_listen_process();
 		}
 
-	}
+        // Send a heartbeat every HEARTBEAT_INTERVAL (15 seconds)
+        if ((now - lastHeartbeatTime) >= HEARTBEAT_INTERVAL) {
+            send_heartbeat();
+            lastHeartbeatTime = now;
+        }
+        osDelay(1);
+    }
 }
-
 
 /* USER CODE END Application */
 

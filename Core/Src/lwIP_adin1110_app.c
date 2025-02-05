@@ -49,10 +49,10 @@ pQueue_t pQ[MAX_PQ] HAL_ALIGNED_ATTRIBUTE(4);
 #define HOSTNAME         "ADI_10BASE-T1L_Demo"
 #define NETIF_LINK_SPEED_IN_BPS 10000000
 
-static void initPQueue(pQueue_t *pQ);
+static void initPQueue(pQueue_t* pQ);
 
 static void*           readPQ(pQueue_t* pQ);
-static void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame);
+static void writePQ(pQueue_t* pQ, uint8_t *ethFrame, int lenEthFrame);
 static uint32_t pDataAvailable(pQueue_t *pQ);
 
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
@@ -230,39 +230,17 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 #endif /* TCP/IP_DEBUG */
 
 	int unicast = ((payload[0] & 0x01) == 0);
-	LINK_STATS_INC(link.recv); MIB2_STATS_NETIF_ADD(netif, ifinoctets, frmLen);
+	LINK_STATS_INC(link.recv);
+	MIB2_STATS_NETIF_ADD(netif, ifinoctets, frmLen);
 	if (unicast) {
 		MIB2_STATS_NETIF_INC(netif, ifinucastpkts);
 	} else {
 		MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
 	}
 	writePQ(&pQ[0], payload, frmLen);
-	struct pbuf *p = pbuf_alloc(PBUF_RAW, frmLen, PBUF_POOL);
-	if (p == NULL) {
-
-		DEBUG_MESSAGE(
-				"[ARP] Failed to allocate pbuf for lwIP processing!\n");
-
-		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-		return;
-	}
-
-	if (pbuf_take(p, payload, frmLen) != ERR_OK) {
-		DEBUG_MESSAGE("[rxCallback] pbuf_take failed, dropping frame.\n");
-		pbuf_free(p);
-		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-		return;
-	}
-
-	err_t err = netif_input(p, &myConn.netif);
-	if (err != ERR_OK) {
-		DEBUG_MESSAGE("[rxCallback] netif_input error: %d\n", err);
-		pbuf_free(p);
-	}
 	rxBufDesc[0].pBuf = &rxBuf[0][0];
 	rxBufDesc[0].bufSize = MAX_FRAME_BUF_SIZE;
 	rxBufDesc[0].cbFunc = rxCallback;
-
 	adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 
@@ -322,7 +300,7 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 
 	struct pbuf *p = (struct pbuf*) readPQ(&pQ[0]);
 	if (p == NULL) {
-		DEBUG_MESSAGE("Failed to read packet from the queue.\r\n");
+		//DEBUG_MESSAGE("Failed to read packet from the queue.\r\n");
 		return ERR_MEM;
 	}
 
@@ -596,12 +574,12 @@ void LwIP_Init(LwIP_ADIN1110_t *eth, board_t *boardDetails) {
 	}
 }
 
-void initPQueue(pQueue_t *pQ) {
+void initPQueue(pQueue_t* pQ) {
 	pQ->nWrQ = 0;
 	pQ->nRdQ = 0;
 }
 
-uint32_t pDataAvailable(pQueue_t *pQ) {
+uint32_t pDataAvailable(pQueue_t* pQ) {
 	if (pQ->nWrQ != pQ->nRdQ) {
 		return 1;
 	}
@@ -609,64 +587,30 @@ uint32_t pDataAvailable(pQueue_t *pQ) {
 }
 
 void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame) {
-	if (lenEthFrame > MAX_P_QUEUE_SZ) {
-		DEBUG_MESSAGE(
-				"[ERROR] Packet size exceeds buffer limit! Dropping packet of length %d\r\n",
-				lenEthFrame);
-		return;
-	}
-
-	if ((pQ->nWrQ + 1) % MAX_P_QUEUE == pQ->nRdQ) {
-		DEBUG_MESSAGE(
-				"[WARNING] Queue overflow: overwriting oldest packet\r\n");
-		pQ->nRdQ = (pQ->nRdQ + 1) % MAX_P_QUEUE;
-	}
-
-	memcpy(&pQ->pData[pQ->nWrQ][0], ethFrame, lenEthFrame);
-	pQ->lenData[pQ->nWrQ] = lenEthFrame;
-#ifdef TCP_IP_DEBUG
-	DEBUG_MESSAGE("[QUEUE] Packet enqueued at index %d, length: %d\r\n",
-			pQ->nWrQ, lenEthFrame);
-#endif /* TCP/IP_DEBUG */
-
-	pQ->nWrQ = (pQ->nWrQ + 1) % MAX_P_QUEUE;
-
-#ifdef TCP_IP_DEBUG
-	DEBUG_MESSAGE("[QUEUE] Queue state after enqueue: nWrQ=%d, nRdQ=%d\r\n",
-			pQ->nWrQ, pQ->nRdQ);
-
-#endif /* TCP/IP_DEBUG */
-
+    /* Copy the Ethernet frame into the current write slot */
+    memcpy(&pQ->pData[pQ->nWrQ][0], ethFrame, lenEthFrame);
+    /* Record the length of the frame */
+    pQ->lenData[pQ->nWrQ] = lenEthFrame;
+    /* Advance the write index (wrap around using modulo) */
+    pQ->nWrQ++;
+    pQ->nWrQ %= MAX_P_QUEUE;
 }
 
 void* readPQ(pQueue_t* pQ) {
-	if (pQ->nWrQ == pQ->nRdQ) {
-		DEBUG_MESSAGE("Queue underflow: no packets to dequeue\r\n");
-		return NULL;
-	}
-	int ehtFrmLen = pQ->lenData[pQ->nRdQ];
-	struct pbuf *p = pbuf_alloc(PBUF_RAW, MAX_FRAME_BUF_SIZE, PBUF_RAM);
-	if (p == NULL) {
-		DEBUG_MESSAGE("Failed to allocate pbuf for packet of length %d\r\n",
-				ehtFrmLen);
-		return NULL;
-	}
-	memcpy(((uint8_t*) p->payload), &pQ->pData[pQ->nRdQ][0], ehtFrmLen);
+    /* Get the length of the Ethernet frame at the current read slot */
+    int ethFrmLen = pQ->lenData[pQ->nRdQ];
+    /* Allocate a new pbuf to hold the frame */
+    struct pbuf* p = pbuf_alloc(PBUF_RAW, MAX_FRAME_BUF_SIZE, PBUF_RAM);
+    if(p == NULL) {
+        return NULL;
+    }
+    /* Copy the stored frame into the allocated pbuf */
+    memcpy((uint8_t*)p->payload, &pQ->pData[pQ->nRdQ][0], ethFrmLen);
+    /* Advance the read index (wrap around using modulo) */
+    pQ->nRdQ++;
+    pQ->nRdQ %= MAX_P_QUEUE;
 
-#ifdef TCP_IP_DEBUG
-	DEBUG_MESSAGE("Packet dequeued from index %d, length: %d\r\n", pQ->nRdQ,
-			ehtFrmLen);
-#endif /* TCP/IP_DEBUG */
-
-	pQ->nRdQ++;
-	pQ->nRdQ %= MAX_P_QUEUE;
-
-#ifdef TCP_IP_DEBUG
-	DEBUG_MESSAGE("Queue state after dequeue: nWrQ=%d, nRdQ=%d\r\n",
-			pQ->nWrQ, pQ->nRdQ);
-#endif /* TCP/IP_DEBUG */
-
-	return (void*) p;
+    return (void*)p;
 }
 
 uint32_t discoveradin1110(adin1110_DeviceHandle_t *hDevice) {
