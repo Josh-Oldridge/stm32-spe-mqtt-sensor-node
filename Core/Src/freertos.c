@@ -147,14 +147,11 @@ void NetworkTask(void *argument) {
     bool announced = false;
 
 
-    // Initialize the ICMP listener (if used)
     err = net_listen_init();
     if (err != ERR_OK) {
         DEBUG_MESSAGE("[NETWORK] ICMP listener initialization failed: %d\r\n", err);
     }
 
-
-//    // Initialize the heartbeat UDP PCB
     err = heartbeat_udp_init();
     if (err != ERR_OK) {
         DEBUG_MESSAGE("[HEARTBEAT] Failed to initialize heartbeat UDP PCB: %d\r\n", err);
@@ -170,15 +167,12 @@ void NetworkTask(void *argument) {
 		}
 
 		if (dhcp_supplied_address(&myConn.netif)) {
-			// If we haven't yet sent a gratuitous ARP after obtaining a valid IP,
-			// do it now and initialize arpLastTime.
 			if (!announced) {
 				etharp_gratuitous(&myConn.netif);
 				arpLastTime = now;
 				announced = true;
 			}
 
-			// Optionally, periodically send gratuitous ARP every 60 seconds
 			if ((now - arpLastTime) >= arpInterval) {
 				arpLastTime = now;
 				etharp_gratuitous(&myConn.netif);
@@ -192,7 +186,6 @@ void NetworkTask(void *argument) {
 			net_listen_process();
 		}
 
-        // Send a heartbeat every HEARTBEAT_INTERVAL (15 seconds)
         if ((now - lastHeartbeatTime) >= HEARTBEAT_INTERVAL) {
             send_heartbeat();
             lastHeartbeatTime = now;

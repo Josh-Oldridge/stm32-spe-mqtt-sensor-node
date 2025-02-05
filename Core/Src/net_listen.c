@@ -10,10 +10,9 @@
 #include "lwip/sys.h"
 #include "lwip/udp.h"
 
-#include "main.h"  // If you need access to your DEBUG_MESSAGE macro or board functions
+#include "main.h"
 #include <string.h>
 
-/* Static pointer to our raw PCB for ICMP */
 static struct raw_pcb *icmp_raw_pcb = NULL;
 
 static struct udp_pcb *heartbeat_udp_pcb = NULL;
@@ -33,26 +32,19 @@ static struct udp_pcb *heartbeat_udp_pcb = NULL;
 static u8_t icmp_recv_callback(void *arg, struct raw_pcb *pcb, struct pbuf *p,
                                const ip_addr_t *addr) {
     LWIP_UNUSED_ARG(arg);
-
-    /* Make sure the packet is large enough for an ICMP header */
     if (p->len >= sizeof(struct icmp_echo_hdr)) {
         struct icmp_echo_hdr *iecho = (struct icmp_echo_hdr *)p->payload;
-        /* Check if it is an ICMP Echo Request */
         if (ICMPH_TYPE(iecho) == ICMP_ECHO) {
             DEBUG_MESSAGE("[NET_LISTEN] Received ICMP echo request from %s\r\n", ipaddr_ntoa(addr));
-
-            /* Change the type to ECHO REPLY */
             ICMPH_TYPE_SET(iecho, ICMP_ER);
-            /* Recalculate checksum */
             iecho->chksum = 0;
             iecho->chksum = inet_chksum(iecho, p->len);
-            /* Send the packet back */
             raw_sendto(pcb, p, addr);
             DEBUG_MESSAGE("[NET_LISTEN] Sent ICMP echo reply\r\n");
-            return 1; /* Packet handled */
+            return 1;
         }
     }
-    return 0; /* Not handled */
+    return 0;
 }
 
 /**
@@ -87,9 +79,7 @@ err_t net_listen_init(void) {
  *         (For a simple ICMP responder, this may be empty.)
  */
 void net_listen_process(void) {
-    /* For this example, no periodic processing is needed.
-       This function is provided for compatibility if you wish to add
-       additional tasks (like logging or power management) later. */
+
 }
 
 err_t heartbeat_udp_init(void) {
@@ -99,9 +89,8 @@ err_t heartbeat_udp_init(void) {
         DEBUG_MESSAGE("[HEARTBEAT] Failed to create UDP PCB for heartbeat\r\n");
         return ERR_MEM;
     }
-    // For a connected PCB: bind/connect if desired.
     ip4_addr_t remoteIP;
-    IP4_ADDR(&remoteIP, 192, 168, 1, 11);  // Adjust destination as needed.
+    IP4_ADDR(&remoteIP, 192, 168, 1, 11);
     err = udp_connect(heartbeat_udp_pcb, &remoteIP, 5001);
     if (err != ERR_OK) {
         DEBUG_MESSAGE("[HEARTBEAT] UDP connect failed: %d\r\n", err);

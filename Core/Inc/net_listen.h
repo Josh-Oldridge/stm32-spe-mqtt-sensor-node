@@ -23,7 +23,6 @@ void net_listen_process(void);
 
 err_t heartbeat_udp_init(void);
 
-/* Send a heartbeat packet */
 void send_heartbeat(void);
 
 

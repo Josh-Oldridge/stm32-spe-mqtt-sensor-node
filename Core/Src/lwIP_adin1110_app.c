@@ -587,26 +587,21 @@ uint32_t pDataAvailable(pQueue_t* pQ) {
 }
 
 void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame) {
-    /* Copy the Ethernet frame into the current write slot */
+
     memcpy(&pQ->pData[pQ->nWrQ][0], ethFrame, lenEthFrame);
-    /* Record the length of the frame */
     pQ->lenData[pQ->nWrQ] = lenEthFrame;
-    /* Advance the write index (wrap around using modulo) */
     pQ->nWrQ++;
     pQ->nWrQ %= MAX_P_QUEUE;
 }
 
 void* readPQ(pQueue_t* pQ) {
-    /* Get the length of the Ethernet frame at the current read slot */
+
     int ethFrmLen = pQ->lenData[pQ->nRdQ];
-    /* Allocate a new pbuf to hold the frame */
     struct pbuf* p = pbuf_alloc(PBUF_RAW, MAX_FRAME_BUF_SIZE, PBUF_RAM);
     if(p == NULL) {
         return NULL;
     }
-    /* Copy the stored frame into the allocated pbuf */
     memcpy((uint8_t*)p->payload, &pQ->pData[pQ->nRdQ][0], ethFrmLen);
-    /* Advance the read index (wrap around using modulo) */
     pQ->nRdQ++;
     pQ->nRdQ %= MAX_P_QUEUE;
 
