@@ -207,7 +207,7 @@
  * timers running in tcpip_thread from another thread.
  */
 #ifndef LWIP_TCPIP_TIMEOUT
-#define LWIP_TCPIP_TIMEOUT              1
+#define LWIP_TCPIP_TIMEOUT              0
 #endif
 #ifndef NO_SYS_NO_TIMERS
 #define NO_SYS_NO_TIMERS                0
@@ -228,7 +228,7 @@
  */
 #ifndef MEMP_NUM_PBUF
 #ifdef DEBUG
-#define MEMP_NUM_PBUF                   4
+#define MEMP_NUM_PBUF                   8
 #else
 #define MEMP_NUM_PBUF                   8
 #endif
@@ -417,9 +417,9 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  4
+#define PBUF_POOL_SIZE                  8
 #endif
-#define PBUF_POOL_BUFSIZE 1700
+#define PBUF_POOL_BUFSIZE 1528
 #define PBUF_LINK_HLEN 16
 
 #define LWIP_ARP 1
@@ -553,7 +553,6 @@
 #define IP_DEBUG LWIP_DBG_ON
 #define ETHARP_DEBUG LWIP_DBG_ON
 #define CONFIG_LINKSPEED_AUTODETECT     1
-#define ETHARP_QUEUEING 0
 
 
 #define LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS 4

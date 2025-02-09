@@ -19,7 +19,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "adc.h"
 #include "dma.h"
+#include "i2c.h"
 #include "usart.h"
 #include "spi.h"
 #include "gpio.h"
@@ -247,6 +249,8 @@ int main(void)
   MX_DMA_Init();
   MX_SPI1_Init();
   MX_LPUART1_UART_Init();
+  MX_ADC1_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
 #ifndef USE_LWIP
 	adi_eth_Result_e result;
@@ -520,16 +524,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			}
 		}
 	}
-	if (GPIO_Pin == ETH_INT_N_Pin) {
-		DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
-		HAL_INT_N_DisableIRQ();
-		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
-		if (result != ADI_ETH_SUCCESS) {
-			DEBUG_MESSAGE("adin1110_HandleInterrupt failed with error: %d\r\n",
-					result);
-		}
-		HAL_INT_N_EnableIRQ();
-	}
+//	if (GPIO_Pin == ETH_INT_N_Pin) {
+//		DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
+//		HAL_INT_N_DisableIRQ();
+//		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
+//		if (result != ADI_ETH_SUCCESS) {
+//			DEBUG_MESSAGE("adin1110_HandleInterrupt failed with error: %d\r\n",
+//					result);
+//		}
+//		HAL_INT_N_EnableIRQ();
+//	}
 
 	if (GPIO_Pin == Interrupt_Pin) {
 		MX_Led_Toggle();

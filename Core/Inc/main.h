@@ -71,6 +71,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+#define ADC_BUFFER_SIZE 10
 #define DHCP_CHECK_INTERVAL_MS 500
 #define DHCP_WAIT_TIMEOUT_MS 30000
 /* USER CODE END EM */
@@ -85,8 +86,6 @@ void Error_Handler(void);
 #define Reset_Button_Pin GPIO_PIN_13
 #define Reset_Button_GPIO_Port GPIOC
 #define Reset_Button_EXTI_IRQn EXTI15_10_IRQn
-#define TS_TIMER_MS_SEL_Pin GPIO_PIN_3
-#define TS_TIMER_MS_SEL_GPIO_Port GPIOA
 #define Interrupt_Pin GPIO_PIN_12
 #define Interrupt_GPIO_Port GPIOF
 #define Interrupt_EXTI_IRQn EXTI15_10_IRQn

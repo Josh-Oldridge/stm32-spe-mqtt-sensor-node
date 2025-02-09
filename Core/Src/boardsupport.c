@@ -256,7 +256,7 @@ uint32_t BSP_InitSystem(void)
   }
 
   /* Configure the system clock */
-  SystemClock_Config();
+  //SystemClock_Config();
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
