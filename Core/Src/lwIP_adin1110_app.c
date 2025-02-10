@@ -427,8 +427,8 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 		MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
 	}
 	while (adin1110_SubmitTxBuffer(*hDevice, &txBufDesc[txBufIndex])
-			== ADI_ETH_QUEUE_FULL) {
-		;;
+	       == ADI_ETH_QUEUE_FULL) {
+	    ;;
 	}
 
 	if (txBufIndex++ >= 1) {

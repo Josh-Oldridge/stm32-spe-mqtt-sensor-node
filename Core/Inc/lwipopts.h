@@ -110,7 +110,7 @@
  * a lot of data that needs to be copied, this should be set high.
  */
 #ifndef MEM_SIZE
-#define MEM_SIZE                        (1522*4)
+#define MEM_SIZE                        (16 * 1024)
 #endif
 
 /**
@@ -272,7 +272,7 @@
  * (requires the LWIP_TCP option)
  */
 #ifndef MEMP_NUM_TCP_SEG
-#define MEMP_NUM_TCP_SEG                16
+#define MEMP_NUM_TCP_SEG                32
 #endif
 
 /**
@@ -301,7 +301,7 @@
  * (requires the ARP_QUEUEING option)
  */
 #ifndef MEMP_NUM_ARP_QUEUE
-#define MEMP_NUM_ARP_QUEUE              2
+#define MEMP_NUM_ARP_QUEUE              0
 #endif
 
 /**
@@ -417,7 +417,7 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  8
+#define PBUF_POOL_SIZE                  16
 #endif
 #define PBUF_POOL_BUFSIZE 1528
 #define PBUF_LINK_HLEN 16
@@ -425,7 +425,7 @@
 #define LWIP_ARP 1
 #define LWIP_DHCP 1
 #define ARP_TABLE_SIZE 10
-#define ARP_QUEUEING 1
+#define ARP_QUEUEING 0
 
 
 #define ICMP_TTL 255
