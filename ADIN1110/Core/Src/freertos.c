@@ -69,7 +69,7 @@ osSemaphoreId_t adcSemaphoreHandle;
 osThreadId_t networkMaintenanceTaskHandle;
 const osThreadAttr_t networkMaintenanceTask_attributes = {
     .name = "netMaintTask",
-    .stack_size = 1024 * 8,
+    .stack_size = 1024 * 16,
     .priority = (osPriority_t) osPriorityHigh,
 };
 
@@ -97,8 +97,8 @@ const osThreadAttr_t accelTask_attributes = {
 osThreadId_t sensorDataMQTTTaskHandle;
 const osThreadAttr_t sensorDataMQTTTask_attributes = {
     .name = "sensorDataMQTTTask",
-    .stack_size = 1024 * 8,
-    .priority = osPriorityNormal,
+    .stack_size = 1024 * 16,
+    .priority = osPriorityHigh,
 };
 
 /* Heartbeat Packet to keep TCP Connection Open */
@@ -288,7 +288,7 @@ void ADCTask(void *argument) {
         printf("ADC DMA Start Failed!\n");
     }
     for (;;) {
-        osDelay(pdMS_TO_TICKS(20000));
+        osDelay(pdMS_TO_TICKS(30000));
         uint16_t adcValue = adcBuffer[0];
         float voltage = (adcValue * 3.3f) / 4095.0f;
         float current = (voltage - 1.65f) / 0.185f;
@@ -306,7 +306,7 @@ void TempTask(void *argument) {
         } else {
             printf("TMP102 Read Error\n");
         }
-        osDelay(pdMS_TO_TICKS(15000));
+        osDelay(pdMS_TO_TICKS(20000));
     }
 }
 
@@ -327,7 +327,7 @@ void AccelTask(void *argument) {
         } else {
             printf("ADXL345 Read Error!\n");
         }
-        osDelay(pdMS_TO_TICKS(15000));
+        osDelay(pdMS_TO_TICKS(25000));
     }
 }
 
@@ -335,11 +335,11 @@ void SensorDataMQTTTask(void *argument) {
 
     while (!dhcp_supplied_address(&myConn.netif)) {
         printf("Sensor Data MQTT Task: Waiting for DHCP configuration...\n");
-        osDelay(pdMS_TO_TICKS(1000));
+        osDelay(pdMS_TO_TICKS(30000));
     }
     osDelay(pdMS_TO_TICKS(500));
     client_mqtt_init();
-    osDelay(pdMS_TO_TICKS(2000));
+    osDelay(pdMS_TO_TICKS(20000));
 
     for (;;) {
         if (!mqtt_client_is_connected(mqtt_client)) {

@@ -150,6 +150,7 @@ void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -253,6 +254,9 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_ADC1_Init();
   MX_I2C2_Init();
+
+  /* Initialize interrupts */
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 #ifndef USE_LWIP
 	adi_eth_Result_e result;
@@ -503,6 +507,41 @@ void SystemClock_Config(void)
   }
 }
 
+/**
+  * @brief NVIC Configuration.
+  * @retval None
+  */
+static void MX_NVIC_Init(void)
+{
+  /* SPI1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SPI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(SPI1_IRQn);
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+  /* EXTI15_10_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  /* DMA1_Channel4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+  /* DMA1_Channel5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* I2C2_ER_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C2_ER_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C2_ER_IRQn);
+  /* I2C2_EV_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C2_EV_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C2_EV_IRQn);
+}
+
 /* USER CODE BEGIN 4 */
 
 /**
@@ -528,16 +567,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			}
 		}
 	}
-	if (GPIO_Pin == GPIO_PIN_12) {
-		DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
-		HAL_INT_N_DisableIRQ();
-		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
-		if (result != ADI_ETH_SUCCESS) {
-			DEBUG_MESSAGE("adin1110_HandleInterrupt failed with error: %d\r\n",
-					result);
-		}
-		HAL_INT_N_EnableIRQ();
-	}
+//	if (GPIO_Pin == GPIO_PIN_12) {
+//		DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
+//		HAL_INT_N_DisableIRQ();
+//		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
+//		if (result != ADI_ETH_SUCCESS) {
+//			DEBUG_MESSAGE("adin1110_HandleInterrupt failed with error: %d\r\n",
+//					result);
+//		}
+//		HAL_INT_N_EnableIRQ();
+//	}
 
 	if (GPIO_Pin == Interrupt_Pin) {
 		MX_Led_Toggle();

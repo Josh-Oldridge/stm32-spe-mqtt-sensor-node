@@ -80,6 +80,7 @@ static inline uint32_t swap32(uint32_t val) {
 #endif /* TCP/IP_DEBUG */
 
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
+
     adi_eth_BufDesc_t *desc = (adi_eth_BufDesc_t*) pArg;
 
     for (int i = 0; i < NUM_TX_DESC; i++) {
@@ -254,10 +255,12 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 		MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
 	}
 	writePQ(&pQ[0], payload, frmLen);
-	rxBufDesc[0].pBuf = &rxBuf[0][0];
-	rxBufDesc[0].bufSize = MAX_FRAME_BUF_SIZE;
-	rxBufDesc[0].cbFunc = rxCallback;
-	adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+	    // Reinitialize the descriptor that triggered the callback.
+	    pRxBufDesc->bufSize = MAX_FRAME_BUF_SIZE;
+	    pRxBufDesc->cbFunc  = rxCallback;
+	    // If necessary, you might also reset the buffer pointer here if it can change.
+	    // For example: pRxBufDesc->pBuf = <appropriate buffer pointer for this descriptor>;
+	    adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
@@ -407,9 +410,9 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	        continue;
 	    }
 
-	    if (((uintptr_t)pp->payload) % 4 != 0) {
-	        DEBUG_MESSAGE("WARNING: pbuf payload is not 4-byte aligned! %p\n", pp->payload);
-	    }
+//	    if (((uintptr_t)pp->payload) % 4 != 0) {
+//	        DEBUG_MESSAGE("WARNING: pbuf payload is not 4-byte aligned! %p\n", pp->payload);
+//	    }
 
 	    if (frameLen < 2) {
 	        DEBUG_MESSAGE("WARNING: Skipping small frame of length %d\n", frameLen);
@@ -460,8 +463,8 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 		MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
 	}
 	uint32_t attempts = 0;
-	adi_eth_Result_e res;
-	do {
+	adi_eth_Result_e res = ADI_ETH_QUEUE_FULL;
+	while (res == ADI_ETH_QUEUE_FULL) {
 	    res = adin1110_SubmitTxBuffer(*hDevice, &txBufDesc[txBufIndex]);
 	    if (res == ADI_ETH_QUEUE_FULL) {
 	        osDelay(pdMS_TO_TICKS(1));
@@ -469,21 +472,19 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	        if (attempts > 1000) {
 	            DEBUG_MESSAGE("Tx queue stuck. Dropping frame.\n");
 	            LINK_STATS_INC(link.drop);
+	            portEXIT_CRITICAL();
 	            return ERR_MEM;
 	        }
 	    }
-	} while (res == ADI_ETH_QUEUE_FULL);
-
+	}
 	if (res != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("SubmitTxBuffer failed with code=0x%08X\n", res);
-		LINK_STATS_INC(link.drop);
-		return ERR_IF;
+	    DEBUG_MESSAGE("SubmitTxBuffer failed with code=0x%08X\n", res);
+	    LINK_STATS_INC(link.drop);
+	    return ERR_IF;
 	}
-
 	if (++txBufIndex >= NUM_TX_DESC) {
-		txBufIndex = 0;
+	    txBufIndex = 0;
 	}
-
 	return ERR_OK;
 }
 

@@ -125,6 +125,8 @@ err_t client_mqtt_publish_sensor_data(void) {
     if(err != ERR_OK) {
         printf("mqtt_publish failed: %d\n", err);
     }
+
+    return ERR_OK;
 }
 
 void client_mqtt_run(void) {

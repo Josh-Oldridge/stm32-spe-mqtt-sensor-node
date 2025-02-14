@@ -213,7 +213,6 @@
 #define NO_SYS_NO_TIMERS                0
 #endif
 
-#define LWIP_MEM_ALIGN_SIZE(size) (((size) + 7) & ~7)
 #define LWIP_TCP_KEEPALIVE 0
 
 /*
