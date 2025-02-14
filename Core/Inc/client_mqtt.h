@@ -8,10 +8,11 @@ extern mqtt_client_t *mqtt_client;
 
 /* Function prototypes for MQTT client logic */
 void client_mqtt_init(void);
-void client_mqtt_publish_sensor_data(void);
+err_t client_mqtt_publish_sensor_data(void);
 void client_mqtt_run(void);
+void client_mqtt_publish_heartbeat(void);
 
-/* Callback prototypes (if needed) */
+/* Callback prototypes */
 void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status);
 void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len);
 void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags);

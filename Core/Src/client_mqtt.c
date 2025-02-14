@@ -5,15 +5,19 @@
 #include "lwip/err.h"
 #include "lwip/timeouts.h"
 
-/* Global MQTT client pointer */
+#include "tmp102.h"
+#include "adxl345.h"
+#include "i2c.h"
+
+
+extern uint16_t adcBuffer[ADC_BUFFER_SIZE];
 mqtt_client_t *mqtt_client = NULL;
 
 /* Broker settings: adjust these as necessary */
-#define MQTT_BROKER_IP_STR "192.168.1.11"  // Broker IP (your laptop)
+#define MQTT_BROKER_IP_STR "192.168.1.11"  // Broker IP
 #define MQTT_BROKER_PORT   1883
 #define MQTT_CLIENT_ID     "STM32_Client"
 
-/* Convert IP string to ip_addr_t structure (you might use ipaddr_aton) */
 static ip_addr_t broker_ip;
 
 /* Initialize MQTT client and connect to the broker */
@@ -32,7 +36,7 @@ void client_mqtt_init(void) {
     memset(&ci, 0, sizeof(ci));
     ci.client_id = MQTT_CLIENT_ID;
     ci.keep_alive = 60;
-    // Optionally set username/password if required
+    // username/password
     // ci.client_user = "username";
     // ci.client_pass = "password";
 
@@ -59,14 +63,14 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status
         /* Set incoming publish callbacks */
         mqtt_set_inpub_callback(client, mqtt_incoming_publish_cb, mqtt_incoming_data_cb, arg);
 
-        // Optionally, subscribe to topics if needed:
+        // Subscribe to topics
         err_t err = mqtt_subscribe(client, "sensors/config", 0, mqtt_pub_request_cb, arg);
         if(err != ERR_OK) {
             printf("mqtt_subscribe failed: %d\n", err);
         }
     } else {
         printf("MQTT connection failed, status: %d\n", status);
-        // Optionally, implement a reconnect strategy here.
+        // Reconnect Strategy...
     }
 }
 
@@ -93,32 +97,50 @@ void mqtt_pub_request_cb(void *arg, err_t result) {
     }
 }
 
-/* Example function to publish sensor data */
-void client_mqtt_publish_sensor_data(void) {
-    char payload[128];
-    // Here, format your sensor data as JSON or another string format.
-    // For example, let's assume you have temperature and acceleration data:
-    float temperature = 25.0f;  // Replace with actual sensor reading
-    int16_t accel_x = 100;      // Replace with actual sensor reading
-    int16_t accel_y = -50;      // Replace with actual sensor reading
-    int16_t accel_z = 0;        // Replace with actual sensor reading
+err_t client_mqtt_publish_sensor_data(void) {
+    char payload[256];
+    /* Temperature Read */
+    float temperature = TMP102_ReadTemperature();
+
+    /* Accelerometer Read */
+    int16_t accel_x = 0, accel_y = 0, accel_z = 0;
+    HAL_StatusTypeDef ret = ADXL345_ReadAccel(&hi2c2, &accel_x, &accel_y, &accel_z);
+    if(ret != HAL_OK) {
+        printf("ADXL345 Read Error!\n");
+        /*Default Values*/
+        accel_x = accel_y = accel_z = 0;
+    }
+
+    /* Current Read */
+    uint16_t adcValue = adcBuffer[0];
+    float voltage = (adcValue * 3.3f) / 4095.0f;
+    float current = (voltage - 1.65f) / 0.185f;
 
     snprintf(payload, sizeof(payload),
-             "{\"temperature\":%.2f,\"accel_x\":%d,\"accel_y\":%d,\"accel_z\":%d}",
-             temperature, accel_x, accel_y, accel_z);
-
-    //HAL_Delay(1000);
+             "{\"temperature\":%.2f,\"accel_x\":%d,\"accel_y\":%d,\"accel_z\":%d,"
+             "\"voltage\":%.2f,\"current\":%.2f}",
+             temperature, accel_x, accel_y, accel_z, voltage, current);
 
     err_t err = mqtt_publish(mqtt_client, "sensors/data", payload, strlen(payload), 0, 0, mqtt_pub_request_cb, NULL);
     if(err != ERR_OK) {
         printf("mqtt_publish failed: %d\n", err);
     }
+
+    return ERR_OK;
 }
 
-/* MQTT client main loop function - call this periodically */
 void client_mqtt_run(void) {
-    /* For a basic implementation, this function might just publish sensor data.
-     * In a real application, you might handle reconnections and subscriptions here.
-     */
+
     client_mqtt_publish_sensor_data();
 }
+
+/* Heartbeat Packet to keep TCP Connection open */
+//void client_mqtt_publish_heartbeat(void) {
+//    const char heartbeatPayload[] = "ping";
+//    err_t err = mqtt_publish(mqtt_client, "sensors/heartbeat", heartbeatPayload, sizeof(heartbeatPayload) - 1, 0, 0, mqtt_pub_request_cb, NULL);
+//    if(err != ERR_OK) {
+//        printf("mqtt_publish heartbeat failed: %d\n", err);
+//    } else {
+//        printf("Heartbeat published\n");
+//    }
+//}

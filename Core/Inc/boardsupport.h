@@ -33,6 +33,7 @@
 extern char aDebugString[150u];
 extern SPI_HandleTypeDef hEthSpi;
 
+
 void common_Fail(char *FailureReason);
 void common_Perf(char *InfoString);
 
@@ -94,6 +95,8 @@ void            BSP_FuncLed1Toggle              (void);
 //void            BSP_FuncLed2Toggle              (void);
 void            BSP_LedToggleAll                (void);
 void            BSP_delayMs                     (uint32_t delay);
+void            BSP_CustomInit                  (void);
+
 
 extern uint32_t msgWrite                        (char * ptr);
 extern HAL_StatusTypeDef submitTxBuffer         (uint8_t * buffer, int nbBytes);

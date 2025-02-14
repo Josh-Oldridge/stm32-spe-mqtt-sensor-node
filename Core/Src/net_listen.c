@@ -56,19 +56,16 @@ static u8_t icmp_recv_callback(void *arg, struct raw_pcb *pcb, struct pbuf *p,
 err_t net_listen_init(void) {
     err_t err;
 
-    /* Create a new raw PCB for the ICMP protocol */
     icmp_raw_pcb = raw_new(IP_PROTO_ICMP);
     if (icmp_raw_pcb == NULL) {
         DEBUG_MESSAGE("[NET_LISTEN] Failed to create raw PCB for ICMP\r\n");
         return ERR_MEM;
     }
-    /* Bind to all IP addresses on the device */
     err = raw_bind(icmp_raw_pcb, IP4_ADDR_ANY);
     if (err != ERR_OK) {
         DEBUG_MESSAGE("[NET_LISTEN] raw_bind failed: %d\r\n", err);
         return err;
     }
-    /* Register our receive callback */
     raw_recv(icmp_raw_pcb, icmp_recv_callback, NULL);
     DEBUG_MESSAGE("[NET_LISTEN] ICMP listener initialized\r\n");
     return ERR_OK;

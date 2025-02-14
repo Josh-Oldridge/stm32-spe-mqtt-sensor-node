@@ -12,7 +12,6 @@
 
 #include "lwIP_adin1110_app.h"
 #include "adin1110.h"
-#include "main.h"
 #include "netif/etharp.h"
 #include "lwip/ip_addr.h"
 #include "lwip/snmp.h"
@@ -21,24 +20,29 @@
 #include "lwip/timeouts.h"
 #include "lwip/arch.h"
 #include "lwip/apps/httpd.h"
+#include "adi_mac.h"
 #include <lwip/inet.h>
+#include "cmsis_os.h"
+#include "cmsis_os2.h"
 #define ADIN1110_INIT_ITER  (5)
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2 + 4)
 #define FRAME_SIZE          (1518)
-#define BUFF_DESC_COUNT     (5)
+
+#define NUM_RX_DESC  4 /* 4 RX Descriptors for Frames sent from Host */
+#define NUM_TX_DESC  4 /* 4 TX Descriptors for Frames sent by ADIN1110 */
 
 #define ETHERNET_MTU        (1500)
 
 HAL_ALIGNED_PRAGMA(4)
-static uint8_t rxBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
-static adi_eth_BufDesc_t rxBufDesc[BUFF_DESC_COUNT];
+static uint8_t rxBuf[NUM_RX_DESC][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
+static adi_eth_BufDesc_t rxBufDesc[NUM_RX_DESC];
 
 HAL_ALIGNED_PRAGMA(4)
-static uint8_t txBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
+static uint8_t txBuf[NUM_TX_DESC][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
+static adi_eth_BufDesc_t txBufDesc[NUM_TX_DESC];
+static bool txBufAvailable[NUM_TX_DESC];
 
-adi_eth_BufDesc_t txBufDesc[BUFF_DESC_COUNT];
-bool txBufAvailable[BUFF_DESC_COUNT];
-int txBufIndex = 0;
+static int txBufIndex = 0;
 
 
 HAL_ALIGNED_PRAGMA(4)
@@ -75,9 +79,18 @@ static inline uint32_t swap32(uint32_t val) {
 }
 #endif /* TCP/IP_DEBUG */
 
-static void txCallback(void *pCBParam, uint32_t Event, void *pArg)
-{
-    txBufAvailable[0] = true;
+static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
+
+    adi_eth_BufDesc_t *desc = (adi_eth_BufDesc_t*) pArg;
+
+    for (int i = 0; i < NUM_TX_DESC; i++) {
+        if (&txBufDesc[i] == desc) {
+            txBufAvailable[i] = true;
+            DEBUG_MESSAGE("txCallback: Freed Tx descriptor %d at time %lu\n", i, HAL_GetTick());
+            return;
+        }
+    }
+    DEBUG_MESSAGE("txCallback: WARNING! Descriptor not found!\n");
 }
 static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t) pCBParam;
@@ -229,19 +242,25 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	 }
 #endif /* TCP/IP_DEBUG */
 
+	if (frmLen < 42) {
+		LINK_STATS_INC(link.drop);
+		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+		return;
+	}
 	int unicast = ((payload[0] & 0x01) == 0);
-	LINK_STATS_INC(link.recv);
-	MIB2_STATS_NETIF_ADD(netif, ifinoctets, frmLen);
+	LINK_STATS_INC(link.recv); MIB2_STATS_NETIF_ADD(netif, ifinoctets, frmLen);
 	if (unicast) {
 		MIB2_STATS_NETIF_INC(netif, ifinucastpkts);
 	} else {
 		MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
 	}
 	writePQ(&pQ[0], payload, frmLen);
-	rxBufDesc[0].pBuf = &rxBuf[0][0];
-	rxBufDesc[0].bufSize = MAX_FRAME_BUF_SIZE;
-	rxBufDesc[0].cbFunc = rxCallback;
-	adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+	    // Reinitialize the descriptor that triggered the callback.
+	    pRxBufDesc->bufSize = MAX_FRAME_BUF_SIZE;
+	    pRxBufDesc->cbFunc  = rxCallback;
+	    // If necessary, you might also reset the buffer pointer here if it can change.
+	    // For example: pRxBufDesc->pBuf = <appropriate buffer pointer for this descriptor>;
+	    adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
@@ -300,7 +319,7 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 
 	struct pbuf *p = (struct pbuf*) readPQ(&pQ[0]);
 	if (p == NULL) {
-		//DEBUG_MESSAGE("Failed to read packet from the queue.\r\n");
+		DEBUG_MESSAGE("Failed to read packet from the queue.\r\n");
 		return ERR_MEM;
 	}
 
@@ -380,21 +399,35 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 #endif /* TCP/IP_DEBUG */
 
 	for (pp = p, total_len = 0; pp != NULL; pp = pp->next) {
-		frameLen = pp->len;
+	    frameLen = pp->len;
 
-		if (frameLen < 2) {
-			continue;
-		}
+	    // Debug print the pbuf pointer, payload, and frame length
+	    DEBUG_MESSAGE("Processing pbuf: pp=%p, payload=%p, len=%d\n", pp, pp->payload, frameLen);
+
+	    // If the payload is NULL or unaligned, print an error
+	    if (pp->payload == NULL) {
+	        DEBUG_MESSAGE("ERROR: pbuf payload is NULL! Skipping segment.\n");
+	        continue;
+	    }
+
+//	    if (((uintptr_t)pp->payload) % 4 != 0) {
+//	        DEBUG_MESSAGE("WARNING: pbuf payload is not 4-byte aligned! %p\n", pp->payload);
+//	    }
+
+	    if (frameLen < 2) {
+	        DEBUG_MESSAGE("WARNING: Skipping small frame of length %d\n", frameLen);
+	        continue;
+	    }
 
 		memcpy(txBuf[txBufIndex] + total_len, (unsigned char*) pp->payload,
 				frameLen);
 		total_len += frameLen;
 
 		if (total_len >= MAX_FRAME_BUF_SIZE) {
+			 DEBUG_MESSAGE("ERROR: Frame too large! total_len=%d, MAX_FRAME_BUF_SIZE=%d\n", total_len, MAX_FRAME_BUF_SIZE);
 			return ERR_VAL;
 		}
 	}
-
 
 #ifdef TCP_IP_DEBUG
 	uint8_t *payload = (uint8_t*) p->payload;
@@ -408,12 +441,15 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	DEBUG_MESSAGE("\n==============================================\n");
 #endif /* TCP/IP_DEBUG */
 
-	LINK_STATS_INC(link.xmit);
-	MIB2_STATS_NETIF_ADD(netif, ifoutoctets, total_len);
+	LINK_STATS_INC(link.xmit); MIB2_STATS_NETIF_ADD(netif, ifoutoctets, total_len);
 
 	if (total_len < MIN_FRAME_SIZE) {
 		total_len = MIN_FRAME_SIZE;
 	}
+
+	DEBUG_MESSAGE(
+			"Computed frame length = %d bytes, MIN_FRAME_SIZE = %d bytes\n",
+			total_len, MIN_FRAME_SIZE);
 
 	txBufDesc[txBufIndex].pBuf = &txBuf[txBufIndex][0];
 	txBufDesc[txBufIndex].trxSize = total_len;
@@ -426,13 +462,28 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	} else {
 		MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
 	}
-	while (adin1110_SubmitTxBuffer(*hDevice, &txBufDesc[txBufIndex])
-	       == ADI_ETH_QUEUE_FULL) {
-	    ;;
+	uint32_t attempts = 0;
+	adi_eth_Result_e res = ADI_ETH_QUEUE_FULL;
+	while (res == ADI_ETH_QUEUE_FULL) {
+	    res = adin1110_SubmitTxBuffer(*hDevice, &txBufDesc[txBufIndex]);
+	    if (res == ADI_ETH_QUEUE_FULL) {
+	        osDelay(pdMS_TO_TICKS(1));
+	        attempts++;
+	        if (attempts > 1000) {
+	            DEBUG_MESSAGE("Tx queue stuck. Dropping frame.\n");
+	            LINK_STATS_INC(link.drop);
+	            portEXIT_CRITICAL();
+	            return ERR_MEM;
+	        }
+	    }
 	}
-
-	if (txBufIndex++ >= 1) {
-		txBufIndex = 0;
+	if (res != ADI_ETH_SUCCESS) {
+	    DEBUG_MESSAGE("SubmitTxBuffer failed with code=0x%08X\n", res);
+	    LINK_STATS_INC(link.drop);
+	    return ERR_IF;
+	}
+	if (++txBufIndex >= NUM_TX_DESC) {
+	    txBufIndex = 0;
 	}
 	return ERR_OK;
 }
@@ -517,25 +568,37 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 		DEBUG_MESSAGE("Error: Registering link change callback failed.\r\n");
 		return result;
 	}
-	for (uint32_t i = 0; i < 1; i++) {
-		txBufAvailable[i] = true;
+	for (uint32_t i = 0; i < NUM_RX_DESC; i++)
+	    {
+	        rxBufDesc[i].pBuf    = &rxBuf[i][0];
+	        rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
+	        rxBufDesc[i].cbFunc  = rxCallback;
 
-		rxBufDesc[i].pBuf = &rxBuf[i][0];
-		rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
-		rxBufDesc[i].cbFunc = rxCallback;
+	        result = adin1110_SubmitRxBuffer(*hDevice, &rxBufDesc[i]);
+	        if (result != ADI_ETH_SUCCESS)
+	        {
+	            DEBUG_MESSAGE("Error: SubmitRxBuffer() failed at i=%lu (code=0x%08X)\n",
+	                          i, result);
+	            return result;
+	        }
+	    }
+	    for (uint32_t i = 0; i < NUM_TX_DESC; i++)
+	    {
+	        txBufAvailable[i] = true;
+	    }
+	    result = adin1110_Enable(*hDevice);
+	    if (result != ADI_ETH_SUCCESS) {
+	        DEBUG_MESSAGE("Error: Enabling device failed.\n");
+	        return result;
+	    }
 
-		result = adin1110_SubmitRxBuffer(*hDevice, &rxBufDesc[i]);
-	}
-	result = adin1110_Enable(*hDevice);
-	if (result != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("Error: Enabling device failed.\r\n");
-		return result;
-	}
 
 	do {
 		result = adin1110_GetLinkStatus(*hDevice, &linkStatus);
 		DEBUG_RESULT("adin1110_GetLinkStatus", result, ADI_ETH_SUCCESS);
 	} while (linkStatus != ADI_ETH_LINK_STATUS_UP);
+
+
 
 	initPQueue(&pQ[0]);
 
@@ -587,7 +650,15 @@ uint32_t pDataAvailable(pQueue_t* pQ) {
 }
 
 void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame) {
-
+	if (lenEthFrame > MAX_P_QUEUE_SZ) {
+	        DEBUG_MESSAGE("ERROR: Frame too large (%d bytes), dropping packet!\n", lenEthFrame);
+	        return;
+	    }
+	int nextIndex = (pQ->nWrQ + 1) % MAX_P_QUEUE;
+	    if (nextIndex == pQ->nRdQ) {
+	        DEBUG_MESSAGE("ERROR: Queue full, dropping packet!\n");
+	        return;
+	    }
     memcpy(&pQ->pData[pQ->nWrQ][0], ethFrame, lenEthFrame);
     pQ->lenData[pQ->nWrQ] = lenEthFrame;
     pQ->nWrQ++;
@@ -595,10 +666,18 @@ void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame) {
 }
 
 void* readPQ(pQueue_t* pQ) {
-
+	if (pQ->nRdQ == pQ->nWrQ) {
+	        DEBUG_MESSAGE("ERROR: Queue empty, no packet to read!\n");
+	        return NULL;
+	    }
     int ethFrmLen = pQ->lenData[pQ->nRdQ];
-    struct pbuf* p = pbuf_alloc(PBUF_RAW, MAX_FRAME_BUF_SIZE, PBUF_RAM);
+    if (ethFrmLen <= 0 || ethFrmLen > MAX_FRAME_BUF_SIZE) {
+            DEBUG_MESSAGE("ERROR: Invalid frame length %d, skipping read\n", ethFrmLen);
+            return NULL;
+        }
+    struct pbuf* p = pbuf_alloc(PBUF_RAW, ethFrmLen, PBUF_RAM);
     if(p == NULL) {
+        DEBUG_MESSAGE("pbuf_alloc() failed, returning NULL\n");
         return NULL;
     }
     memcpy((uint8_t*)p->payload, &pQ->pData[pQ->nRdQ][0], ethFrmLen);

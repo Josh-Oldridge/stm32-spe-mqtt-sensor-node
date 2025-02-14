@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "net_events.h"
+#include "tmp102.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -149,6 +150,7 @@ void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -252,6 +254,9 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_ADC1_Init();
   MX_I2C2_Init();
+
+  /* Initialize interrupts */
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 #ifndef USE_LWIP
 	adi_eth_Result_e result;
@@ -265,13 +270,13 @@ int main(void)
 	boardDetails.mac[3] = 0xFE;
 	boardDetails.mac[4] = 0xDA;
 	boardDetails.mac[5] = 0xCA;
-
-#ifndef IP_FIXED
+#endif  /* USE_LWIP */
+#ifdef IP_FIXED
 	/*For IP Address Fixed Settings, make sure to setup a static DHCP lease in the 2303-8SP1 switch and uncomment the ip address, net_mask and gateway. Most importantly, change from IP_DYNAMIC to IP_FIXED*/
 	boardDetails.ip_addr[0] = 192;
 	boardDetails.ip_addr[1] = 168;
 	boardDetails.ip_addr[2] = 1;
-	boardDetails.ip_addr[3] = 5;
+	boardDetails.ip_addr[3] = 10;
 	boardDetails.net_mask[0] = 255;
 	boardDetails.net_mask[1] = 255;
 	boardDetails.net_mask[2] = 255;
@@ -285,7 +290,7 @@ int main(void)
 
 #endif /* IP_FIXED */
 
-#endif  /* USE_LWIP */
+
 
 #ifndef USE_LWIP
 	for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++) {
@@ -350,13 +355,9 @@ int main(void)
 	LwIP_StructInit(&myConn, &hDevice, boardDetails.mac);
 	LwIP_Init(&myConn, &boardDetails);
 	LwIP_ADIN1110LinkInput(&myConn.netif);
+	BSP_delayMs(500);
 	netif_set_link_up(&myConn.netif);
-
-	netEventGroup = xEventGroupCreate();
-	    if (netEventGroup == NULL) {
-	        printf("Failed to create netEventGroup!\n");
-	        // Handle error: perhaps halt the system
-	    }
+	I2C2_InitSemaphore();
 
 #endif  /* USE_LWIP */
 
@@ -506,6 +507,41 @@ void SystemClock_Config(void)
   }
 }
 
+/**
+  * @brief NVIC Configuration.
+  * @retval None
+  */
+static void MX_NVIC_Init(void)
+{
+  /* SPI1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SPI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(SPI1_IRQn);
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+  /* EXTI15_10_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  /* DMA1_Channel4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+  /* DMA1_Channel5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* I2C2_ER_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C2_ER_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C2_ER_IRQn);
+  /* I2C2_EV_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C2_EV_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C2_EV_IRQn);
+}
+
 /* USER CODE BEGIN 4 */
 
 /**
@@ -531,7 +567,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			}
 		}
 	}
-//	if (GPIO_Pin == ETH_INT_N_Pin) {
+//	if (GPIO_Pin == GPIO_PIN_12) {
 //		DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
 //		HAL_INT_N_DisableIRQ();
 //		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);

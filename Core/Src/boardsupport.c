@@ -8,9 +8,7 @@
  *
  *---------------------------------------------------------------------------
  */
-
 #include "boardsupport.h"
-
 #include <string.h>
 
 #define RESET_DELAY       (1)
@@ -20,7 +18,6 @@
 SPI_CallbackData spiCallbackData;
 
 SPI_HandleTypeDef hEthSpi;
-
 
 /*
  * @brief Blocking delay function
@@ -37,7 +34,6 @@ void BSP_delayMs(uint32_t delay)
 {
     volatile uint32_t now;
     uint32_t checkTime  = BSP_SysNow();
-    /* Read SysTick Timer every Ms*/
     while (1)
     {
       now  = BSP_SysNow();
@@ -248,17 +244,13 @@ uint32_t BSP_InitSystem(void)
 {
   HAL_StatusTypeDef     result = HAL_OK;
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   result = HAL_Init();
   if (result != HAL_OK)
   {
     goto end;
   }
-
-  /* Configure the system clock */
   //SystemClock_Config();
 
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
 
@@ -276,7 +268,6 @@ void common_Fail(char *FailureReason)
     char fail[] = "Failed: ";
     char term[] = "\n\r";
 
-    /* Ignore return codes since there's nothing we can do if it fails */
     msgWrite(fail);
     msgWrite(FailureReason);
     msgWrite(term);
@@ -285,11 +276,8 @@ void common_Fail(char *FailureReason)
 void common_Perf(char *InfoString)
 {
     char term[] = "\n\r";
-
-    /* Ignore return codes since there's nothing we can do if it fails */
     msgWrite(InfoString);
     msgWrite(term);
 }
-
 
 

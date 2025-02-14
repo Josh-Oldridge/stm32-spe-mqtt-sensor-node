@@ -29,19 +29,22 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "FreeRTOS.h"
+#include "semphr.h"
 /* USER CODE END Includes */
 
 extern I2C_HandleTypeDef hi2c2;
 
 /* USER CODE BEGIN Private defines */
-
+extern SemaphoreHandle_t i2cSemaphore;
 /* USER CODE END Private defines */
 
 void MX_I2C2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void I2C2_InitSemaphore(void);
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c);
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

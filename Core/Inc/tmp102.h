@@ -4,7 +4,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 float TMP102_ReadTemperature(void);
 
 #ifdef __cplusplus

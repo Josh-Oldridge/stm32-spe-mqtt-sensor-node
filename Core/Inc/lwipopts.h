@@ -61,10 +61,10 @@
 #define LWIP_TIMERS 1
 
 #ifndef LWIP_ICMP
-#define LWIP_ICMP 1
+#define LWIP_ICMP 0
 #endif
 
-#define LWIP_RAW 1
+#define LWIP_RAW 0
 
 #ifndef LWIP_IPV4
 #define LWIP_IPV4 1
@@ -110,7 +110,7 @@
  * a lot of data that needs to be copied, this should be set high.
  */
 #ifndef MEM_SIZE
-#define MEM_SIZE                        (16 * 1024)
+#define MEM_SIZE                        (32 * 1024)
 #endif
 
 /**
@@ -213,7 +213,6 @@
 #define NO_SYS_NO_TIMERS                0
 #endif
 
-
 #define LWIP_TCP_KEEPALIVE 0
 
 /*
@@ -229,7 +228,6 @@
 #ifndef MEMP_NUM_PBUF
 #ifdef DEBUG
 #define MEMP_NUM_PBUF                   8
-#else
 #define MEMP_NUM_PBUF                   8
 #endif
 #endif
@@ -419,7 +417,7 @@
 #ifndef PBUF_POOL_SIZE
 #define PBUF_POOL_SIZE                  16
 #endif
-#define PBUF_POOL_BUFSIZE 1528
+#define PBUF_POOL_BUFSIZE 1600
 #define PBUF_LINK_HLEN 16
 
 #define LWIP_ARP 1
