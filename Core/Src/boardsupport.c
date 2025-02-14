@@ -261,7 +261,7 @@ end:
   return (uint32_t)result;
 }
 
-char aDebugString[150u];
+char aDebugString[200u];
 
 void common_Fail(char *FailureReason)
 {

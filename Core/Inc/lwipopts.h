@@ -61,7 +61,7 @@
 #define LWIP_TIMERS 1
 
 #ifndef LWIP_ICMP
-#define LWIP_ICMP 0
+#define LWIP_ICMP 1
 #endif
 
 #define LWIP_RAW 0

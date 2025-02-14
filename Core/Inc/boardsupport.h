@@ -30,7 +30,7 @@
 
 
 /* Buffer for debug messages written to UART. */
-extern char aDebugString[150u];
+extern char aDebugString[200u];
 extern SPI_HandleTypeDef hEthSpi;
 
 
@@ -39,7 +39,7 @@ void common_Perf(char *InfoString);
 
 #define DEBUG_MESSAGE(...) \
   do { \
-    sprintf(aDebugString,__VA_ARGS__); \
+    snprintf(aDebugString, sizeof(aDebugString), __VA_ARGS__); \
     common_Perf(aDebugString); \
   } while(0)
 

@@ -39,7 +39,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-#include "net_events.h"
 #include "tmp102.h"
 /* USER CODE END Includes */
 
