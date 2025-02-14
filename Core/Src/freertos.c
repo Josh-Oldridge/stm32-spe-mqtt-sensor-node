@@ -48,7 +48,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define HEARTBEAT_INTERVAL 5000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -98,14 +97,6 @@ const osThreadAttr_t sensorDataMQTTTask_attributes = {
     .stack_size = 1024 * 16,
     .priority = osPriorityHigh,
 };
-
-/* Heartbeat Packet to keep TCP Connection Open */
-//osThreadId_t heartbeatTaskHandle;
-//const osThreadAttr_t heartbeatTask_attributes = {
-//    .name = "heartbeatTask",
-//    .stack_size = 512 * 4,
-//    .priority = osPriorityNormal
-//};
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -286,7 +277,7 @@ void ADCTask(void *argument) {
         printf("ADC DMA Start Failed!\n");
     }
     for (;;) {
-        osDelay(pdMS_TO_TICKS(30000));
+        osDelay(pdMS_TO_TICKS(10000));
         uint16_t adcValue = adcBuffer[0];
         float voltage = (adcValue * 3.3f) / 4095.0f;
         float current = (voltage - 1.65f) / 0.185f;
@@ -304,7 +295,7 @@ void TempTask(void *argument) {
         } else {
             printf("TMP102 Read Error\n");
         }
-        osDelay(pdMS_TO_TICKS(20000));
+        osDelay(pdMS_TO_TICKS(10000));
     }
 }
 
@@ -325,7 +316,7 @@ void AccelTask(void *argument) {
         } else {
             printf("ADXL345 Read Error!\n");
         }
-        osDelay(pdMS_TO_TICKS(25000));
+        osDelay(pdMS_TO_TICKS(10000));
     }
 }
 
@@ -333,11 +324,11 @@ void SensorDataMQTTTask(void *argument) {
 
     while (!dhcp_supplied_address(&myConn.netif)) {
         printf("Sensor Data MQTT Task: Waiting for DHCP configuration...\n");
-        osDelay(pdMS_TO_TICKS(30000));
+        osDelay(pdMS_TO_TICKS(2000));
     }
     osDelay(pdMS_TO_TICKS(500));
     client_mqtt_init();
-    osDelay(pdMS_TO_TICKS(20000));
+    osDelay(pdMS_TO_TICKS(2000));
 
     for (;;) {
         if (!mqtt_client_is_connected(mqtt_client)) {
@@ -355,29 +346,6 @@ void SensorDataMQTTTask(void *argument) {
         osDelay(pdMS_TO_TICKS(10000));
     }
 }
-
-/* Heartbeat Packet Task to keep TCP Connection Open */
-//void HeartbeatTask(void *argument) {
-//    // Wait until DHCP is configured (similar to your MQTTTask)
-//    while (!dhcp_supplied_address(&myConn.netif)) {
-//        printf("Heartbeat Task: Waiting for DHCP configuration...\n");
-//        osDelay(pdMS_TO_TICKS(2000));
-//    }
-//    // Optional: delay a bit further for network stability
-//    osDelay(pdMS_TO_TICKS(500));
-//
-//
-//
-//
-//    for (;;) {
-//        if (mqtt_client_is_connected(mqtt_client)) {
-//            client_mqtt_publish_heartbeat();
-//        }
-//        osDelay(pdMS_TO_TICKS(1000));  // Publish every 1 second (adjust if needed)
-//    }
-//}
-
-
 
 /* USER CODE END Application */
 
