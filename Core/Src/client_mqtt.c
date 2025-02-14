@@ -14,7 +14,7 @@ extern uint16_t adcBuffer[ADC_BUFFER_SIZE];
 mqtt_client_t *mqtt_client = NULL;
 
 /* Broker settings: adjust these as necessary */
-#define MQTT_BROKER_IP_STR "192.168.1.11"  // Broker IP
+#define MQTT_BROKER_IP_STR "192.168.1.12"  // Broker IP
 #define MQTT_BROKER_PORT   1883
 #define MQTT_CLIENT_ID     "STM32_Client"
 

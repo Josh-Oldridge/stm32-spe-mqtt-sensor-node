@@ -295,7 +295,7 @@ void TempTask(void *argument) {
         } else {
             printf("TMP102 Read Error\n");
         }
-        osDelay(pdMS_TO_TICKS(10000));
+        osDelay(pdMS_TO_TICKS(8000));
     }
 }
 
