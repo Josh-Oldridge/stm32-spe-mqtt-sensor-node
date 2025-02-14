@@ -43,7 +43,6 @@
 									<listOptionValue builtIn="false" value="SPI_OA_EN"/>
 									<listOptionValue builtIn="false" value="SPI_PROT_EN"/>
 									<listOptionValue builtIn="false" value="ADIN1110"/>
-									<listOptionValue builtIn="false" value="IP_FIXED"/>
 									<listOptionValue builtIn="false" value="DEBUG"/>
 									<listOptionValue builtIn="false" value="USE_HAL_DRIVER"/>
 									<listOptionValue builtIn="false" value="STM32L496xx"/>
