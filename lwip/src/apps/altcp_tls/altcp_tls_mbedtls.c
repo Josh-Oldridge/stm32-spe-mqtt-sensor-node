@@ -732,6 +732,8 @@ altcp_tls_create_config(int is_server, int have_cert, int have_pkey, int have_ca
     altcp_mbedtls_free_config(conf);
     return NULL;
   }
+
+
   mbedtls_ssl_conf_authmode(&conf->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
 
   mbedtls_ssl_conf_rng(&conf->conf, mbedtls_ctr_drbg_random, &conf->ctr_drbg);

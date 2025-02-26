@@ -29,7 +29,7 @@
 #define FRAME_SIZE          (1518)
 
 #define NUM_RX_DESC  4 /* 4 RX Descriptors for Frames sent from Host */
-#define NUM_TX_DESC  4 /* 4 TX Descriptors for Frames sent by ADIN1110 */
+#define NUM_TX_DESC  8 /* 4 TX Descriptors for Frames sent by ADIN1110 */
 
 #define ETHERNET_MTU        (1500)
 
@@ -248,19 +248,19 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 		return;
 	}
 	int unicast = ((payload[0] & 0x01) == 0);
-	LINK_STATS_INC(link.recv); MIB2_STATS_NETIF_ADD(netif, ifinoctets, frmLen);
+	LINK_STATS_INC(link.recv);MIB2_STATS_NETIF_ADD(netif, ifinoctets, frmLen);
 	if (unicast) {
 		MIB2_STATS_NETIF_INC(netif, ifinucastpkts);
 	} else {
 		MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
 	}
 	writePQ(&pQ[0], payload, frmLen);
-	    // Reinitialize the descriptor that triggered the callback.
-	    pRxBufDesc->bufSize = MAX_FRAME_BUF_SIZE;
-	    pRxBufDesc->cbFunc  = rxCallback;
-	    // If necessary, you might also reset the buffer pointer here if it can change.
-	    // For example: pRxBufDesc->pBuf = <appropriate buffer pointer for this descriptor>;
-	    adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
+	// Reinitialize the descriptor that triggered the callback.
+	pRxBufDesc->bufSize = MAX_FRAME_BUF_SIZE;
+	pRxBufDesc->cbFunc = rxCallback;
+	// If necessary, you might also reset the buffer pointer here if it can change.
+	// For example: pRxBufDesc->pBuf = <appropriate buffer pointer for this descriptor>;
+	adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {

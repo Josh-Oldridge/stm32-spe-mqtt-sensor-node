@@ -59,6 +59,8 @@
 /* USER CODE BEGIN Variables */
 extern uint16_t adcBuffer[ADC_BUFFER_SIZE];
 extern ADC_HandleTypeDef hadc1;
+extern volatile bool mqtt_connected;
+extern volatile bool mqtt_connecting;
 
 volatile int dhcp_configured = 0;
 osSemaphoreId_t adcSemaphoreHandle;
@@ -66,7 +68,7 @@ osSemaphoreId_t adcSemaphoreHandle;
 osThreadId_t networkMaintenanceTaskHandle;
 const osThreadAttr_t networkMaintenanceTask_attributes = {
     .name = "netMaintTask",
-    .stack_size = 1024 * 16,
+    .stack_size = 1024 * 32,
     .priority = (osPriority_t) osPriorityHigh,
 };
 
@@ -94,7 +96,7 @@ const osThreadAttr_t accelTask_attributes = {
 osThreadId_t sensorDataMQTTTaskHandle;
 const osThreadAttr_t sensorDataMQTTTask_attributes = {
     .name = "sensorDataMQTTTask",
-    .stack_size = 1024 * 16,
+    .stack_size = 1024 * 32,
     .priority = osPriorityHigh,
 };
 
@@ -218,9 +220,6 @@ void MX_FREERTOS_Init(void) {
   tempTaskHandle = osThreadNew(TempTask, NULL, &tempTask_attributes);
   accelTaskHandle = osThreadNew(AccelTask, NULL, &accelTask_attributes);
   sensorDataMQTTTaskHandle = osThreadNew(SensorDataMQTTTask, NULL, &sensorDataMQTTTask_attributes);
-
-  /* Heartbeat Packet Task Handle to keep TCP Connction Open */
-  //heartbeatTaskHandle = osThreadNew(HeartbeatTask, NULL, &heartbeatTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -250,25 +249,17 @@ void StartDefaultTask(void *argument)
 /* USER CODE BEGIN Application */
 
 void NetworkMaintenanceTask(void *argument) {
-
-	uint32_t heartbeatCheckTime = 0;
-    const uint32_t heartbeatIntervalMs = 100;
-    uint32_t now;
+    const uint32_t heartbeatIntervalMs = 500;
+    TickType_t lastWakeTime = xTaskGetTickCount();
 
     for (;;) {
-        now = BSP_SysNow();
-
-        if ((now - heartbeatCheckTime) >= heartbeatIntervalMs) {
-            heartbeatCheckTime = now;
-            BSP_HeartBeat();
-            sys_check_timeouts();
-        }
-
+        BSP_HeartBeat();
         LwIP_ADIN1110LinkInput(&myConn.netif);
-        osDelay(pdMS_TO_TICKS(100));
+        sys_check_timeouts();
+        osThreadYield();
+        vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(heartbeatIntervalMs));
     }
 }
-
 
 
 void ADCTask(void *argument) {
@@ -289,8 +280,6 @@ void ADCTask(void *argument) {
 void TempTask(void *argument) {
     for (;;) {
         float temp = TMP102_ReadTemperature();
-
-        /* Error Check. If Temp Sensor is -1000, read error */
         if (temp > -1000) {
         } else {
             printf("TMP102 Read Error\n");
@@ -306,46 +295,59 @@ void AccelTask(void *argument) {
     ret = ADXL345_Init(&hi2c2);
     if (ret != HAL_OK) {
         printf("ADXL345 Initialization Failed!\n");
-    } else {
-        printf("ADXL345 Initialized Successfully!\n");
-    }
+	} else {
+		printf("ADXL345 Initialized Successfully!\n");
+	}
 
-    for (;;) {
-        ret = ADXL345_ReadAccel(&hi2c2, &ax, &ay, &az);
-        if (ret == HAL_OK) {
-        } else {
-            printf("ADXL345 Read Error!\n");
-        }
-        osDelay(pdMS_TO_TICKS(10000));
-    }
+	for (;;) {
+		ret = ADXL345_ReadAccel(&hi2c2, &ax, &ay, &az);
+		if (ret == HAL_OK) {
+		} else {
+			printf("ADXL345 Read Error!\n");
+		}
+		osDelay(pdMS_TO_TICKS(10000));
+	}
 }
 
 void SensorDataMQTTTask(void *argument) {
-
     while (!dhcp_supplied_address(&myConn.netif)) {
         printf("Sensor Data MQTT Task: Waiting for DHCP configuration...\n");
         osDelay(pdMS_TO_TICKS(2000));
     }
     osDelay(pdMS_TO_TICKS(500));
-    client_mqtt_init();
-    osDelay(pdMS_TO_TICKS(2000));
 
     for (;;) {
-        if (!mqtt_client_is_connected(mqtt_client)) {
-            printf("Sensor Data MQTT Task: MQTT connection lost, reconnecting...\n");
+        if (mqtt_connected) {
+            printf("Free heap size: %u bytes\n", xPortGetFreeHeapSize());
+            int ret = client_mqtt_publish_sensor_data();
+            if (ret != ERR_OK) {
+                printf("Publish failed: %d\n", ret);
+                if (ret == ERR_CONN || ret == ERR_MEM) {
+                    mqtt_connected = false;
+                    mqtt_connecting = false;
+                    printf("Connection lost, retrying in 5 seconds...\n");
+                    osDelay(pdMS_TO_TICKS(10000));
+                }
+            }
+        } else if (!mqtt_connecting) {
+            printf("MQTT not connected, attempting to connect...\n");
+            mqtt_connecting = true;
             client_mqtt_init();
-            osDelay(pdMS_TO_TICKS(2000));
+            TickType_t startTime = xTaskGetTickCount();
+            while (mqtt_connecting && !mqtt_connected &&
+                   (xTaskGetTickCount() - startTime < pdMS_TO_TICKS(10000))) {  // Reduced timeout to 5 seconds
+                osDelay(pdMS_TO_TICKS(100));
+            }
+            if (mqtt_connecting && !mqtt_connected) {
+                printf("Connection attempt timed out, retrying in 5 seconds...\n");
+                mqtt_connecting = false;
+                osDelay(pdMS_TO_TICKS(10000));
+            }
         } else {
-        	 int ret = client_mqtt_publish_sensor_data();
-        	            if (ret == ERR_MEM) {
-        	                printf("Publish failed with ERR_MEM, reinitializing MQTT client...\n");
-        	                client_mqtt_init();
-        	                osDelay(pdMS_TO_TICKS(2000));
-        	            }
+            printf("MQTT connection in progress, waiting...\n");
         }
-        osDelay(pdMS_TO_TICKS(10000));
+        osDelay(pdMS_TO_TICKS(10000));  // Main loop delay
     }
 }
-
 /* USER CODE END Application */
 

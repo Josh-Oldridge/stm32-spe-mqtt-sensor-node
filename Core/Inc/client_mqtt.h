@@ -3,8 +3,12 @@
 
 #include "lwip/apps/mqtt.h"
 #include "lwip/ip_addr.h"
+#include "lwip/altcp.h"
 
 extern mqtt_client_t *mqtt_client;
+void my_debug(void *ctx, int level, const char *file, int line, const char *str);
+err_t tls_connected_cb(void *arg, struct altcp_pcb *pcb, err_t err);
+void tls_error_cb(void *arg, err_t err);
 
 /* Function prototypes for MQTT client logic */
 void client_mqtt_init(void);

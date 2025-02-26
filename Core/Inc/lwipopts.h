@@ -213,7 +213,7 @@
 #define NO_SYS_NO_TIMERS                0
 #endif
 
-#define LWIP_TCP_KEEPALIVE 0
+#define LWIP_TCP_KEEPALIVE 1
 
 /*
  ------------------------------------------------
@@ -227,8 +227,7 @@
  */
 #ifndef MEMP_NUM_PBUF
 #ifdef DEBUG
-#define MEMP_NUM_PBUF                   8
-#define MEMP_NUM_PBUF                   8
+#define MEMP_NUM_PBUF                   16
 #endif
 #endif
 
@@ -254,7 +253,7 @@
  * (requires the LWIP_TCP option)
  */
 #ifndef MEMP_NUM_TCP_PCB
-#define MEMP_NUM_TCP_PCB                5
+#define MEMP_NUM_TCP_PCB                3
 #endif
 
 /**
@@ -270,7 +269,7 @@
  * (requires the LWIP_TCP option)
  */
 #ifndef MEMP_NUM_TCP_SEG
-#define MEMP_NUM_TCP_SEG                32
+#define MEMP_NUM_TCP_SEG                16
 #endif
 
 /**
@@ -417,8 +416,8 @@
 #ifndef PBUF_POOL_SIZE
 #define PBUF_POOL_SIZE                  16
 #endif
-#define PBUF_POOL_BUFSIZE 1600
-#define PBUF_LINK_HLEN 16
+#define PBUF_POOL_BUFSIZE 1536
+#define PBUF_LINK_HLEN 40
 
 #define LWIP_ARP 1
 #define LWIP_DHCP 1
@@ -437,6 +436,10 @@
 #define IP_DEFAULT_TTL 255
 #define LWIP_CHKSUM_ALGORITHM 3
 
+#define LWIP_ALTCP 1
+#define LWIP_ALTCP_TLS 1
+#define LWIP_ALTCP_TLS_MBEDTLS    1
+
 #define LWIP_UDP 1
 #define UDP_TTL 255
 
@@ -449,14 +452,14 @@
  * an upper limit on the MSS advertised by the remote host.
  */
 #ifndef TCP_MSS
-#define TCP_MSS                        536
+#define TCP_MSS                        1460
 #endif
 
 /**
  * TCP_SND_BUF: TCP sender buffer space (bytes).
  */
 #ifndef TCP_SND_BUF
-#define TCP_SND_BUF                     1500
+#define TCP_SND_BUF                     (4 * TCP_MSS)
 #endif
 
 #
@@ -495,6 +498,10 @@
 #define TCP_SND_QUEUELEN                ((4 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
 #endif
 
+#define TCP_KEEPIDLE 5000
+#define TCP_KEEPINTVL 2000
+#define TCP_KEEPCNT 3
+#define TCP_RTO 1500
 
 #ifndef LWIP_NETIF_HOSTNAME
 #define LWIP_NETIF_HOSTNAME 1
@@ -544,12 +551,15 @@
 #define IP_DEBUG LWIP_DBG_ON
 #define ETHARP_DEBUG LWIP_DBG_ON
 #endif /* TCP/IP_DEBUG */
-#define LWIP_DEBUG LWIP_DBG_ON
-#define 	TIMERS_DEBUG   LWIP_DBG_ON
-#define ICMP_DEBUG LWIP_DBG_ON
-#define NETIF_DEBUG LWIP_DBG_ON
-#define IP_DEBUG LWIP_DBG_ON
-#define ETHARP_DEBUG LWIP_DBG_ON
+#define LWIP_DEBUG LWIP_DBG_OFF
+#define TIMERS_DEBUG LWIP_DBG_OFF
+#define ICMP_DEBUG LWIP_DBG_OFF
+#define NETIF_DEBUG LWIP_DBG_OFF
+#define IP_DEBUG LWIP_DBG_OFF
+#define ETHARP_DEBUG LWIP_DBG_OFF
+#define MQTT_DEBUG LWIP_DBG_ON
+#define TCP_DEBUG LWIP_DBG_ON
+#define ALTCP_MBEDTLS_DEBUG LWIP_DBG_ON
 #define CONFIG_LINKSPEED_AUTODETECT     1
 
 
@@ -557,7 +567,7 @@
 #define HTTPD_USE_CUSTOM_FSDATA                       1
 #define LWIP_HTTPD_SUPPORT_11_KEEPALIVE               1
 #define HTTPD_FSDATA_FILE                             "fsdata.c"
-#define LWIP_HTTPD_DYNAMIC_HEADER                       1
+#define LWIP_HTTPD_DYNAMIC_HEADER                     1
 #define LWIP_HTTPD_SSI                                1
 #define LWIP_HTTPD_SSI_INCLUDE_TAG                    1
 #define LWIP_HTTPD_MAX_TAG_NAME_LEN                   8

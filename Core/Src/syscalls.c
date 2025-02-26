@@ -30,6 +30,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include "rtc.h"
 
 
 /* Variables */
@@ -42,6 +43,27 @@ char **environ = __env;
 
 
 /* Functions */
+
+int _gettimeofday(struct timeval *tv, void *tzvp) {
+    RTC_DateTypeDef date;
+    RTC_TimeTypeDef time;
+
+    HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
+
+    struct tm tm;
+    tm.tm_year = date.Year + 100;  // Years since 1900
+    tm.tm_mon = date.Month - 1;
+    tm.tm_mday = date.Date;
+    tm.tm_hour = time.Hours;
+    tm.tm_min = time.Minutes;
+    tm.tm_sec = time.Seconds;
+
+    tv->tv_sec = mktime(&tm);
+    tv->tv_usec = 0;
+
+    return 0;
+}
 void initialise_monitor_handles()
 {
 }
