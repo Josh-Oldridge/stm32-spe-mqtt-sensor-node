@@ -69,7 +69,7 @@ osThreadId_t networkMaintenanceTaskHandle;
 const osThreadAttr_t networkMaintenanceTask_attributes = {
     .name = "netMaintTask",
     .stack_size = 1024 * 32,
-    .priority = (osPriority_t) osPriorityHigh,
+    .priority = (osPriority_t) osPriorityRealtime,
 };
 
 osThreadId_t adcTaskHandle;
