@@ -61,9 +61,10 @@ extern uint16_t adcBuffer[ADC_BUFFER_SIZE];
 extern ADC_HandleTypeDef hadc1;
 extern volatile bool mqtt_connected;
 extern volatile bool mqtt_connecting;
-
+static struct udp_pcb *dummy_pcb = NULL;
 volatile int dhcp_configured = 0;
 osSemaphoreId_t adcSemaphoreHandle;
+
 
 osThreadId_t networkMaintenanceTaskHandle;
 const osThreadAttr_t networkMaintenanceTask_attributes = {
@@ -247,20 +248,42 @@ void StartDefaultTask(void *argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
 void NetworkMaintenanceTask(void *argument) {
-    const uint32_t heartbeatIntervalMs = 500;
+    const uint32_t heartbeatIntervalMs = 1;
     TickType_t lastWakeTime = xTaskGetTickCount();
+
+    // Initialize the UDP PCB once
+    if (dummy_pcb == NULL) {
+        dummy_pcb = udp_new();
+        if (dummy_pcb == NULL) {
+            printf("Failed to create dummy UDP PCB\n");
+        }
+    }
 
     for (;;) {
         BSP_HeartBeat();
-        LwIP_ADIN1110LinkInput(&myConn.netif);
+        while (pDataAvailable(&pQ[0])) {        // Process all packets in queue
+            LwIP_ADIN1110LinkInput(&myConn.netif);
+        }
+
+        // Send dummy packet to switch at 192.168.1.1 every 1 second
+        if (osKernelGetTickCount() % 1000 == 0) {
+            struct pbuf *dummy = pbuf_alloc(PBUF_TRANSPORT, 0, PBUF_RAM);
+            if (dummy != NULL && dummy_pcb != NULL) {
+                ip_addr_t dst_ip;
+                ipaddr_aton("192.168.1.1", &dst_ip);
+                err_t err = udp_sendto(dummy_pcb, dummy, &dst_ip, 12345);
+                if (err != ERR_OK) {
+                    printf("Failed to send dummy UDP packet: %d\n", err);
+                }
+                pbuf_free(dummy);
+            }
+        }
         sys_check_timeouts();
         osThreadYield();
         vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(heartbeatIntervalMs));
     }
 }
-
 
 void ADCTask(void *argument) {
 
@@ -346,7 +369,7 @@ void SensorDataMQTTTask(void *argument) {
         } else {
             printf("MQTT connection in progress, waiting...\n");
         }
-        osDelay(pdMS_TO_TICKS(10000));  // Main loop delay
+        osDelay(pdMS_TO_TICKS(20000));  // Main loop delay
     }
 }
 /* USER CODE END Application */

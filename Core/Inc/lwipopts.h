@@ -110,7 +110,7 @@
  * a lot of data that needs to be copied, this should be set high.
  */
 #ifndef MEM_SIZE
-#define MEM_SIZE                        (32 * 1024)
+#define MEM_SIZE                        (64 * 1024)
 #endif
 
 /**
@@ -298,7 +298,7 @@
  * (requires the ARP_QUEUEING option)
  */
 #ifndef MEMP_NUM_ARP_QUEUE
-#define MEMP_NUM_ARP_QUEUE              0
+#define MEMP_NUM_ARP_QUEUE              10
 #endif
 
 /**
@@ -414,7 +414,7 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  16
+#define PBUF_POOL_SIZE                  32
 #endif
 #define PBUF_POOL_BUFSIZE 1536
 #define PBUF_LINK_HLEN 40
@@ -422,7 +422,7 @@
 #define LWIP_ARP 1
 #define LWIP_DHCP 1
 #define ARP_TABLE_SIZE 10
-#define ARP_QUEUEING 0
+#define ARP_QUEUEING 1
 
 
 #define ICMP_TTL 255
@@ -459,7 +459,7 @@
  * TCP_SND_BUF: TCP sender buffer space (bytes).
  */
 #ifndef TCP_SND_BUF
-#define TCP_SND_BUF                     (4 * TCP_MSS)
+#define TCP_SND_BUF                     8192
 #endif
 
 #
@@ -468,7 +468,7 @@
  * (2 * TCP_MSS) for things to work well
  */
 #ifndef TCP_WND
-#define TCP_WND                         (4 * TCP_MSS)
+#define TCP_WND                         8192
 #endif
 #define TCP_TTL 255
 /**
@@ -495,13 +495,13 @@
  * as much as (2 * TCP_SND_BUF/TCP_MSS) for things to work.
  */
 #ifndef TCP_SND_QUEUELEN
-#define TCP_SND_QUEUELEN                ((4 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
+#define TCP_SND_QUEUELEN                32
 #endif
 
 #define TCP_KEEPIDLE 5000
 #define TCP_KEEPINTVL 2000
 #define TCP_KEEPCNT 3
-#define TCP_RTO 1500
+#define TCP_RTO 15000
 
 #ifndef LWIP_NETIF_HOSTNAME
 #define LWIP_NETIF_HOSTNAME 1
@@ -557,9 +557,9 @@
 #define NETIF_DEBUG LWIP_DBG_OFF
 #define IP_DEBUG LWIP_DBG_OFF
 #define ETHARP_DEBUG LWIP_DBG_OFF
-#define MQTT_DEBUG LWIP_DBG_ON
-#define TCP_DEBUG LWIP_DBG_ON
-#define ALTCP_MBEDTLS_DEBUG LWIP_DBG_ON
+#define MQTT_DEBUG LWIP_DBG_OFF
+#define TCP_DEBUG LWIP_DBG_OFF
+#define ALTCP_MBEDTLS_DEBUG LWIP_DBG_OFF
 #define CONFIG_LINKSPEED_AUTODETECT     1
 
 

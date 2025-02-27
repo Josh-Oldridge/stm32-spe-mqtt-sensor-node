@@ -29,7 +29,7 @@
 #define FRAME_SIZE          (1518)
 
 #define NUM_RX_DESC  4 /* 4 RX Descriptors for Frames sent from Host */
-#define NUM_TX_DESC  8 /* 4 TX Descriptors for Frames sent by ADIN1110 */
+#define NUM_TX_DESC  4 /* 4 TX Descriptors for Frames sent by ADIN1110 */
 
 #define ETHERNET_MTU        (1500)
 
@@ -57,7 +57,7 @@ static void initPQueue(pQueue_t* pQ);
 
 static void*           readPQ(pQueue_t* pQ);
 static void writePQ(pQueue_t* pQ, uint8_t *ethFrame, int lenEthFrame);
-static uint32_t pDataAvailable(pQueue_t *pQ);
+uint32_t pDataAvailable(pQueue_t *pQ);
 
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
 

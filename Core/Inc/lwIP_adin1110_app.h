@@ -50,6 +50,8 @@ typedef struct Lwip_adin1110_s {
 	uint8_t macAddress[6];
 } LwIP_ADIN1110_t;
 
+uint32_t pDataAvailable(pQueue_t *pQ);
+
 uint32_t sys_now(void);
 adi_eth_Result_e LwIP_StructInit(LwIP_ADIN1110_t *eth,
 		adin1110_DeviceHandle_t* hDevice, uint8_t macAddress[6]);

@@ -95,8 +95,8 @@ void client_mqtt_init(void) {
         mqtt_client = NULL;
         return;
     }
-    mbedtls_ssl_conf_dbg((mbedtls_ssl_config *)tls_config, my_debug, NULL);
-    mbedtls_debug_set_threshold(4);
+//    mbedtls_ssl_conf_dbg((mbedtls_ssl_config *)tls_config, my_debug, NULL);
+//    mbedtls_debug_set_threshold(4);
     ci.tls_config = tls_config;
 #endif
 
@@ -178,10 +178,10 @@ void mqtt_pub_request_cb(void *arg, err_t result) {
 }
 
 err_t client_mqtt_publish_sensor_data(void) {
-	if (!mqtt_connected || mqtt_client == NULL || !mqtt_client_is_connected(mqtt_client)) {
-	        printf("Cannot publish: MQTT not connected\n");
-	        return ERR_CONN;  // Return error if not connected
-	    }
+    if (!mqtt_connected || mqtt_client == NULL) {
+        printf("Cannot publish: MQTT not connected\n");
+        return ERR_CONN;
+    }
 
     char payload[256];
     float temperature = TMP102_ReadTemperature();

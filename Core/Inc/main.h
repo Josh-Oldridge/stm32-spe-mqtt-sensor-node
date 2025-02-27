@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "cmsis_os2.h"
 #include <stdbool.h>
 /* USER CODE END Includes */
 
@@ -78,6 +78,7 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
+
 
 /* USER CODE BEGIN EFP */
 /* USER CODE END EFP */
