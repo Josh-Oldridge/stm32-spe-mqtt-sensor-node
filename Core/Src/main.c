@@ -561,34 +561,29 @@ static void MX_NVIC_Init(void)
  * @param GPIO_Pin The GPIO pin number that triggered the interrupt.
  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if (GPIO_Pin == Reset_Button_Pin) {
-		DEBUG_MESSAGE("Reset button interrupt triggered.\r\n");
-		uint32_t pressStart = HAL_GetTick();
-		while (HAL_GPIO_ReadPin(Reset_Button_GPIO_Port, Reset_Button_Pin)
-				== GPIO_PIN_RESET) {
-			if ((HAL_GetTick() - pressStart) >= 3000) {
-				DEBUG_MESSAGE(
-						"User button long press detected: Initiating reset.\r\n");
-				BSP_HWReset(true);
-				NVIC_SystemReset();
-				break;
-			}
-		}
-	}
-//	if (GPIO_Pin == GPIO_PIN_12) {
-//		DEBUG_MESSAGE("ADIN1110 interrupt triggered.\r\n");
-//		HAL_INT_N_DisableIRQ();
-//		adi_eth_Result_e result = adin1110_HandleInterrupt(hDevice);
-//		if (result != ADI_ETH_SUCCESS) {
-//			DEBUG_MESSAGE("adin1110_HandleInterrupt failed with error: %d\r\n",
-//					result);
-//		}
-//		HAL_INT_N_EnableIRQ();
-//	}
+    if (GPIO_Pin == Reset_Button_Pin) {
+        DEBUG_MESSAGE("Reset button interrupt triggered.\r\n");
+        uint32_t pressStart = HAL_GetTick();
+        while (HAL_GPIO_ReadPin(Reset_Button_GPIO_Port, Reset_Button_Pin) == GPIO_PIN_RESET) {
+            if ((HAL_GetTick() - pressStart) >= 3000) {
+                DEBUG_MESSAGE("User button long press detected: Initiating reset.\r\n");
+                BSP_HWReset(true);
+                NVIC_SystemReset();
+                break;
+            }
+        }
+    }
 
-	if (GPIO_Pin == Interrupt_Pin) {
-		MX_Led_Toggle();
-	}
+    if (GPIO_Pin == Interrupt_Pin) {
+        ADI_CB callback = getIntCallback();
+        void *param = getIntCBParam();
+        if (callback != NULL) {
+            (*callback)(param, 0, NULL);
+        } else {
+            DEBUG_MESSAGE("ADIN1110 interrupt triggered but no callback registered!\r\n");
+        }
+        MX_Led_Toggle();
+    }
 }
 
 /* USER CODE END 4 */

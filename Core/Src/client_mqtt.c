@@ -1,5 +1,7 @@
 #include "client_mqtt.h"
 #include "lwip/apps/mqtt.h"
+#include "lwip/altcp_tcp.h"
+#include "lwip/altcp_tls.h"
 #include <string.h>
 #include <stdio.h>
 #include "lwip/mem.h"
@@ -15,6 +17,7 @@
 #include "tmp102.h"
 #include "adxl345.h"
 #include "i2c.h"
+
 
 extern uint16_t adcBuffer[ADC_BUFFER_SIZE];
 mqtt_client_t *mqtt_client = NULL;
@@ -62,11 +65,12 @@ void my_debug(void *ctx, int level, const char *file, int line, const char *str)
 }
 
 void client_mqtt_init(void) {
+    /* Same as Option 1, without the allocator setup */
     err_t err;
     struct mqtt_connect_client_info_t ci;
 
     if (mqtt_client != NULL) {
-        mqtt_disconnect(mqtt_client);  // Ensure any existing connection is closed
+        mqtt_disconnect(mqtt_client);
         if (tls_config != NULL) {
             altcp_tls_free_config(tls_config);
             tls_config = NULL;
@@ -83,21 +87,23 @@ void client_mqtt_init(void) {
 
     memset(&ci, 0, sizeof(ci));
     ci.client_id = MQTT_CLIENT_ID;
-    ci.keep_alive = 60;
+    ci.keep_alive = 0;
     ci.client_user = "admin";
     ci.client_pass = "admin";
 
 #if LWIP_ALTCP && LWIP_ALTCP_TLS
-    tls_config = altcp_tls_create_config_client((const u8_t*)broker_ca_cert, strlen(broker_ca_cert) + 1);
+    tls_config = altcp_tls_create_config_client((const u8_t*) broker_ca_cert,
+                                                strlen(broker_ca_cert) + 1);
     if (tls_config == NULL) {
         printf("Failed to create TLS config\n");
         mqtt_client_free(mqtt_client);
         mqtt_client = NULL;
         return;
     }
-//    mbedtls_ssl_conf_dbg((mbedtls_ssl_config *)tls_config, my_debug, NULL);
-//    mbedtls_debug_set_threshold(4);
+    mbedtls_ssl_conf_max_frag_len((mbedtls_ssl_config*) tls_config, MBEDTLS_SSL_MAX_FRAG_LEN_4096);
     ci.tls_config = tls_config;
+//    mbedtls_ssl_conf_dbg((mbedtls_ssl_config*) tls_config, my_debug, NULL);
+//    mbedtls_debug_set_threshold(4);
 #endif
 
     if (!ipaddr_aton(MQTT_BROKER_IP_STR, &broker_ip)) {
@@ -110,6 +116,9 @@ void client_mqtt_init(void) {
         mqtt_client = NULL;
         return;
     }
+
+    printf("Initiating MQTT connection: Client ID=%s, Broker IP=%s, Port=%d\n",
+               ci.client_id, MQTT_BROKER_IP_STR, MQTT_BROKER_PORT_SECURE);
 
     err = mqtt_client_connect(mqtt_client, &broker_ip, MQTT_BROKER_PORT_SECURE,
                               mqtt_connection_cb, NULL, &ci);
@@ -129,7 +138,11 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status
     if (status == MQTT_CONNECT_ACCEPTED) {
         mqtt_connected = true;
         printf("MQTT connected successfully\n");
+
         mqtt_set_inpub_callback(client, mqtt_incoming_publish_cb, mqtt_incoming_data_cb, arg);
+
+        printf("Subscribing to topic: %s\n", "sensors/config");
+
         err_t err = mqtt_subscribe(client, "sensors/config", 0, mqtt_pub_request_cb, arg);
         if (err != ERR_OK) {
             printf("mqtt_subscribe failed: %d\n", err);
@@ -137,13 +150,13 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status
     } else {
         printf("MQTT connection failed or disconnected, status: %d\n", status);
         mqtt_connected = false;
-        mqtt_disconnect(client);  // Explicitly disconnect
+        mqtt_disconnect(client);
         if (tls_config != NULL) {
             altcp_tls_free_config(tls_config);
             tls_config = NULL;
         }
         mqtt_client_free(client);
-        mqtt_client = NULL;  // Reset client for reinitialization
+        mqtt_client = NULL;
     }
 }
 
@@ -178,34 +191,42 @@ void mqtt_pub_request_cb(void *arg, err_t result) {
 }
 
 err_t client_mqtt_publish_sensor_data(void) {
-    if (!mqtt_connected || mqtt_client == NULL) {
-        printf("Cannot publish: MQTT not connected\n");
-        return ERR_CONN;
-    }
+	if (!mqtt_connected || mqtt_client == NULL) {
+		printf("Cannot publish: MQTT not connected\n");
+		return ERR_CONN;
+	}
 
-    char payload[256];
-    float temperature = TMP102_ReadTemperature();
-    int16_t accel_x = 0, accel_y = 0, accel_z = 0;
-    HAL_StatusTypeDef ret = ADXL345_ReadAccel(&hi2c2, &accel_x, &accel_y, &accel_z);
-    if (ret != HAL_OK) {
-        printf("ADXL345 Read Error!\n");
-        accel_x = accel_y = accel_z = 0;
-    }
-    uint16_t adcValue = adcBuffer[0];
-    float voltage = (adcValue * 3.3f) / 4095.0f;
-    float current = (voltage - 1.65f) / 0.185f;
+	char payload[256];
+	float temperature = TMP102_ReadTemperature();
+	int16_t accel_x = 0, accel_y = 0, accel_z = 0;
+	HAL_StatusTypeDef ret = ADXL345_ReadAccel(&hi2c2, &accel_x, &accel_y,
+			&accel_z);
+	if (ret != HAL_OK) {
+		printf("ADXL345 Read Error!\n");
+		accel_x = accel_y = accel_z = 0;
+	}
+	uint16_t adcValue = adcBuffer[0];
+	float voltage = (adcValue * 3.3f) / 4095.0f;
+	float current = (voltage - 1.65f) / 0.185f;
 
-    snprintf(payload, sizeof(payload),
-             "{\"temperature\":%.2f,\"accel_x\":%d,\"accel_y\":%d,\"accel_z\":%d,"
-             "\"voltage\":%.2f,\"current\":%.2f}",
-             temperature, accel_x, accel_y, accel_z, voltage, current);
+	snprintf(payload, sizeof(payload),
+			"{\"temperature\":%.2f,\"accel_x\":%d,\"accel_y\":%d,\"accel_z\":%d,"
+					"\"voltage\":%.2f,\"current\":%.2f}", temperature, accel_x,
+			accel_y, accel_z, voltage, current);
 
-    err_t err = mqtt_publish(mqtt_client, "sensors/data", payload, strlen(payload), 0, 0, mqtt_pub_request_cb, NULL);
-    if (err != ERR_OK) {
-        printf("mqtt_publish failed: %d\n", err);
-        return err;
-    }
-    return ERR_OK;
+	printf("Publishing to topic: %s, Payload: %s\n", "sensors/data", payload);
+	//osDelay(pdMS_TO_TICKS(100));
+
+	err_t err = mqtt_publish(mqtt_client, "sensors/data", payload,
+			strlen(payload), 0, 0, mqtt_pub_request_cb, NULL);
+//	if (err == ERR_OK) {
+//		osDelay(pdMS_TO_TICKS(100));
+//	}
+	if (err != ERR_OK) {
+		printf("mqtt_publish failed: %d\n", err);
+		return err;
+	}
+	return ERR_OK;
 }
 
 void client_mqtt_run(void) {

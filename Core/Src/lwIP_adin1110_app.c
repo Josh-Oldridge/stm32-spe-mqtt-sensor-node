@@ -62,7 +62,7 @@ uint32_t pDataAvailable(pQueue_t *pQ);
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
 
 adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
-		sizeof(devMem), .fcsCheckEn = false, };
+		sizeof(devMem), .fcsCheckEn = true, };
 
 adi_eth_LinkStatus_e linkStatus;
 
@@ -80,13 +80,12 @@ static inline uint32_t swap32(uint32_t val) {
 #endif /* TCP/IP_DEBUG */
 
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
-
     adi_eth_BufDesc_t *desc = (adi_eth_BufDesc_t*) pArg;
 
     for (int i = 0; i < NUM_TX_DESC; i++) {
         if (&txBufDesc[i] == desc) {
             txBufAvailable[i] = true;
-            DEBUG_MESSAGE("txCallback: Freed Tx descriptor %d at time %lu\n", i, HAL_GetTick());
+            //DEBUG_MESSAGE("txCallback: Freed Tx descriptor %d at time %lu\n", i, HAL_GetTick());
             return;
         }
     }
@@ -313,9 +312,6 @@ void print_lwip_arp_table(void) {
 #endif /* TCP/IP_DEBUG */
 
 err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
-	if (pDataAvailable(&pQ[0]) == 0) {
-		return ERR_OK;
-	}
 
 	struct pbuf *p = (struct pbuf*) readPQ(&pQ[0]);
 	if (p == NULL) {
@@ -402,17 +398,13 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	    frameLen = pp->len;
 
 	    // Debug print the pbuf pointer, payload, and frame length
-	    DEBUG_MESSAGE("Processing pbuf: pp=%p, payload=%p, len=%d\n", pp, pp->payload, frameLen);
+//	    DEBUG_MESSAGE("Processing pbuf: pp=%p, payload=%p, len=%d\n", pp, pp->payload, frameLen);
 
 	    // If the payload is NULL or unaligned, print an error
 	    if (pp->payload == NULL) {
 	        DEBUG_MESSAGE("ERROR: pbuf payload is NULL! Skipping segment.\n");
 	        continue;
 	    }
-
-//	    if (((uintptr_t)pp->payload) % 4 != 0) {
-//	        DEBUG_MESSAGE("WARNING: pbuf payload is not 4-byte aligned! %p\n", pp->payload);
-//	    }
 
 	    if (frameLen < 2) {
 	        DEBUG_MESSAGE("WARNING: Skipping small frame of length %d\n", frameLen);
@@ -441,15 +433,15 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	DEBUG_MESSAGE("\n==============================================\n");
 #endif /* TCP/IP_DEBUG */
 
-	LINK_STATS_INC(link.xmit); MIB2_STATS_NETIF_ADD(netif, ifoutoctets, total_len);
+	LINK_STATS_INC(link.xmit);MIB2_STATS_NETIF_ADD(netif, ifoutoctets, total_len);
 
 	if (total_len < MIN_FRAME_SIZE) {
 		total_len = MIN_FRAME_SIZE;
 	}
 
-	DEBUG_MESSAGE(
-			"Computed frame length = %d bytes, MIN_FRAME_SIZE = %d bytes\n",
-			total_len, MIN_FRAME_SIZE);
+//	DEBUG_MESSAGE(
+//			"Computed frame length = %d bytes, MIN_FRAME_SIZE = %d bytes\n",
+//			total_len, MIN_FRAME_SIZE);
 
 	txBufDesc[txBufIndex].pBuf = &txBuf[txBufIndex][0];
 	txBufDesc[txBufIndex].trxSize = total_len;
@@ -467,7 +459,8 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	while (res == ADI_ETH_QUEUE_FULL) {
 	    res = adin1110_SubmitTxBuffer(*hDevice, &txBufDesc[txBufIndex]);
 	    if (res == ADI_ETH_QUEUE_FULL) {
-	        osDelay(pdMS_TO_TICKS(1));
+	    	printf("Tx queue full, retrying...\n");
+	    	osDelay(pdMS_TO_TICKS(1));
 	        attempts++;
 	        if (attempts > 1000) {
 	            DEBUG_MESSAGE("Tx queue stuck. Dropping frame.\n");
@@ -553,10 +546,42 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 	}
 	result = adin1110_AddAddressFilter(*hDevice, eth->macAddress, NULL, 0);
 	if (result != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE(
-				"Error: Adding device MAC address filter failed.\r\n");
+		DEBUG_MESSAGE("Error: Adding device MAC address filter failed.\r\n");
 		return result;
 	}
+
+	// Enable cut-through mode for transmit and receive
+	result = adin1110_SetCutThroughMode(*hDevice, true, true); // TXCTE = true, RXCTE = true
+	if (result != ADI_ETH_SUCCESS) {
+		DEBUG_MESSAGE("Error: Failed to set cut-through mode. Code: 0x%08X\r\n",
+				result);
+		return result;
+	}
+	bool txcteEnabled, rxcteEnabled;
+	result = adin1110_GetCutThroughMode(*hDevice, &txcteEnabled, &rxcteEnabled);
+	if (result == ADI_ETH_SUCCESS) {
+		DEBUG_MESSAGE("Cut-through mode - TXCTE: %d, RXCTE: %d\r\n",
+				txcteEnabled, rxcteEnabled);
+	} else {
+		DEBUG_MESSAGE("Error: Failed to get cut-through mode. Code: 0x%08X\r\n",
+				result);
+	}
+
+	result = adin1110_WriteRegister(*hDevice, ADDR_MAC_TX_THRESH, 0x1);
+	if (result != ADI_ETH_SUCCESS) {
+	    printf("Failed to set TX_THRESH: 0x%08X\n", result);
+	}
+
+	result = adin1110_SetChunkSize(*hDevice, ADI_MAC_OA_CPS_64BYTE);
+	if (result != ADI_ETH_SUCCESS) {
+	    printf("Failed to set chunk size: 0x%08X\n", result);
+	}
+
+	uint32_t config0, txThresh;
+	adin1110_ReadRegister(*hDevice, ADDR_MAC_CONFIG0, &config0);
+	adin1110_ReadRegister(*hDevice, ADDR_MAC_TX_THRESH, &txThresh);
+	printf("CONFIG0: 0x%08lX, TX_THRESH: 0x%08lX\n", (unsigned long)config0, (unsigned long)txThresh);
+
 	result = adin1110_SyncConfig(*hDevice);
 	if (result != ADI_ETH_SUCCESS) {
 		DEBUG_MESSAGE("Error: Synchronizing configuration failed.\r\n");
@@ -568,9 +593,8 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 		DEBUG_MESSAGE("Error: Registering link change callback failed.\r\n");
 		return result;
 	}
-	for (uint32_t i = 0; i < NUM_RX_DESC; i++)
-	    {
-	        rxBufDesc[i].pBuf    = &rxBuf[i][0];
+	for (uint32_t i = 0; i < NUM_RX_DESC; i++) {
+		rxBufDesc[i].pBuf    = &rxBuf[i][0];
 	        rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
 	        rxBufDesc[i].cbFunc  = rxCallback;
 

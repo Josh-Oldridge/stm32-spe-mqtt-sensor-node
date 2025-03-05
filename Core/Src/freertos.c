@@ -26,6 +26,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "lwIP_adin1110_app.h"
+#include "adin1110.h"
+#include "ADIN1110_mac_addr_rdef.h"
 #include "lwip/timeouts.h"
 #include "lwip/dhcp.h"
 #include "netif/etharp.h"
@@ -61,7 +63,6 @@ extern uint16_t adcBuffer[ADC_BUFFER_SIZE];
 extern ADC_HandleTypeDef hadc1;
 extern volatile bool mqtt_connected;
 extern volatile bool mqtt_connecting;
-static struct udp_pcb *dummy_pcb = NULL;
 volatile int dhcp_configured = 0;
 osSemaphoreId_t adcSemaphoreHandle;
 
@@ -69,36 +70,36 @@ osSemaphoreId_t adcSemaphoreHandle;
 osThreadId_t networkMaintenanceTaskHandle;
 const osThreadAttr_t networkMaintenanceTask_attributes = {
     .name = "netMaintTask",
-    .stack_size = 1024 * 32,
+    .stack_size = 1024 * 8,
     .priority = (osPriority_t) osPriorityRealtime,
 };
 
-osThreadId_t adcTaskHandle;
-const osThreadAttr_t adcTask_attributes = {
-    .name = "adcTask",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t) osPriorityLow,
-};
-
-osThreadId_t tempTaskHandle;
-const osThreadAttr_t tempTask_attributes = {
-    .name = "tempTask",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t) osPriorityLow,
-};
-
-osThreadId_t accelTaskHandle;
-const osThreadAttr_t accelTask_attributes = {
-    .name = "accelTask",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t) osPriorityLow,
-};
+//osThreadId_t adcTaskHandle;
+//const osThreadAttr_t adcTask_attributes = {
+//    .name = "adcTask",
+//    .stack_size = 512 * 4,
+//    .priority = (osPriority_t) osPriorityLow,
+//};
+//
+//osThreadId_t tempTaskHandle;
+//const osThreadAttr_t tempTask_attributes = {
+//    .name = "tempTask",
+//    .stack_size = 512 * 4,
+//    .priority = (osPriority_t) osPriorityLow,
+//};
+//
+//osThreadId_t accelTaskHandle;
+//const osThreadAttr_t accelTask_attributes = {
+//    .name = "accelTask",
+//    .stack_size = 512 * 4,
+//    .priority = (osPriority_t) osPriorityLow,
+//};
 
 osThreadId_t sensorDataMQTTTaskHandle;
 const osThreadAttr_t sensorDataMQTTTask_attributes = {
     .name = "sensorDataMQTTTask",
-    .stack_size = 1024 * 32,
-    .priority = osPriorityHigh,
+    .stack_size = 1024 * 8,
+    .priority = osPriorityRealtime,
 };
 
 /* USER CODE END Variables */
@@ -113,9 +114,9 @@ const osThreadAttr_t defaultTask_attributes = {
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void NetworkMaintenanceTask(void *argument);
-void ADCTask(void *argument);
-void TempTask(void *argument);
-void AccelTask(void *argument);
+//void ADCTask(void *argument);
+//void TempTask(void *argument);
+//void AccelTask(void *argument);
 void SensorDataMQTTTask(void *argument);
 
 /* Heartbeat Packet Method to keep TCP Connection Open */
@@ -217,9 +218,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
   networkMaintenanceTaskHandle = osThreadNew(NetworkMaintenanceTask, NULL, &networkMaintenanceTask_attributes);
-  adcTaskHandle = osThreadNew(ADCTask, NULL, &adcTask_attributes);
-  tempTaskHandle = osThreadNew(TempTask, NULL, &tempTask_attributes);
-  accelTaskHandle = osThreadNew(AccelTask, NULL, &accelTask_attributes);
+//  adcTaskHandle = osThreadNew(ADCTask, NULL, &adcTask_attributes);
+//  tempTaskHandle = osThreadNew(TempTask, NULL, &tempTask_attributes);
+//  accelTaskHandle = osThreadNew(AccelTask, NULL, &accelTask_attributes);
   sensorDataMQTTTaskHandle = osThreadNew(SensorDataMQTTTask, NULL, &sensorDataMQTTTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
@@ -251,125 +252,113 @@ void StartDefaultTask(void *argument)
 void NetworkMaintenanceTask(void *argument) {
     const uint32_t heartbeatIntervalMs = 1;
     TickType_t lastWakeTime = xTaskGetTickCount();
-
-    // Initialize the UDP PCB once
-    if (dummy_pcb == NULL) {
-        dummy_pcb = udp_new();
-        if (dummy_pcb == NULL) {
-            printf("Failed to create dummy UDP PCB\n");
-        }
-    }
-
-    for (;;) {
-        BSP_HeartBeat();
-        while (pDataAvailable(&pQ[0])) {        // Process all packets in queue
-            LwIP_ADIN1110LinkInput(&myConn.netif);
-        }
-
-        // Send dummy packet to switch at 192.168.1.1 every 1 second
-        if (osKernelGetTickCount() % 1000 == 0) {
-            struct pbuf *dummy = pbuf_alloc(PBUF_TRANSPORT, 0, PBUF_RAM);
-            if (dummy != NULL && dummy_pcb != NULL) {
-                ip_addr_t dst_ip;
-                ipaddr_aton("192.168.1.1", &dst_ip);
-                err_t err = udp_sendto(dummy_pcb, dummy, &dst_ip, 12345);
-                if (err != ERR_OK) {
-                    printf("Failed to send dummy UDP packet: %d\n", err);
-                }
-                pbuf_free(dummy);
-            }
-        }
-        sys_check_timeouts();
-        osThreadYield();
-        vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(heartbeatIntervalMs));
-    }
-}
-
-void ADCTask(void *argument) {
-
-    if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, ADC_BUFFER_SIZE) != HAL_OK) {
-        printf("ADC DMA Start Failed!\n");
-    }
-    for (;;) {
-        osDelay(pdMS_TO_TICKS(10000));
-        uint16_t adcValue = adcBuffer[0];
-        float voltage = (adcValue * 3.3f) / 4095.0f;
-        float current = (voltage - 1.65f) / 0.185f;
-        printf("ADC Value: %d, Voltage: %.2f V, Current: %.2f A\n",
-               adcValue, voltage, current);
-    }
-}
-
-void TempTask(void *argument) {
-    for (;;) {
-        float temp = TMP102_ReadTemperature();
-        if (temp > -1000) {
-        } else {
-            printf("TMP102 Read Error\n");
-        }
-        osDelay(pdMS_TO_TICKS(8000));
-    }
-}
-
-void AccelTask(void *argument) {
-    int16_t ax, ay, az;
-    HAL_StatusTypeDef ret;
-
-    ret = ADXL345_Init(&hi2c2);
-    if (ret != HAL_OK) {
-        printf("ADXL345 Initialization Failed!\n");
-	} else {
-		printf("ADXL345 Initialized Successfully!\n");
-	}
-
 	for (;;) {
-		ret = ADXL345_ReadAccel(&hi2c2, &ax, &ay, &az);
-		if (ret == HAL_OK) {
-		} else {
-			printf("ADXL345 Read Error!\n");
+		BSP_HeartBeat();
+		while (pDataAvailable(&pQ[0])) {
+			LwIP_ADIN1110LinkInput(&myConn.netif);
 		}
-		osDelay(pdMS_TO_TICKS(10000));
+		sys_check_timeouts();
+		vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(heartbeatIntervalMs));
 	}
 }
+
+//void ADCTask(void *argument) {
+//
+//    if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, ADC_BUFFER_SIZE) != HAL_OK) {
+//        printf("ADC DMA Start Failed!\n");
+//    }
+//    for (;;) {
+//        osDelay(pdMS_TO_TICKS(10000));
+//        uint16_t adcValue = adcBuffer[0];
+//        float voltage = (adcValue * 3.3f) / 4095.0f;
+//        float current = (voltage - 1.65f) / 0.185f;
+//        printf("ADC Value: %d, Voltage: %.2f V, Current: %.2f A\n",
+//               adcValue, voltage, current);
+//    }
+//}
+//
+//void TempTask(void *argument) {
+//    for (;;) {
+//        float temp = TMP102_ReadTemperature();
+//        if (temp > -1000) {
+//        } else {
+//            printf("TMP102 Read Error\n");
+//        }
+//        osDelay(pdMS_TO_TICKS(8000));
+//    }
+//}
+//
+//void AccelTask(void *argument) {
+//    int16_t ax, ay, az;
+//    HAL_StatusTypeDef ret;
+//
+//    ret = ADXL345_Init(&hi2c2);
+//    if (ret != HAL_OK) {
+//        printf("ADXL345 Initialization Failed!\n");
+//	} else {
+//		printf("ADXL345 Initialized Successfully!\n");
+//	}
+//
+//	for (;;) {
+//		ret = ADXL345_ReadAccel(&hi2c2, &ax, &ay, &az);
+//		if (ret == HAL_OK) {
+//		} else {
+//			printf("ADXL345 Read Error!\n");
+//		}
+//		osDelay(pdMS_TO_TICKS(10000));
+//	}
+//}
 
 void SensorDataMQTTTask(void *argument) {
-    while (!dhcp_supplied_address(&myConn.netif)) {
-        printf("Sensor Data MQTT Task: Waiting for DHCP configuration...\n");
-        osDelay(pdMS_TO_TICKS(2000));
-    }
-    osDelay(pdMS_TO_TICKS(500));
+	static TickType_t lastPublishTime = 0;
+	TickType_t lastWakeTime = xTaskGetTickCount();
+	const TickType_t frequency = pdMS_TO_TICKS(10000);
 
-    for (;;) {
-        if (mqtt_connected) {
-            printf("Free heap size: %u bytes\n", xPortGetFreeHeapSize());
-            int ret = client_mqtt_publish_sensor_data();
-            if (ret != ERR_OK) {
-                printf("Publish failed: %d\n", ret);
-                if (ret == ERR_CONN || ret == ERR_MEM) {
-                    mqtt_connected = false;
-                    mqtt_connecting = false;
-                    printf("Connection lost, retrying in 5 seconds...\n");
-                    osDelay(pdMS_TO_TICKS(10000));
-                }
-            }
-        } else if (!mqtt_connecting) {
-            printf("MQTT not connected, attempting to connect...\n");
-            mqtt_connecting = true;
+	while (!dhcp_supplied_address(&myConn.netif)) {
+		printf("Sensor Data MQTT Task: Waiting for DHCP configuration...\n");
+		osDelay(pdMS_TO_TICKS(2000));
+	}
+	//osDelay(pdMS_TO_TICKS(500));
+
+	for (;;) {
+		if (mqtt_connected) {
+			TickType_t currentTime = xTaskGetTickCount();
+			if (lastPublishTime != 0) {
+				printf("Time since last publish: %u ms\n",
+						(currentTime - lastPublishTime) * portTICK_PERIOD_MS);
+			}
+			lastPublishTime = currentTime;
+
+			int ret = client_mqtt_publish_sensor_data();
+			if (ret != ERR_OK) {
+				printf("Publish failed: %d\n", ret);
+				if (ret == ERR_CONN || ret == ERR_MEM) {
+					mqtt_connected = false;
+					mqtt_connecting = false;
+					printf("Connection lost, retrying in 5 seconds...\n");
+					osDelay(pdMS_TO_TICKS(5000));
+				}
+			}
+			//osDelay(pdMS_TO_TICKS(1000));
+		} else if (!mqtt_connecting) {
+			printf("MQTT not connected, attempting to connect...\n");
+			mqtt_connecting = true;
             client_mqtt_init();
             TickType_t startTime = xTaskGetTickCount();
             while (mqtt_connecting && !mqtt_connected &&
-                   (xTaskGetTickCount() - startTime < pdMS_TO_TICKS(10000))) {  // Reduced timeout to 5 seconds
+                   (xTaskGetTickCount() - startTime < pdMS_TO_TICKS(10000))) {
                 osDelay(pdMS_TO_TICKS(100));
             }
             if (mqtt_connecting && !mqtt_connected) {
                 printf("Connection attempt timed out, retrying in 5 seconds...\n");
                 mqtt_connecting = false;
-                osDelay(pdMS_TO_TICKS(10000));
+                osDelay(pdMS_TO_TICKS(5000));
             }
         } else {
             printf("MQTT connection in progress, waiting...\n");
+            osDelay(pdMS_TO_TICKS(1000));
         }
-        osDelay(pdMS_TO_TICKS(20000));  // Main loop delay
+        vTaskDelayUntil(&lastWakeTime, frequency);
     }
 }
 /* USER CODE END Application */

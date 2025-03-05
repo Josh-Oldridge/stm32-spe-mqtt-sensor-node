@@ -127,6 +127,14 @@ void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 2 */
 
+ADI_CB getIntCallback(void) {
+    return gpfIntCallback;
+}
+
+void *getIntCBParam(void) {
+    return gpIntCBParam;
+}
+
 uint32_t HAL_INT_N_Register_Callback(ADI_CB const *pfCallback,
 		void *const pCBParam) {
 	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);

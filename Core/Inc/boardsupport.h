@@ -16,6 +16,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <inttypes.h>
+typedef void (* ADI_CB) (  /*!< Callback function pointer */
+    void      *pCBParam,         /*!< Client supplied callback param */
+    uint32_t   Event,            /*!< Event ID specific to the Driver/Service */
+    void      *pArg);            /*!< Pointer to the event specific argument */
 
 #include "stm32l4xx_hal.h"
 #include "stm32l4xx_it.h"
@@ -54,10 +58,6 @@ void common_Perf(char *InfoString);
     } \
   } while (0)
 
-typedef void (* ADI_CB) (  /*!< Callback function pointer */
-    void      *pCBParam,         /*!< Client supplied callback param */
-    uint32_t   Event,            /*!< Event ID specific to the Driver/Service */
-    void      *pArg);            /*!< Pointer to the event specific argument */
 
 typedef struct {
     ADI_CB   callback;   /* Callback function pointer */

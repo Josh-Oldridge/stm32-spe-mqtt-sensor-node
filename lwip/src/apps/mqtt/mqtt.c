@@ -1373,7 +1373,7 @@ mqtt_client_connect(mqtt_client_t *client, const ip_addr_t *ip_addr, u16_t port,
   if (client->conn == NULL) {
     return ERR_MEM;
   }
-
+  //altcp_nagle_disable(client->conn);
   /* Set arg pointer for callbacks */
   altcp_arg(client->conn, client);
   /* Any local address, pick random local port number */

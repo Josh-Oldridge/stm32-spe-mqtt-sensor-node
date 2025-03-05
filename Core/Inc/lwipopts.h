@@ -48,8 +48,6 @@
 #define PROCESSOR_LITTLE_ENDIAN
 #endif
 
-
-
 /**
  * NO_SYS==1: Provides VERY minimal functionality. Otherwise,
  * use lwIP facilities.
@@ -58,21 +56,66 @@
 #define NO_SYS                          1
 #endif
 
-#define LWIP_TIMERS 1
+#define LWIP_TIMERS                     1
 
 #ifndef LWIP_ICMP
-#define LWIP_ICMP 1
+#define LWIP_ICMP                       1
 #endif
 
-#define LWIP_RAW 0
+#define ICMP_TTL                        255
 
 #ifndef LWIP_IPV4
-#define LWIP_IPV4 1
+#define LWIP_IPV4                       1
 #endif
 
-#ifndef MEMP_NUM_RAW_PCB
-#define MEMP_NUM_RAW_PCB 0
+#define LWIP_ARP                        1
+
+#define ARP_TABLE_SIZE                  10
+
+#define ARP_QUEUEING                    0
+
+#define LWIP_DHCP                       1
+
+#define DHCP_DOES_ARP_CHECK             1
+
+#define LWIP_ALTCP                      1
+
+#define LWIP_ALTCP_TLS                  1
+
+#define LWIP_ALTCP_TLS_MBEDTLS          1
+
+#define LWIP_TCP                        1
+
+#define TCP_TTL                         255
+
+#define LWIP_UDP                        1
+
+#define UDP_TTL                         255
+
+#ifndef LWIP_NETIF_HOSTNAME
+#define LWIP_NETIF_HOSTNAME             1
 #endif
+
+#define CONFIG_LINKSPEED_AUTODETECT     1
+
+#define LWIP_CHKSUM_ALGORITHM           3
+
+#define CHECKSUM_GEN_TCP 	            1
+
+#define CHECKSUM_GEN_UDP 	            1
+
+#define CHECKSUM_GEN_IP  	            1
+
+#define CHECKSUM_CHECK_TCP              1
+
+#define CHECKSUM_CHECK_UDP              1
+
+#define CHECKSUM_CHECK_IP 	            1
+
+#define CHECKSUM_GEN_ICMP               1
+
+#define CHECKSUM_CHECK_ICMP             1
+
 /*
  ------------------------------------
  ---------- Memory options ----------
@@ -110,7 +153,7 @@
  * a lot of data that needs to be copied, this should be set high.
  */
 #ifndef MEM_SIZE
-#define MEM_SIZE                        (64 * 1024)
+#define MEM_SIZE                        (32 * 1024)
 #endif
 
 /**
@@ -203,7 +246,7 @@
  * NO_SYS_NO_TIMERS==1: Drop support for sys_timeout when NO_SYS==1
  * Mainly for compatibility to old versions.
  */
- /** LWIP_TCPIP_TIMEOUT==1: Enable tcpip_timeout/tcpip_untimeout tod create
+ /** LWIP_TCPIP_TIMEOUT==1: Enable tcpip_timeout/tcpip_untimeout to create
  * timers running in tcpip_thread from another thread.
  */
 #ifndef LWIP_TCPIP_TIMEOUT
@@ -227,7 +270,7 @@
  */
 #ifndef MEMP_NUM_PBUF
 #ifdef DEBUG
-#define MEMP_NUM_PBUF                   16
+#define MEMP_NUM_PBUF                   4
 #endif
 #endif
 
@@ -269,7 +312,7 @@
  * (requires the LWIP_TCP option)
  */
 #ifndef MEMP_NUM_TCP_SEG
-#define MEMP_NUM_TCP_SEG                16
+#define MEMP_NUM_TCP_SEG                8
 #endif
 
 /**
@@ -298,7 +341,7 @@
  * (requires the ARP_QUEUEING option)
  */
 #ifndef MEMP_NUM_ARP_QUEUE
-#define MEMP_NUM_ARP_QUEUE              10
+#define MEMP_NUM_ARP_QUEUE              2
 #endif
 
 /**
@@ -316,7 +359,7 @@
  * (requires NO_SYS==0)
  */
 #ifndef MEMP_NUM_SYS_TIMEOUT
-#define MEMP_NUM_SYS_TIMEOUT            6
+#define MEMP_NUM_SYS_TIMEOUT            10
 #endif
 
 /**
@@ -414,36 +457,27 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  32
+#define PBUF_POOL_SIZE                  8
 #endif
-#define PBUF_POOL_BUFSIZE 1536
-#define PBUF_LINK_HLEN 40
 
-#define LWIP_ARP 1
-#define LWIP_DHCP 1
-#define ARP_TABLE_SIZE 10
-#define ARP_QUEUEING 1
+#define PBUF_POOL_BUFSIZE               1536
 
+#define PBUF_LINK_HLEN                  40
 
-#define ICMP_TTL 255
+#define IP_OPTIONS                      0
 
-#define IP_OPTIONS 0
-#define IP_FORWARD 0
-#define IP_REASSEMBLY 1
-#define IP_FRAG 1
-#define IP_REASS_MAX_PBUFS 128
-#define IP_FRAG_MAX_MTU 1500
-#define IP_DEFAULT_TTL 255
-#define LWIP_CHKSUM_ALGORITHM 3
+#define IP_FORWARD                      0
 
-#define LWIP_ALTCP 1
-#define LWIP_ALTCP_TLS 1
-#define LWIP_ALTCP_TLS_MBEDTLS    1
+#define IP_REASSEMBLY                   0
 
-#define LWIP_UDP 1
-#define UDP_TTL 255
+#define IP_FRAG                         0
 
-#define LWIP_TCP 1
+#define IP_REASS_MAX_PBUFS              0
+
+#define IP_FRAG_MAX_MTU                 1500
+
+#define IP_DEFAULT_TTL                  255
+
 /**
  * TCP_MSS: TCP Maximum segment size. (default is 536, a conservative default,
  * you might want to increase this.)
@@ -452,37 +486,38 @@
  * an upper limit on the MSS advertised by the remote host.
  */
 #ifndef TCP_MSS
-#define TCP_MSS                        1460
+#define TCP_MSS                         1460
 #endif
 
 /**
  * TCP_SND_BUF: TCP sender buffer space (bytes).
  */
 #ifndef TCP_SND_BUF
-#define TCP_SND_BUF                     8192
+#define TCP_SND_BUF                     4096
 #endif
 
-#
 /**
  * TCP_WND: The size of a TCP window.  This must be at least
  * (2 * TCP_MSS) for things to work well
  */
 #ifndef TCP_WND
-#define TCP_WND                         8192
+#define TCP_WND                         4096
 #endif
-#define TCP_TTL 255
+
 /**
  * TCP_MAXRTX: Maximum number of retransmissions of data segments.
  */
 #ifndef TCP_MAXRTX
 #define TCP_MAXRTX                      12
 #endif
+
 /**
  * TCP_SYNMAXRTX: Maximum number of retransmissions of SYN segments.
  */
 #ifndef TCP_SYNMAXRTX
 #define TCP_SYNMAXRTX                   6
 #endif
+
 /**
  * TCP_QUEUE_OOSEQ==1: TCP will queue segments that arrive out of order.
  * Define to 0 if your device is low on memory.
@@ -490,22 +525,27 @@
 #ifndef TCP_QUEUE_OOSEQ
 #define TCP_QUEUE_OOSEQ                 (LWIP_TCP)
 #endif
+
 /**
  * TCP_SND_QUEUELEN: TCP sender buffer space (pbufs). This must be at least
  * as much as (2 * TCP_SND_BUF/TCP_MSS) for things to work.
  */
 #ifndef TCP_SND_QUEUELEN
-#define TCP_SND_QUEUELEN                32
+#define TCP_SND_QUEUELEN                8
 #endif
 
-#define TCP_KEEPIDLE 5000
-#define TCP_KEEPINTVL 2000
-#define TCP_KEEPCNT 3
-#define TCP_RTO 15000
-
-#ifndef LWIP_NETIF_HOSTNAME
-#define LWIP_NETIF_HOSTNAME 1
+#ifndef TCP_OVERSIZE
+#define TCP_OVERSIZE                    TCP_MSS
 #endif
+
+#define TCP_KEEPIDLE                    30000
+
+#define TCP_KEEPINTVL                   2000
+
+#define TCP_KEEPCNT                     6
+
+#define TCP_RTO                         3000
+
 /*
  ---------------------------------
  ---------- RAW options ----------
@@ -515,69 +555,70 @@
  * LWIP_RAW==1: Enable application layer to hook into the IP layer itself.
  */
 #ifndef LWIP_RAW
-#define LWIP_RAW                0
+#define LWIP_RAW                        0
 #endif
 
-#define CHECKSUM_GEN_TCP 	1
-#define CHECKSUM_GEN_UDP 	1
-#define CHECKSUM_GEN_IP  	1
-#define CHECKSUM_CHECK_TCP      1
-#define CHECKSUM_CHECK_UDP      1
-#define CHECKSUM_CHECK_IP 	1
-#define CHECKSUM_GEN_ICMP   1
-#define CHECKSUM_CHECK_ICMP 1
-
-/**
- * MEMP_NUM_FRAG_PBUF: the number of IP fragments simultaneously sent
- * (fragments, not whole packets!).
- * This is only used with IP_FRAG_USES_STATIC_BUF==0 and
- * LWIP_NETIF_TX_SINGLE_PBUF==0 and only has to be > 1 with DMA-enabled MACs
- * where the packet is not yet sent when netif->output returns.
+/*
+ ---------------------------------
+ ---------- DEBUG options ----------
+ ---------------------------------
  */
-#ifndef MEMP_NUM_FRAG_PBUF
-#define MEMP_NUM_FRAG_PBUF              0
-#endif
-#define IP_OPTIONS_ALLOWED 0
+#define LWIP_DBG_LEVEL_ALL              0x00
 
-#ifndef TCP_OVERSIZE
-#define TCP_OVERSIZE                    TCP_MSS
-#endif
+#define LWIP_DEBUG                      LWIP_DBG_OFF
 
-#define DHCP_DOES_ARP_CHECK             1
-#ifdef TCP_IP_DEBUG
-#define LWIP_DEBUG LWIP_DBG_ON
-#define ICMP_DEBUG LWIP_DBG_ON
-#define NETIF_DEBUG LWIP_DBG_ON
-#define IP_DEBUG LWIP_DBG_ON
-#define ETHARP_DEBUG LWIP_DBG_ON
-#endif /* TCP/IP_DEBUG */
-#define LWIP_DEBUG LWIP_DBG_ON
-#define TIMERS_DEBUG LWIP_DBG_OFF
-#define ICMP_DEBUG LWIP_DBG_OFF
-#define NETIF_DEBUG LWIP_DBG_OFF
-#define IP_DEBUG LWIP_DBG_OFF
-#define ETHARP_DEBUG LWIP_DBG_OFF
-#define MQTT_DEBUG LWIP_DBG_OFF
-#define TCP_DEBUG LWIP_DBG_OFF
-#define ALTCP_MBEDTLS_DEBUG LWIP_DBG_OFF
-#define CONFIG_LINKSPEED_AUTODETECT     1
+#define TIMERS_DEBUG                    LWIP_DBG_OFF
+
+#define ICMP_DEBUG                      LWIP_DBG_OFF
+
+#define NETIF_DEBUG                     LWIP_DBG_OFF
+
+#define IP_DEBUG                        LWIP_DBG_OFF
+
+#define ETHARP_DEBUG                    LWIP_DBG_OFF
+
+#define MQTT_DEBUG                      LWIP_DBG_OFF
+
+#define TCP_DEBUG                       LWIP_DBG_OFF
+
+#define UDP_DEBUG                       LWIP_DBG_OFF
+
+#define MEM_DEBUG                       LWIP_DBG_OFF
+
+#define PBUF_DEBUG                      LWIP_DBG_OFF
 
 
-#define LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS 4
-#define HTTPD_USE_CUSTOM_FSDATA                       1
+
+
+#define LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS 2
+
+#define HTTPD_USE_CUSTOM_FSDATA                       0
+
 #define LWIP_HTTPD_SUPPORT_11_KEEPALIVE               1
+
 #define HTTPD_FSDATA_FILE                             "fsdata.c"
+
 #define LWIP_HTTPD_DYNAMIC_HEADER                     1
+
 #define LWIP_HTTPD_SSI                                1
+
 #define LWIP_HTTPD_SSI_INCLUDE_TAG                    1
+
 #define LWIP_HTTPD_MAX_TAG_NAME_LEN                   8
-#define LWIP_HTTPD_MAX_TAG_INSERT_LEN                 4096
+
+#define LWIP_HTTPD_MAX_TAG_INSERT_LEN                 1024
+
 #define LWIP_HTTPD_SSI_RAW                            1
 
 #define HTTPD_USE_MEM_POOL                            1
+
 #define LWIP_HTTPD_ABORT_ON_CLOSE_MEM_ERROR           1
+
 #define LWIP_HTTPD_KILL_OLD_ON_CONNECTIONS_EXCEEDED   1
+
 #define HTTPD_MAX_WRITE_LEN(pcb)                      (TCP_MSS*4)
+
 #define MEMP_NUM_PARALLEL_HTTPD_CONNS                 LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS
+
 #define MEMP_NUM_PARALLEL_HTTPD_SSI_CONNS             LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS
 #endif

@@ -64,6 +64,9 @@ void MX_Led_Toggle(void);
 
 /* USER CODE END Prototypes */
 
+ADI_CB getIntCallback(void);
+void *getIntCBParam(void);
+
 #ifdef __cplusplus
 }
 #endif
