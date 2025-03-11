@@ -41,12 +41,10 @@
 #include <stdlib.h>
 
 #include "lwipopts.h"
-//#include "common.h"
 #include "boardsupport.h"
 /** if you want to use the struct timeval provided
  * by your system, set this to 0 and include <sys/time.h> in cc.h */
 #define LWIP_TIMEVAL_PRIVATE 0
-//#include <sys/time.h>
 #include <time.h>
 
 #ifdef PROCESSOR_LITTLE_ENDIAN
@@ -79,8 +77,6 @@ typedef signed     long long    s64_t;
 #define X32_F "x"
 
 #define LWIP_RAND rand
-
-//typedef unsigned long mem_ptr_t;
 
 #define PACK_STRUCT_FIELD(x) x
 #define PACK_STRUCT_STRUCT __attribute__((packed))

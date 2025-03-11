@@ -16,10 +16,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <inttypes.h>
-typedef void (* ADI_CB) (  /*!< Callback function pointer */
-    void      *pCBParam,         /*!< Client supplied callback param */
-    uint32_t   Event,            /*!< Event ID specific to the Driver/Service */
-    void      *pArg);            /*!< Pointer to the event specific argument */
+
+typedef void (* ADI_CB) (
+    void      *pCBParam,
+    uint32_t   Event,
+    void      *pArg);
 
 #include "stm32l4xx_hal.h"
 #include "stm32l4xx_it.h"
@@ -60,8 +61,8 @@ void common_Perf(char *InfoString);
 
 
 typedef struct {
-    ADI_CB   callback;   /* Callback function pointer */
-    void    *userData;   /* Custom user data */
+    ADI_CB   callback;
+    void    *userData;
 } SPI_CallbackData;
 
 extern SPI_CallbackData spiCallbackData;
