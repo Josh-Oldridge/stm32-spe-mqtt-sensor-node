@@ -1034,6 +1034,9 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
 {
   int ret;
   altcp_mbedtls_state_t *state;
+  static u8_t write_buffer[1024];
+  static size_t write_buffer_len = 0;
+  static int in_write = 0;  // Re-entry detection
 
   LWIP_UNUSED_ARG(apiflags);
 
@@ -1043,43 +1046,91 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
 
   state = (altcp_mbedtls_state_t *)conn->state;
   if (state == NULL) {
-    /* @todo: which error? */
     return ERR_CLSD;
   }
   if (!(state->flags & ALTCP_MBEDTLS_FLAGS_HANDSHAKE_DONE)) {
-    /* @todo: which error? */
     return ERR_VAL;
   }
 
-  /* HACK: if thre is something left to send, try to flush it and only
-     allow sending more if this succeeded (this is a hack because neither
-     returning 0 nor MBEDTLS_ERR_SSL_WANT_WRITE worked for me) */
-  if (state->ssl_context.out_left) {
-    mbedtls_ssl_flush_output(&state->ssl_context);
-    if (state->ssl_context.out_left) {
-      return ERR_MEM;
-    }
+  // Check for re-entry
+  if (in_write) {
+    printf("Re-entry detected in altcp_mbedtls_write from task: %s\n", pcTaskGetName(NULL));
+    return ERR_ABRT;
   }
-  ret = mbedtls_ssl_write(&state->ssl_context, (const unsigned char *)dataptr, len);
-  /* try to send data... */
-  altcp_output(conn->inner_conn);
-  if (ret >= 0) {
-    if (ret == len) {
-      state->flags |= ALTCP_MBEDTLS_FLAGS_APPLDATA_SENT;
+  in_write = 1;
+
+  // Log calling task for debugging
+  printf("altcp_mbedtls_write called from task: %s\n", pcTaskGetName(NULL));
+
+  // Append data
+  if (write_buffer_len + len > sizeof(write_buffer)) {
+    printf("Buffer overflow in altcp_mbedtls_write\n");
+    in_write = 0;
+    return ERR_MEM;
+  }
+  memcpy(write_buffer + write_buffer_len, dataptr, len);
+  write_buffer_len += len;
+
+  // Process complete packets
+  while (write_buffer_len >= 2) {
+    size_t rem_len = 0;
+    size_t multiplier = 1;
+    size_t i = 1;
+
+    do {
+      if (i >= write_buffer_len) {
+        in_write = 0;
+        return ERR_OK;
+      }
+      rem_len += (write_buffer[i] & 0x7F) * multiplier;
+      multiplier *= 128;
+      i++;
+    } while ((write_buffer[i - 1] & 0x80) != 0 && i <= 4);
+
+    size_t packet_len = i + rem_len;
+    if (write_buffer_len < packet_len) {
+      in_write = 0;
       return ERR_OK;
+    }
+
+    // Validate packet length
+    if (packet_len > sizeof(write_buffer) || packet_len < 2) {
+      printf("Invalid packet length: %lu\n", (unsigned long)packet_len);
+      write_buffer_len = 0;
+      in_write = 0;
+      return ERR_VAL;
+    }
+
+    // Use safe logging with %lu for compatibility
+    printf("Sending MQTT packet of length %lu: ", (unsigned long)packet_len);
+    for (size_t j = 0; j < packet_len; j++) {
+      printf("%02X ", write_buffer[j]);
+    }
+    printf("\n");
+
+    ret = mbedtls_ssl_write(&state->ssl_context, write_buffer, packet_len);
+    if (ret == packet_len) {
+      altcp_output(conn->inner_conn);
+      memmove(write_buffer, write_buffer + packet_len, write_buffer_len - packet_len);
+      write_buffer_len -= packet_len;
+      state->flags |= ALTCP_MBEDTLS_FLAGS_APPLDATA_SENT;
+    } else if (ret > 0) {
+      printf("Partial write: %d < %lu\n", ret, (unsigned long)packet_len);
+      in_write = 0;
+      return ERR_MEM;
+    } else if (ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+      in_write = 0;
+      return ERR_MEM;
     } else {
-      /* @todo/@fixme: assumption: either everything sent or error */
-      LWIP_ASSERT("ret <= 0", 0);
-      return ERR_MEM;
+      printf("mbedtls_ssl_write error: %d\n", ret);
+      write_buffer_len = 0;
+      in_write = 0;
+      return ERR_VAL;
     }
-  } else {
-    if (ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
-      /* @todo: convert error to err_t */
-      return ERR_MEM;
-    }
-    LWIP_ASSERT("unhandled error", 0);
-    return ERR_VAL;
   }
+
+  in_write = 0;
+  return ERR_OK;
 }
 
 /** Send callback function called from mbedtls (set via mbedtls_ssl_set_bio)

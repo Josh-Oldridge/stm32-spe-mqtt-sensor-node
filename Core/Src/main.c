@@ -361,6 +361,12 @@ int main(void)
 	netif_set_link_up(&myConn.netif);
 	I2C2_InitSemaphore();
 
+	if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adcBuffer, ADC_BUFFER_SIZE)
+			!= HAL_OK) {
+		printf("ADC DMA start failed!\n");
+		Error_Handler();
+	}
+
 #endif  /* USE_LWIP */
 
   /* USER CODE END 2 */

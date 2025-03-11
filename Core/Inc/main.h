@@ -72,8 +72,6 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 #define ADC_BUFFER_SIZE 10
-#define DHCP_CHECK_INTERVAL_MS 500
-#define DHCP_WAIT_TIMEOUT_MS 30000
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

@@ -33,30 +33,26 @@
 
 #define ETHERNET_MTU        (1500)
 
-HAL_ALIGNED_PRAGMA(4)
-static uint8_t rxBuf[NUM_RX_DESC][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
+HAL_ALIGNED_PRAGMA(4)static uint8_t rxBuf[NUM_RX_DESC][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
 static adi_eth_BufDesc_t rxBufDesc[NUM_RX_DESC];
 
-HAL_ALIGNED_PRAGMA(4)
-static uint8_t txBuf[NUM_TX_DESC][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
+HAL_ALIGNED_PRAGMA(4)static uint8_t txBuf[NUM_TX_DESC][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
 static adi_eth_BufDesc_t txBufDesc[NUM_TX_DESC];
 static bool txBufAvailable[NUM_TX_DESC];
 
 static int txBufIndex = 0;
 
-
-HAL_ALIGNED_PRAGMA(4)
-pQueue_t pQ[MAX_PQ] HAL_ALIGNED_ATTRIBUTE(4);
+HAL_ALIGNED_PRAGMA(4)pQueue_t pQ[MAX_PQ] HAL_ALIGNED_ATTRIBUTE(4);
 
 #define IFNAME0         'e'
 #define IFNAME1         '0'
 #define HOSTNAME         "ADI_10BASE-T1L_Demo"
 #define NETIF_LINK_SPEED_IN_BPS 10000000
 
-static void initPQueue(pQueue_t* pQ);
+static void initPQueue(pQueue_t *pQ);
 
-static void*           readPQ(pQueue_t* pQ);
-static void writePQ(pQueue_t* pQ, uint8_t *ethFrame, int lenEthFrame);
+static void* readPQ(pQueue_t *pQ);
+static void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame);
 uint32_t pDataAvailable(pQueue_t *pQ);
 
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
@@ -69,177 +65,22 @@ adi_eth_LinkStatus_e linkStatus;
 bool linkStatusChanged;
 adi_eth_LinkStatus_e linkState;
 
-#ifdef TCP_IP_DEBUG
-static inline uint16_t swap16(uint16_t val) {
-	return __builtin_bswap16(val);
-}
-
-static inline uint32_t swap32(uint32_t val) {
-	return __builtin_bswap32(val);
-}
-#endif /* TCP/IP_DEBUG */
-
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
-    adi_eth_BufDesc_t *desc = (adi_eth_BufDesc_t*) pArg;
+	adi_eth_BufDesc_t *desc = (adi_eth_BufDesc_t*) pArg;
 
-    for (int i = 0; i < NUM_TX_DESC; i++) {
-        if (&txBufDesc[i] == desc) {
-            txBufAvailable[i] = true;
-            //DEBUG_MESSAGE("txCallback: Freed Tx descriptor %d at time %lu\n", i, HAL_GetTick());
-            return;
-        }
-    }
-    DEBUG_MESSAGE("txCallback: WARNING! Descriptor not found!\n");
+	for (int i = 0; i < NUM_TX_DESC; i++) {
+		if (&txBufDesc[i] == desc) {
+			txBufAvailable[i] = true;
+			return;
+		}
+	}
+	DEBUG_MESSAGE("txCallback: WARNING! Descriptor not found!\n");
 }
 static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t) pCBParam;
 	adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t*) pArg;
 	uint16_t frmLen = pRxBufDesc->trxSize;
 	uint8_t *payload = pRxBufDesc->pBuf;
-
-#ifdef TCP_IP_DEBUG
-		DEBUG_MESSAGE("[DEBUG] RX Buffer Descriptor Address: %p\n", pRxBufDesc);
-		DEBUG_MESSAGE("[DEBUG] RX Buffer Address: %p\n", payload);
-		DEBUG_MESSAGE("[DEBUG] Dumping First 64 Bytes of RX Buffer:\n");
-		for (int i = 0; i < 64 && i < frmLen; i++) {
-			DEBUG_MESSAGE("0x%02X ", payload[i]);
-			if ((i + 1) % 16 == 0)
-				DEBUG_MESSAGE("\n");
-		}
-		DEBUG_MESSAGE("\n");
-		DEBUG_MESSAGE("[DEBUG] Corrected Frame Dump (%d bytes):\n", frmLen);
-		for (int i = 0; i < frmLen; i++) {
-			DEBUG_MESSAGE("0x%02X ", payload[i]);
-			if ((i + 1) % 16 == 0)
-				DEBUG_MESSAGE("\n");
-		}
-		DEBUG_MESSAGE("\n");
-		uint16_t ethType = swap16(*(uint16_t*) &payload[12]);
-
-		DEBUG_MESSAGE("    Dest MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", payload[0],
-				payload[1], payload[2], payload[3], payload[4], payload[5]);
-		DEBUG_MESSAGE("    Src MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", payload[6],
-				payload[7], payload[8], payload[9], payload[10], payload[11]);
-
-		if (ethType == 0x0806) {
-			uint16_t arp_hwtype = swap16(*(uint16_t*) &payload[14]);
-			uint16_t arp_proto = swap16(*(uint16_t*) &payload[16]);
-			uint8_t arp_hwlen = payload[18];
-			uint8_t arp_protolen = payload[19];
-			uint16_t arp_opcode = swap16(*(uint16_t*) &payload[20]);
-
-			uint8_t sender_mac[6];
-			memcpy(sender_mac, &payload[22], 6);
-
-			uint32_t sender_ip = swap16(*(uint32_t*) &payload[28]);
-
-			uint8_t target_mac[6];
-			memcpy(target_mac, &payload[32], 6);
-
-			uint32_t target_ip = swap16(*(uint32_t*) &payload[38]);
-
-			DEBUG_MESSAGE(
-					"[ARP] Parsed Values - HW Type: 0x%04X, Proto: 0x%04X, HW Len: %u, Protolen: %u, Opcode: 0x%04X\n",
-					arp_hwtype, arp_proto, arp_hwlen, arp_protolen, arp_opcode);
-			DEBUG_MESSAGE(
-					"[ARP] Sender MAC: %02X:%02X:%02X:%02X:%02X:%02X, Sender IP: %d.%d.%d.%d\n",
-					sender_mac[0], sender_mac[1], sender_mac[2], sender_mac[3],
-					sender_mac[4], sender_mac[5], (sender_ip >> 24) & 0xFF,
-					(sender_ip >> 16) & 0xFF, (sender_ip >> 8) & 0xFF,
-					sender_ip & 0xFF);
-			DEBUG_MESSAGE(
-					"[ARP] Target MAC: %02X:%02X:%02X:%02X:%02X:%02X, Target IP: %d.%d.%d.%d\n",
-					target_mac[0], target_mac[1], target_mac[2], target_mac[3],
-					target_mac[4], target_mac[5], (target_ip >> 24) & 0xFF,
-					(target_ip >> 16) & 0xFF, (target_ip >> 8) & 0xFF,
-					target_ip & 0xFF);
-
-			if (arp_hwtype != 0x0001 || arp_proto != 0x0800 || arp_hwlen != 6
-					|| arp_protolen != 4) {
-				DEBUG_MESSAGE(
-						"[ERROR] Invalid ARP packet format! Dropping packet.\n");
-				adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-				return;
-			}
-	DEBUG_MESSAGE("[DEBUG] RX Buffer Descriptor Address: %p\n", pRxBufDesc);
-	DEBUG_MESSAGE("[DEBUG] RX Buffer Address: %p\n", payload);
-	DEBUG_MESSAGE("[DEBUG] Dumping First 64 Bytes of RX Buffer:\n");
-	for (int i = 0; i < 64 && i < frmLen; i++) {
-		DEBUG_MESSAGE("0x%02X ", payload[i]);
-		if ((i + 1) % 16 == 0)
-			DEBUG_MESSAGE("\n");
-	}
-	DEBUG_MESSAGE("\n");
-	DEBUG_MESSAGE("[DEBUG] Corrected Frame Dump (%d bytes):\n", frmLen);
-	for (int i = 0; i < frmLen; i++) {
-		DEBUG_MESSAGE("0x%02X ", payload[i]);
-		if ((i + 1) % 16 == 0)
-			DEBUG_MESSAGE("\n");
-	}
-	DEBUG_MESSAGE("\n");
-
-	uint16_t ethType = swap32(*(uint16_t*) &payload[12]);
-	DEBUG_MESSAGE("[RX] Incoming Ethernet Frame (Len=%d, EtherType=0x%04X)\n",
-				frmLen, ethType);
-
-	DEBUG_MESSAGE("[RX] Incoming Ethernet Frame (Len=%d, EtherType=0x%04X)\n",
-			frmLen, ethType);
-	DEBUG_MESSAGE("    Dest MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", payload[0],
-			payload[1], payload[2], payload[3], payload[4], payload[5]);
-	DEBUG_MESSAGE("    Src MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", payload[6],
-			payload[7], payload[8], payload[9], payload[10], payload[11]);
-
-		if (ethType == 0x0806) {
-	 uint16_t arp_hwtype = swap32(*(uint16_t*) &payload[14]);
-	 uint16_t arp_proto = swap32(*(uint16_t*) &payload[16]);
-	 uint8_t arp_hwlen = payload[18];
-	 uint8_t arp_protolen = payload[19];
-	 uint16_t arp_opcode = swap32(*(uint16_t*) &payload[20]);
-
-	 uint8_t sender_mac[6];
-	 memcpy(sender_mac, &payload[22], 6);
-
-	 uint32_t sender_ip = swap32(*(uint32_t*) &payload[28]);
-
-	 uint8_t target_mac[6];
-	 memcpy(target_mac, &payload[32], 6);
-
-	 uint32_t target_ip = swap32(*(uint32_t*) &payload[38]);
-
-
-		DEBUG_MESSAGE(
-				"[ARP] Parsed Values - HW Type: 0x%04X, Proto: 0x%04X, HW Len: %u, Protolen: %u, Opcode: 0x%04X\n",
-				arp_hwtype, arp_proto, arp_hwlen, arp_protolen, arp_opcode);
-		DEBUG_MESSAGE(
-				"[ARP] Sender MAC: %02X:%02X:%02X:%02X:%02X:%02X, Sender IP: %d.%d.%d.%d\n",
-				sender_mac[0], sender_mac[1], sender_mac[2], sender_mac[3],
-				sender_mac[4], sender_mac[5], (sender_ip >> 24) & 0xFF,
-				(sender_ip >> 16) & 0xFF, (sender_ip >> 8) & 0xFF,
-				sender_ip & 0xFF);
-		DEBUG_MESSAGE(
-				"[ARP] Target MAC: %02X:%02X:%02X:%02X:%02X:%02X, Target IP: %d.%d.%d.%d\n",
-				target_mac[0], target_mac[1], target_mac[2], target_mac[3],
-				target_mac[4], target_mac[5], (target_ip >> 24) & 0xFF,
-				(target_ip >> 16) & 0xFF, (target_ip >> 8) & 0xFF,
-				target_ip & 0xFF);
-
-	if (arp_hwtype != 0x0001 || arp_proto != 0x0800 || arp_hwlen != 6
-	 || arp_protolen != 4) {
-	 DEBUG_MESSAGE(
-	 "[ERROR] Invalid ARP packet format! Dropping packet.\n");
-	 adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-	 return;
-	 }
-
-	 if (sender_ip == 0) {
-	 DEBUG_MESSAGE("[ARP] Ignoring ARP packet with sender IP 0.0.0.0\n");
-	 adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
-	 return;
-	 }
-
-	 DEBUG_MESSAGE("[ARP] Processing ARP packet in lwIP.\n");
-	 }
-#endif /* TCP/IP_DEBUG */
 
 	if (frmLen < 42) {
 		LINK_STATS_INC(link.drop);
@@ -285,31 +126,6 @@ uint32_t adi_phy_GetLinkStatus(uint8_t *status) {
 uint32_t sys_now(void) {
 	return BSP_SysNow();
 }
-#ifdef TCP_IP_DEBUG
-void print_lwip_arp_table(void) {
-	printf("\n[DEBUG] Current ARP Table:\n");
-	for (int i = 0; i < ARP_TABLE_SIZE; i++) {
-		ip4_addr_t *ipaddr;
-		struct netif *netif_out;
-		struct eth_addr *macaddr;
-		if (etharp_get_entry(i, &ipaddr, &netif_out, &macaddr) == ERR_OK) {
-			if (ipaddr && macaddr) {
-				printf(
-						"[%lu] ARP %d: IP=%s, MAC=%02X:%02X:%02X:%02X:%02X:%02X\n",
-						BSP_SysNow(), i, ip4addr_ntoa(ipaddr), macaddr->addr[0],
-						macaddr->addr[1], macaddr->addr[2], macaddr->addr[3],
-						macaddr->addr[4], macaddr->addr[5]);
-
-				if ((ntohl(ipaddr->addr) & 0xFFFFFF00) != 0xC0A80100) {
-
-					printf("[WARNING] Unexpected ARP entry: %s\n",
-							ip4addr_ntoa(ipaddr));
-				}
-			}
-		}
-	}
-}
-#endif /* TCP/IP_DEBUG */
 
 err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 
@@ -319,52 +135,6 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 		return ERR_MEM;
 	}
 
-#ifdef TCP_IP_DEBUG
-	uint8_t *payload = (uint8_t*) p->payload;
-	uint16_t ethType = (payload[12] << 8) | payload[13];
-	DEBUG_MESSAGE("\n==============================================");
-	DEBUG_MESSAGE("\nSTART OF PACKET");
-	DEBUG_MESSAGE("\nPacket Type: 0x%04X, Length: %d\n", ethType, p->len);
-
-	for (int i = 0; i < p->len; i++) {
-		DEBUG_MESSAGE("0x%02X ", payload[i]);
-		if ((i + 1) % 16 == 0)
-			DEBUG_MESSAGE("\n");
-	}
-	DEBUG_MESSAGE("\n");
-
-
-	if (ethType == 0x0800) {
-		uint8_t ipProtocol = payload[23];
-
-		if (ipProtocol == 17) {
-			uint16_t udpSrcPort = (payload[34] << 8) | payload[35];
-			uint16_t udpDstPort = (payload[36] << 8) | payload[37];
-
-			if (udpDstPort == 67 || udpDstPort == 68) {
-				DEBUG_MESSAGE(
-						"🔹 [DHCP] DHCP Packet Detected! (UDP Port: %d)",
-						udpDstPort);
-			} else {
-				DEBUG_MESSAGE(
-						"🔹 [UDP] Non-DHCP UDP Packet (Src: %d, Dst: %d)",
-						udpSrcPort, udpDstPort);
-			}
-		} else if (ipProtocol == 1) {
-			DEBUG_MESSAGE("🔹 [ICMP] ICMP Packet Detected!");
-		} else {
-			DEBUG_MESSAGE("🔹 [IPv4] Other IPv4 Packet (Protocol: 0x%02X)",
-					ipProtocol);
-		}
-	} else if (ethType == 0x0806) {
-		DEBUG_MESSAGE("🔹 [ARP] ARP Packet Detected!");
-	} else {
-			DEBUG_MESSAGE("🔹 [UNKNOWN] Unrecognized Packet Type: 0x%04X",
-				ethType);
-	}
-	DEBUG_MESSAGE("\nEND OF PACKET");
-	DEBUG_MESSAGE("\n==============================================\n");
-#endif /* TCP/IP_DEBUG */
 	if (netif->input(p, netif) != ERR_OK) {
 		LWIP_DEBUGF(NETIF_DEBUG, ("IP input error\r\n"));
 		pbuf_free(p);
@@ -376,11 +146,6 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 
 static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 
-#ifdef TCP_IP_DEBUG
-	uint16_t ethType = ((uint8_t*) p->payload)[12] << 8
-			| ((uint8_t*) p->payload)[13];
-#endif /* TCP/IP_DEBUG */
-
 	LwIP_ADIN1110_t *eth = (LwIP_ADIN1110_t*) netif->state;
 	adin1110_DeviceHandle_t *hDevice = eth->hDevice;
 
@@ -388,60 +153,37 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	uint16_t frameLen = 0;
 	int total_len = 0;
 
-#ifdef TCP_IP_DEBUG
-	DEBUG_MESSAGE("\n==============================================");
-	DEBUG_MESSAGE("\nSTART OF TRANSMIT PACKET");
-	DEBUG_MESSAGE("\nPacket Type: 0x%04X, Length: %d\n", ethType, p->tot_len);
-#endif /* TCP/IP_DEBUG */
-
 	for (pp = p, total_len = 0; pp != NULL; pp = pp->next) {
-	    frameLen = pp->len;
+		frameLen = pp->len;
 
-	    // Debug print the pbuf pointer, payload, and frame length
-//	    DEBUG_MESSAGE("Processing pbuf: pp=%p, payload=%p, len=%d\n", pp, pp->payload, frameLen);
+		if (pp->payload == NULL) {
+			DEBUG_MESSAGE("ERROR: pbuf payload is NULL! Skipping segment.\n");
+			continue;
+		}
 
-	    // If the payload is NULL or unaligned, print an error
-	    if (pp->payload == NULL) {
-	        DEBUG_MESSAGE("ERROR: pbuf payload is NULL! Skipping segment.\n");
-	        continue;
-	    }
-
-	    if (frameLen < 2) {
-	        DEBUG_MESSAGE("WARNING: Skipping small frame of length %d\n", frameLen);
-	        continue;
-	    }
+		if (frameLen < 2) {
+			DEBUG_MESSAGE("WARNING: Skipping small frame of length %d\n",
+					frameLen);
+			continue;
+		}
 
 		memcpy(txBuf[txBufIndex] + total_len, (unsigned char*) pp->payload,
 				frameLen);
 		total_len += frameLen;
 
 		if (total_len >= MAX_FRAME_BUF_SIZE) {
-			 DEBUG_MESSAGE("ERROR: Frame too large! total_len=%d, MAX_FRAME_BUF_SIZE=%d\n", total_len, MAX_FRAME_BUF_SIZE);
+			DEBUG_MESSAGE(
+					"ERROR: Frame too large! total_len=%d, MAX_FRAME_BUF_SIZE=%d\n",
+					total_len, MAX_FRAME_BUF_SIZE);
 			return ERR_VAL;
 		}
 	}
-
-#ifdef TCP_IP_DEBUG
-	uint8_t *payload = (uint8_t*) p->payload;
-	for (int i = 0; i < p->tot_len; i++) {
-		DEBUG_MESSAGE("0x%02X ", payload[i]);
-		if ((i + 1) % 16 == 0)
-			DEBUG_MESSAGE("\n");
-	}
-	DEBUG_MESSAGE("\n");
-	DEBUG_MESSAGE("\nEND OF TRANSMIT PACKET");
-	DEBUG_MESSAGE("\n==============================================\n");
-#endif /* TCP/IP_DEBUG */
 
 	LINK_STATS_INC(link.xmit);MIB2_STATS_NETIF_ADD(netif, ifoutoctets, total_len);
 
 	if (total_len < MIN_FRAME_SIZE) {
 		total_len = MIN_FRAME_SIZE;
 	}
-
-//	DEBUG_MESSAGE(
-//			"Computed frame length = %d bytes, MIN_FRAME_SIZE = %d bytes\n",
-//			total_len, MIN_FRAME_SIZE);
 
 	txBufDesc[txBufIndex].pBuf = &txBuf[txBufIndex][0];
 	txBufDesc[txBufIndex].trxSize = total_len;
@@ -457,26 +199,26 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	uint32_t attempts = 0;
 	adi_eth_Result_e res = ADI_ETH_QUEUE_FULL;
 	while (res == ADI_ETH_QUEUE_FULL) {
-	    res = adin1110_SubmitTxBuffer(*hDevice, &txBufDesc[txBufIndex]);
-	    if (res == ADI_ETH_QUEUE_FULL) {
-	    	printf("Tx queue full, retrying...\n");
-	    	osDelay(pdMS_TO_TICKS(1));
-	        attempts++;
-	        if (attempts > 1000) {
-	            DEBUG_MESSAGE("Tx queue stuck. Dropping frame.\n");
-	            LINK_STATS_INC(link.drop);
-	            portEXIT_CRITICAL();
-	            return ERR_MEM;
-	        }
-	    }
+		res = adin1110_SubmitTxBuffer(*hDevice, &txBufDesc[txBufIndex]);
+		if (res == ADI_ETH_QUEUE_FULL) {
+			printf("Tx queue full, retrying...\n");
+			osDelay(pdMS_TO_TICKS(1));
+			attempts++;
+			if (attempts > 1000) {
+				DEBUG_MESSAGE("Tx queue stuck. Dropping frame.\n");
+				LINK_STATS_INC(link.drop);
+				portEXIT_CRITICAL();
+				return ERR_MEM;
+			}
+		}
 	}
 	if (res != ADI_ETH_SUCCESS) {
-	    DEBUG_MESSAGE("SubmitTxBuffer failed with code=0x%08X\n", res);
-	    LINK_STATS_INC(link.drop);
-	    return ERR_IF;
+		DEBUG_MESSAGE("SubmitTxBuffer failed with code=0x%08X\n", res);
+		LINK_STATS_INC(link.drop);
+		return ERR_IF;
 	}
 	if (++txBufIndex >= NUM_TX_DESC) {
-	    txBufIndex = 0;
+		txBufIndex = 0;
 	}
 	return ERR_OK;
 }
@@ -518,9 +260,9 @@ static err_t LwipADIN1110Init(struct netif *netif) {
 	netif->flags =
 	NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP;
 
-	#if LWIP_NETIF_HOSTNAME
-		netif->hostname = HOSTNAME;
-	#endif
+#if LWIP_NETIF_HOSTNAME
+	netif->hostname = HOSTNAME;
+#endif
 
 	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP
 			| NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP;
@@ -550,7 +292,6 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 		return result;
 	}
 
-	// Enable cut-through mode for transmit and receive
 	result = adin1110_SetCutThroughMode(*hDevice, true, true); // TXCTE = true, RXCTE = true
 	if (result != ADI_ETH_SUCCESS) {
 		DEBUG_MESSAGE("Error: Failed to set cut-through mode. Code: 0x%08X\r\n",
@@ -569,18 +310,19 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 
 	result = adin1110_WriteRegister(*hDevice, ADDR_MAC_TX_THRESH, 0x1);
 	if (result != ADI_ETH_SUCCESS) {
-	    printf("Failed to set TX_THRESH: 0x%08X\n", result);
+		printf("Failed to set TX_THRESH: 0x%08X\n", result);
 	}
 
 	result = adin1110_SetChunkSize(*hDevice, ADI_MAC_OA_CPS_64BYTE);
 	if (result != ADI_ETH_SUCCESS) {
-	    printf("Failed to set chunk size: 0x%08X\n", result);
+		printf("Failed to set chunk size: 0x%08X\n", result);
 	}
 
 	uint32_t config0, txThresh;
 	adin1110_ReadRegister(*hDevice, ADDR_MAC_CONFIG0, &config0);
 	adin1110_ReadRegister(*hDevice, ADDR_MAC_TX_THRESH, &txThresh);
-	printf("CONFIG0: 0x%08lX, TX_THRESH: 0x%08lX\n", (unsigned long)config0, (unsigned long)txThresh);
+	printf("CONFIG0: 0x%08lX, TX_THRESH: 0x%08lX\n", (unsigned long) config0,
+			(unsigned long) txThresh);
 
 	result = adin1110_SyncConfig(*hDevice);
 	if (result != ADI_ETH_SUCCESS) {
@@ -594,35 +336,31 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 		return result;
 	}
 	for (uint32_t i = 0; i < NUM_RX_DESC; i++) {
-		rxBufDesc[i].pBuf    = &rxBuf[i][0];
-	        rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
-	        rxBufDesc[i].cbFunc  = rxCallback;
+		rxBufDesc[i].pBuf = &rxBuf[i][0];
+		rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
+		rxBufDesc[i].cbFunc = rxCallback;
 
-	        result = adin1110_SubmitRxBuffer(*hDevice, &rxBufDesc[i]);
-	        if (result != ADI_ETH_SUCCESS)
-	        {
-	            DEBUG_MESSAGE("Error: SubmitRxBuffer() failed at i=%lu (code=0x%08X)\n",
-	                          i, result);
-	            return result;
-	        }
-	    }
-	    for (uint32_t i = 0; i < NUM_TX_DESC; i++)
-	    {
-	        txBufAvailable[i] = true;
-	    }
-	    result = adin1110_Enable(*hDevice);
-	    if (result != ADI_ETH_SUCCESS) {
-	        DEBUG_MESSAGE("Error: Enabling device failed.\n");
-	        return result;
-	    }
-
+		result = adin1110_SubmitRxBuffer(*hDevice, &rxBufDesc[i]);
+		if (result != ADI_ETH_SUCCESS) {
+			DEBUG_MESSAGE(
+					"Error: SubmitRxBuffer() failed at i=%lu (code=0x%08X)\n",
+					i, result);
+			return result;
+		}
+	}
+	for (uint32_t i = 0; i < NUM_TX_DESC; i++) {
+		txBufAvailable[i] = true;
+	}
+	result = adin1110_Enable(*hDevice);
+	if (result != ADI_ETH_SUCCESS) {
+		DEBUG_MESSAGE("Error: Enabling device failed.\n");
+		return result;
+	}
 
 	do {
 		result = adin1110_GetLinkStatus(*hDevice, &linkStatus);
 		DEBUG_RESULT("adin1110_GetLinkStatus", result, ADI_ETH_SUCCESS);
 	} while (linkStatus != ADI_ETH_LINK_STATUS_UP);
-
-
 
 	initPQueue(&pQ[0]);
 
@@ -640,9 +378,8 @@ void LwIP_Init(LwIP_ADIN1110_t *eth, board_t *boardDetails) {
 
 		IP4_ADDR(&ip, boardDetails->ip_addr[0], boardDetails->ip_addr[1],
 				boardDetails->ip_addr[2], boardDetails->ip_addr[3]);
-		IP4_ADDR(&mask, boardDetails->net_mask[0],
-				boardDetails->net_mask[1], boardDetails->net_mask[2],
-				boardDetails->net_mask[3]);
+		IP4_ADDR(&mask, boardDetails->net_mask[0], boardDetails->net_mask[1],
+				boardDetails->net_mask[2], boardDetails->net_mask[3]);
 		IP4_ADDR(&gw, boardDetails->gateway[0], boardDetails->gateway[1],
 				boardDetails->gateway[2], boardDetails->gateway[3]);
 
@@ -661,12 +398,12 @@ void LwIP_Init(LwIP_ADIN1110_t *eth, board_t *boardDetails) {
 	}
 }
 
-void initPQueue(pQueue_t* pQ) {
+void initPQueue(pQueue_t *pQ) {
 	pQ->nWrQ = 0;
 	pQ->nRdQ = 0;
 }
 
-uint32_t pDataAvailable(pQueue_t* pQ) {
+uint32_t pDataAvailable(pQueue_t *pQ) {
 	if (pQ->nWrQ != pQ->nRdQ) {
 		return 1;
 	}
@@ -675,40 +412,42 @@ uint32_t pDataAvailable(pQueue_t* pQ) {
 
 void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame) {
 	if (lenEthFrame > MAX_P_QUEUE_SZ) {
-	        DEBUG_MESSAGE("ERROR: Frame too large (%d bytes), dropping packet!\n", lenEthFrame);
-	        return;
-	    }
+		DEBUG_MESSAGE("ERROR: Frame too large (%d bytes), dropping packet!\n",
+				lenEthFrame);
+		return;
+	}
 	int nextIndex = (pQ->nWrQ + 1) % MAX_P_QUEUE;
-	    if (nextIndex == pQ->nRdQ) {
-	        DEBUG_MESSAGE("ERROR: Queue full, dropping packet!\n");
-	        return;
-	    }
-    memcpy(&pQ->pData[pQ->nWrQ][0], ethFrame, lenEthFrame);
-    pQ->lenData[pQ->nWrQ] = lenEthFrame;
-    pQ->nWrQ++;
-    pQ->nWrQ %= MAX_P_QUEUE;
+	if (nextIndex == pQ->nRdQ) {
+		DEBUG_MESSAGE("ERROR: Queue full, dropping packet!\n");
+		return;
+	}
+	memcpy(&pQ->pData[pQ->nWrQ][0], ethFrame, lenEthFrame);
+	pQ->lenData[pQ->nWrQ] = lenEthFrame;
+	pQ->nWrQ++;
+	pQ->nWrQ %= MAX_P_QUEUE;
 }
 
-void* readPQ(pQueue_t* pQ) {
+void* readPQ(pQueue_t *pQ) {
 	if (pQ->nRdQ == pQ->nWrQ) {
-	        DEBUG_MESSAGE("ERROR: Queue empty, no packet to read!\n");
-	        return NULL;
-	    }
-    int ethFrmLen = pQ->lenData[pQ->nRdQ];
-    if (ethFrmLen <= 0 || ethFrmLen > MAX_FRAME_BUF_SIZE) {
-            DEBUG_MESSAGE("ERROR: Invalid frame length %d, skipping read\n", ethFrmLen);
-            return NULL;
-        }
-    struct pbuf* p = pbuf_alloc(PBUF_RAW, ethFrmLen, PBUF_RAM);
-    if(p == NULL) {
-        DEBUG_MESSAGE("pbuf_alloc() failed, returning NULL\n");
-        return NULL;
-    }
-    memcpy((uint8_t*)p->payload, &pQ->pData[pQ->nRdQ][0], ethFrmLen);
-    pQ->nRdQ++;
-    pQ->nRdQ %= MAX_P_QUEUE;
+		DEBUG_MESSAGE("ERROR: Queue empty, no packet to read!\n");
+		return NULL;
+	}
+	int ethFrmLen = pQ->lenData[pQ->nRdQ];
+	if (ethFrmLen <= 0 || ethFrmLen > MAX_FRAME_BUF_SIZE) {
+		DEBUG_MESSAGE("ERROR: Invalid frame length %d, skipping read\n",
+				ethFrmLen);
+		return NULL;
+	}
+	struct pbuf *p = pbuf_alloc(PBUF_RAW, ethFrmLen, PBUF_RAM);
+	if (p == NULL) {
+		DEBUG_MESSAGE("pbuf_alloc() failed, returning NULL\n");
+		return NULL;
+	}
+	memcpy((uint8_t*) p->payload, &pQ->pData[pQ->nRdQ][0], ethFrmLen);
+	pQ->nRdQ++;
+	pQ->nRdQ %= MAX_P_QUEUE;
 
-    return (void*)p;
+	return (void*) p;
 }
 
 uint32_t discoveradin1110(adin1110_DeviceHandle_t *hDevice) {

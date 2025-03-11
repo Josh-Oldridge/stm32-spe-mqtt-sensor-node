@@ -35,7 +35,7 @@ extern "C" {
 extern ADC_HandleTypeDef hadc1;
 
 /* USER CODE BEGIN Private defines */
-
+extern uint16_t adcBuffer[ADC_BUFFER_SIZE];
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);

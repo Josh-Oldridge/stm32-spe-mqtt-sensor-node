@@ -493,7 +493,7 @@
  * TCP_SND_BUF: TCP sender buffer space (bytes).
  */
 #ifndef TCP_SND_BUF
-#define TCP_SND_BUF                     4096
+#define TCP_SND_BUF                     8192
 #endif
 
 /**
@@ -501,7 +501,7 @@
  * (2 * TCP_MSS) for things to work well
  */
 #ifndef TCP_WND
-#define TCP_WND                         4096
+#define TCP_WND                         8192
 #endif
 
 /**
@@ -531,7 +531,7 @@
  * as much as (2 * TCP_SND_BUF/TCP_MSS) for things to work.
  */
 #ifndef TCP_SND_QUEUELEN
-#define TCP_SND_QUEUELEN                8
+#define TCP_SND_QUEUELEN                ((4 * (TCP_SND_BUF) + (TCP_MSS - 1)) / (TCP_MSS))
 #endif
 
 #ifndef TCP_OVERSIZE
@@ -545,6 +545,8 @@
 #define TCP_KEEPCNT                     6
 
 #define TCP_RTO                         3000
+
+#define LWIP_TCP_SACK_OUT 1
 
 /*
  ---------------------------------

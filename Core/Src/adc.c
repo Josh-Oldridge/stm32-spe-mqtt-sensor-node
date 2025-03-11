@@ -182,13 +182,8 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 }
 
 /* USER CODE BEGIN 1 */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-    if(hadc->Instance == ADC1)
-    {
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        osSemaphoreRelease(adcSemaphoreHandle);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+    if (hadc->Instance == ADC1) {
     }
 }
 /* USER CODE END 1 */

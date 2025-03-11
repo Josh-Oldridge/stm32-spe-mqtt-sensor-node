@@ -67,6 +67,7 @@ altcp_tls_new(struct altcp_tls_config *config, u8_t ip_type)
   if (inner_conn == NULL) {
     return NULL;
   }
+  //altcp_nagle_disable(inner_conn);
   ret = altcp_tls_wrap(config, inner_conn);
   if (ret == NULL) {
     altcp_close(inner_conn);
