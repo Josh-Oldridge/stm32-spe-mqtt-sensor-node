@@ -30,7 +30,6 @@ extern "C" {
 
 /* USER CODE BEGIN Includes */
 #include "boardsupport.h"
-#include "stm32l4xx_hal.h"
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private defines */
