@@ -288,7 +288,7 @@ int main(void)
 	boardDetails.gateway[2] = 1;
 	boardDetails.gateway[3] = 1;
 #else
-	boardDetails.ip_addr_fixed = IP_DYNAMIC;
+	boardDetails.ip_addr_fixed = IP_FIXED;
 
 #endif /* IP_FIXED */
 
