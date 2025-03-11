@@ -42,6 +42,7 @@
 #include "lwip/apps/mqtt.h"
 #include "semphr.h"
 #include "sensor_data.h"
+#include "lwipopts.h"
 
 /* USER CODE END Includes */
 
@@ -121,7 +122,6 @@ void ADCTask(void *argument);
 void TempTask(void *argument);
 void AccelTask(void *argument);
 void SensorDataMQTTTask(void *argument);
-void MonitorStackUsage(void);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -152,7 +152,6 @@ return 0;
 
 /* USER CODE BEGIN 2 */
 void vApplicationIdleHook(void) {
-
 }
 
 /* USER CODE END 2 */
