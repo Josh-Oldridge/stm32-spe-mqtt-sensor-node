@@ -11,27 +11,24 @@
 #ifdef USE_LWIP
 
 #include "lwIP_adin1110_app.h"
-#include "adin1110.h"
 #include "netif/etharp.h"
 #include "lwip/ip_addr.h"
 #include "lwip/snmp.h"
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
-#include "lwip/timeouts.h"
-#include "lwip/arch.h"
-#include "lwip/apps/httpd.h"
 #include "adi_mac.h"
-#include <lwip/inet.h>
-#include "cmsis_os.h"
 #include "cmsis_os2.h"
+#include "FreeRTOS.h"
+
 #define ADIN1110_INIT_ITER  (5)
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2 + 4)
-#define FRAME_SIZE          (1518)
-
 #define NUM_RX_DESC  4 /* 4 RX Descriptors for Frames sent from Host */
 #define NUM_TX_DESC  4 /* 4 TX Descriptors for Frames sent by ADIN1110 */
-
 #define ETHERNET_MTU        (1500)
+#define IFNAME0         'e'
+#define IFNAME1         '0'
+#define HOSTNAME         "ADI_10BASE-T1L_Demo"
+#define NETIF_LINK_SPEED_IN_BPS 10000000
 
 HAL_ALIGNED_PRAGMA(4)static uint8_t rxBuf[NUM_RX_DESC][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
 static adi_eth_BufDesc_t rxBufDesc[NUM_RX_DESC];
@@ -39,30 +36,21 @@ static adi_eth_BufDesc_t rxBufDesc[NUM_RX_DESC];
 HAL_ALIGNED_PRAGMA(4)static uint8_t txBuf[NUM_TX_DESC][MAX_FRAME_BUF_SIZE] HAL_ALIGNED_ATTRIBUTE(4);
 static adi_eth_BufDesc_t txBufDesc[NUM_TX_DESC];
 static bool txBufAvailable[NUM_TX_DESC];
-
 static int txBufIndex = 0;
 
 HAL_ALIGNED_PRAGMA(4)pQueue_t pQ[MAX_PQ] HAL_ALIGNED_ATTRIBUTE(4);
 
-#define IFNAME0         'e'
-#define IFNAME1         '0'
-#define HOSTNAME         "ADI_10BASE-T1L_Demo"
-#define NETIF_LINK_SPEED_IN_BPS 10000000
-
 static void initPQueue(pQueue_t *pQ);
-
 static void* readPQ(pQueue_t *pQ);
 static void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame);
-uint32_t pDataAvailable(pQueue_t *pQ);
 
+uint32_t pDataAvailable(pQueue_t *pQ);
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
 
 adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
 		sizeof(devMem), .fcsCheckEn = true, };
 
 adi_eth_LinkStatus_e linkStatus;
-
-bool linkStatusChanged;
 adi_eth_LinkStatus_e linkState;
 
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
@@ -196,6 +184,8 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	} else {
 		MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
 	}
+
+	portENTER_CRITICAL();
 	uint32_t attempts = 0;
 	adi_eth_Result_e res = ADI_ETH_QUEUE_FULL;
 	while (res == ADI_ETH_QUEUE_FULL) {
@@ -215,11 +205,13 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 	if (res != ADI_ETH_SUCCESS) {
 		DEBUG_MESSAGE("SubmitTxBuffer failed with code=0x%08X\n", res);
 		LINK_STATS_INC(link.drop);
+		portEXIT_CRITICAL();
 		return ERR_IF;
 	}
 	if (++txBufIndex >= NUM_TX_DESC) {
 		txBufIndex = 0;
 	}
+	portEXIT_CRITICAL();
 	return ERR_OK;
 }
 
@@ -228,10 +220,11 @@ static err_t LwIP_ADIN1110LinkOutput(struct netif *netif, struct pbuf *p) {
 	return ERR_OK;
 }
 
-static u16_t ssiHandler(const char *tag, char *insertBuffer,
-		int insertBufferLen) {
-	return 1;
-}
+/* Not using SSI and HTTPD in build */
+//static u16_t ssiHandler(const char *tag, char *insertBuffer,
+//		int insertBufferLen) {
+//	return 1;
+//}
 
 adi_eth_Result_e LwIP_StructInit(LwIP_ADIN1110_t *eth,
 		adin1110_DeviceHandle_t *hDevice, uint8_t macAddress[6]) {
@@ -371,8 +364,11 @@ static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
 void LwIP_Init(LwIP_ADIN1110_t *eth, board_t *boardDetails) {
 	ADIN1110Init(eth);
 	lwip_init();
-	http_set_ssi_handler(ssiHandler, NULL, 0);
-	httpd_init();
+
+	/* Not using SSI and HTTPD in build */
+//	http_set_ssi_handler(ssiHandler, NULL, 0);
+//	httpd_init();
+
 	if (boardDetails->ip_addr_fixed == 1) {
 		ip4_addr_t ip, mask, gw;
 
@@ -446,7 +442,6 @@ void* readPQ(pQueue_t *pQ) {
 	memcpy((uint8_t*) p->payload, &pQ->pData[pQ->nRdQ][0], ethFrmLen);
 	pQ->nRdQ++;
 	pQ->nRdQ %= MAX_P_QUEUE;
-
 	return (void*) p;
 }
 
