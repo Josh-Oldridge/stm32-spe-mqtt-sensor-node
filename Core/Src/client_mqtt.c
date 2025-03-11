@@ -78,7 +78,7 @@ void client_mqtt_init(void) {
 
 	memset(&ci, 0, sizeof(ci));
 	ci.client_id = MQTT_CLIENT_ID;
-	ci.keep_alive = 0;
+	ci.keep_alive = 60;
 	ci.client_user = "admin";
 	ci.client_pass = "admin";
 
