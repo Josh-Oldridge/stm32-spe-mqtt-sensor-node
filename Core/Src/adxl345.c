@@ -48,37 +48,38 @@ HAL_StatusTypeDef ADXL345_Init(I2C_HandleTypeDef *hi2c) {
     HAL_StatusTypeDef ret;
     uint8_t devid;
 
-    HAL_Delay(10);
+    vTaskDelay(pdMS_TO_TICKS(1));
+
     ret = ADXL345_WriteRegister_DMA(hi2c, ADXL345_REG_POWER_CTL, 0x00);
     if(ret != HAL_OK) {
         printf("ADXL345: Failed to write POWER_CTL 0x00 (ret=%d)\n", ret);
         return ret;
     }
-    HAL_Delay(10);
 
     ret = ADXL345_WriteRegister_DMA(hi2c, ADXL345_REG_POWER_CTL, 0x10);
     if(ret != HAL_OK) {
         printf("ADXL345: Failed to write POWER_CTL 0x10 (ret=%d)\n", ret);
         return ret;
     }
-    HAL_Delay(10);
 
     ret = ADXL345_WriteRegister_DMA(hi2c, ADXL345_REG_POWER_CTL, 0x08);
     if(ret != HAL_OK) {
         printf("ADXL345: Failed to write POWER_CTL 0x08 (ret=%d)\n", ret);
         return ret;
     }
-    HAL_Delay(10);
+
     ret = ADXL345_WriteRegister_DMA(hi2c, ADXL345_REG_DATA_FORMAT, 0x08);
     if(ret != HAL_OK) {
         printf("ADXL345: Failed to set data format (ret=%d)\n", ret);
         return ret;
     }
+
     ret = ADXL345_ReadRegister_DMA(hi2c, ADXL345_REG_DEVID, &devid, 1);
     if(ret != HAL_OK) {
         printf("ADXL345: Failed to read device ID (ret=%d)\n", ret);
         return ret;
     }
+
     printf("ADXL345: Read device ID: 0x%02X\n", devid);
     if(devid != 0xE5) {
         printf("ADXL345: Unexpected device ID: 0x%02X (expected 0xE5)\n", devid);

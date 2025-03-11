@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "stm32l4xx_hal.h"  // Adjust include as needed
+#include "stm32l4xx_hal.h"
 
 // ADXL345 I2C Address (7-bit) -- SD0 tied to GND
 // 1 bit left shift for HAL Functions

@@ -73,6 +73,9 @@
 									<listOptionValue builtIn="false" value="&quot;C:\ST\workspace_InProgress\ADIN1110\mbedtls-2.16.12\library&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\ST\workspace_InProgress\ADIN1110\mbedtls-2.16.12\include&quot;"/>
 								</option>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.otherflags.1858984197" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.otherflags" valueType="stringList">
+									<listOptionValue builtIn="false" value="-Wall -Wunused -Wunused-macros -Wunused-function -Wunused-variable -Wunused-parameter"/>
+								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1187764949" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
 							<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.1441956840" name="MCU/MPU G++ Compiler" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler">
