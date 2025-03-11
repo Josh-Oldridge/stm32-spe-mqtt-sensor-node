@@ -29,7 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#define ADC_BUFFER_SIZE 10
 /* USER CODE END Includes */
 
 extern ADC_HandleTypeDef hadc1;

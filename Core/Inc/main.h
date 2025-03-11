@@ -71,7 +71,6 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-#define ADC_BUFFER_SIZE 10
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

@@ -335,7 +335,7 @@ void AccelTask(void *argument) {
 void SensorDataMQTTTask(void *argument) {
 	static TickType_t lastPublishTime = 0;
 	TickType_t lastWakeTime = xTaskGetTickCount();
-	const TickType_t frequency = pdMS_TO_TICKS(15000);
+	const TickType_t frequency = pdMS_TO_TICKS(20000);
 
 	while (!dhcp_supplied_address(&myConn.netif)) {
 		printf("Sensor Data MQTT Task: Waiting for DHCP configuration...\n");

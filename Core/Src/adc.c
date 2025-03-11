@@ -21,11 +21,7 @@
 #include "adc.h"
 
 /* USER CODE BEGIN 0 */
-#include "cmsis_os.h"
-#include <stdio.h>
 uint16_t adcBuffer[ADC_BUFFER_SIZE];
-extern osSemaphoreId_t adcSemaphoreHandle;
-
 /* USER CODE END 0 */
 
 ADC_HandleTypeDef hadc1;

@@ -62,10 +62,11 @@ void HAL_INT_N_EnableIRQ(void);
  */
 void MX_Led_Toggle(void);
 
-/* USER CODE END Prototypes */
-
 ADI_CB getIntCallback(void);
+
 void *getIntCBParam(void);
+
+/* USER CODE END Prototypes */
 
 #ifdef __cplusplus
 }

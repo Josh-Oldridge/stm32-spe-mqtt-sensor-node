@@ -19,7 +19,6 @@
 #include "i2c.h"
 #include "sensor_data.h"
 
-extern uint16_t adcBuffer[ADC_BUFFER_SIZE];
 mqtt_client_t *mqtt_client = NULL;
 
 #define MQTT_BROKER_IP_STR "192.168.1.5"
