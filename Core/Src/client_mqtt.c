@@ -1,19 +1,12 @@
 #include "client_mqtt.h"
 #include "lwip/apps/mqtt.h"
-#include "lwip/altcp_tcp.h"
+#include "lwip/ip_addr.h"
 #include "lwip/altcp_tls.h"
+#include "lwip/err.h"
 #include <string.h>
 #include <stdio.h>
-#include "lwip/mem.h"
-#include "lwip/err.h"
-#include "lwip/timeouts.h"
-#include "lwip/altcp.h"
-#include "lwip/altcp_tls.h"
-#include "mbedtls/x509_crt.h"
-#include "mbedtls/error.h"
 #include "mbedtls/debug.h"
 #include "mbedtls/ssl.h"
-
 #include "tmp102.h"
 #include "adxl345.h"
 #include "i2c.h"
@@ -64,7 +57,6 @@ void my_debug(void *ctx, int level, const char *file, int line, const char *str)
 }
 
 void client_mqtt_init(void) {
-	/* Same as Option 1, without the allocator setup */
 	err_t err;
 	struct mqtt_connect_client_info_t ci;
 
@@ -178,10 +170,10 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
 void mqtt_pub_request_cb(void *arg, err_t result) {
 	if (result != ERR_OK) {
 		printf("Publish request failed: %d\n", result);
-		if (result == ERR_CONN) {  // Connection lost
+		if (result == ERR_CONN) {
 			mqtt_connected = false;
 			mqtt_connecting = false;
-			mqtt_disconnect(mqtt_client);  // Ensure disconnection
+			mqtt_disconnect(mqtt_client);
 			if (tls_config != NULL) {
 				altcp_tls_free_config(tls_config);
 				tls_config = NULL;
@@ -219,7 +211,6 @@ err_t client_mqtt_publish_sensor_data(void) {
     return ERR_TIMEOUT;
   }
 
-  // Validate sensor data
   if (temperature < -1000 || adc_value > 4095) {
     printf("Invalid sensor data: temp=%.2f, adc=%u\n", temperature, adc_value);
     return ERR_VAL;
