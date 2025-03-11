@@ -66,7 +66,6 @@ extern volatile bool mqtt_connected;
 extern volatile bool mqtt_connecting;
 volatile int dhcp_configured = 0;
 volatile bool system_ready = false;
-osSemaphoreId_t adcSemaphoreHandle;
 SensorData_t latestSensorData = {0};
 SemaphoreHandle_t sensorDataMutex;
 
@@ -81,21 +80,21 @@ const osThreadAttr_t networkMaintenanceTask_attributes = {
 osThreadId_t adcTaskHandle;
 const osThreadAttr_t adcTask_attributes = {
     .name = "adcTask",
-    .stack_size = 512 * 4,
+    .stack_size = 512,
     .priority = (osPriority_t) osPriorityLow,
 };
 
 osThreadId_t tempTaskHandle;
 const osThreadAttr_t tempTask_attributes = {
     .name = "tempTask",
-    .stack_size = 512 * 4,
+    .stack_size = 512 * 2,
     .priority = (osPriority_t) osPriorityLow,
 };
 
 osThreadId_t accelTaskHandle;
 const osThreadAttr_t accelTask_attributes = {
     .name = "accelTask",
-    .stack_size = 512 * 4,
+    .stack_size = 512 * 2,
     .priority = (osPriority_t) osPriorityLow,
 };
 
@@ -122,6 +121,7 @@ void ADCTask(void *argument);
 void TempTask(void *argument);
 void AccelTask(void *argument);
 void SensorDataMQTTTask(void *argument);
+void MonitorStackUsage(void);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -206,11 +206,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  adcSemaphoreHandle = xSemaphoreCreateBinary();
-  if (adcSemaphoreHandle == NULL) {
-	  printf("Failed to create ADC semaphore!\n");
-      Error_Handler();
-  }
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
@@ -250,9 +245,9 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
-	/* Infinite loop */
+    /* Infinite loop */
 	for (;;) {
-		osDelay(1);
+			osDelay(1);
 	}
   /* USER CODE END StartDefaultTask */
 }
