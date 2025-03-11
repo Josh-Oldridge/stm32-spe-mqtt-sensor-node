@@ -64,6 +64,10 @@
 
 #define ICMP_TTL                        255
 
+#define LWIP_STATS                      0
+
+#define MEMP_STATS                      0
+
 #ifndef LWIP_IPV4
 #define LWIP_IPV4                       1
 #endif
@@ -457,7 +461,7 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #ifndef PBUF_POOL_SIZE
-#define PBUF_POOL_SIZE                  8
+#define PBUF_POOL_SIZE                  4
 #endif
 
 #define PBUF_POOL_BUFSIZE               1536
@@ -493,7 +497,7 @@
  * TCP_SND_BUF: TCP sender buffer space (bytes).
  */
 #ifndef TCP_SND_BUF
-#define TCP_SND_BUF                     8192
+#define TCP_SND_BUF                     4096
 #endif
 
 /**
@@ -501,7 +505,7 @@
  * (2 * TCP_MSS) for things to work well
  */
 #ifndef TCP_WND
-#define TCP_WND                         8192
+#define TCP_WND                         4096
 #endif
 
 /**
@@ -546,7 +550,7 @@
 
 #define TCP_RTO                         3000
 
-#define LWIP_TCP_SACK_OUT 1
+#define LWIP_TCP_SACK_OUT               1
 
 /*
  ---------------------------------
@@ -590,37 +594,7 @@
 #define PBUF_DEBUG                      LWIP_DBG_OFF
 
 
+#define MEMP_NUM_PARALLEL_HTTPD_CONNS                 0
 
-
-#define LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS 2
-
-#define HTTPD_USE_CUSTOM_FSDATA                       0
-
-#define LWIP_HTTPD_SUPPORT_11_KEEPALIVE               1
-
-#define HTTPD_FSDATA_FILE                             "fsdata.c"
-
-#define LWIP_HTTPD_DYNAMIC_HEADER                     1
-
-#define LWIP_HTTPD_SSI                                1
-
-#define LWIP_HTTPD_SSI_INCLUDE_TAG                    1
-
-#define LWIP_HTTPD_MAX_TAG_NAME_LEN                   8
-
-#define LWIP_HTTPD_MAX_TAG_INSERT_LEN                 1024
-
-#define LWIP_HTTPD_SSI_RAW                            1
-
-#define HTTPD_USE_MEM_POOL                            1
-
-#define LWIP_HTTPD_ABORT_ON_CLOSE_MEM_ERROR           1
-
-#define LWIP_HTTPD_KILL_OLD_ON_CONNECTIONS_EXCEEDED   1
-
-#define HTTPD_MAX_WRITE_LEN(pcb)                      (TCP_MSS*4)
-
-#define MEMP_NUM_PARALLEL_HTTPD_CONNS                 LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS
-
-#define MEMP_NUM_PARALLEL_HTTPD_SSI_CONNS             LWIP_NUMBER_OF_PARALLEL_HTTPD_SSI_CONNECTIONS
+#define MEMP_NUM_PARALLEL_HTTPD_SSI_CONNS             0
 #endif
