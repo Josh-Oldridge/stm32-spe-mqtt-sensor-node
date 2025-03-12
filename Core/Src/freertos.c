@@ -278,86 +278,100 @@ void ADCTask(void *argument) {
 }
 
 void TempTask(void *argument) {
-	while (!system_ready) {
-		osDelay(pdMS_TO_TICKS(100));
-	}
-	for (;;) {
-		float temp = TMP102_ReadTemperature();
-		if (temp > -1000) {
-			if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-				latestSensorData.temperature = temp;
-				xSemaphoreGive(sensorDataMutex);
-			}
-		} else {
-			printf("TMP102 Read Error\n");
-		}
-		osDelay(pdMS_TO_TICKS(6000));
-	}
+    while (!system_ready) {
+        osDelay(pdMS_TO_TICKS(100));
+    }
+    for (;;) {
+        float temp = TMP102_ReadTemperature();
+        if (temp > -1000) {
+            if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+                latestSensorData.temperature = temp;
+                if (!sensors_ready && latestSensorData.accel_x != 0) {
+                    sensors_ready = true;
+                }
+                xSemaphoreGive(sensorDataMutex);
+            }
+        } else {
+            printf("TMP102 Read Error\n");
+        }
+        osDelay(pdMS_TO_TICKS(6000));
+    }
 }
 
 void AccelTask(void *argument) {
+    while (!system_ready) {
+        osDelay(pdMS_TO_TICKS(100));
+    }
+    int16_t ax, ay, az;
+    HAL_StatusTypeDef ret;
 
-	while (!system_ready) {
-		osDelay(pdMS_TO_TICKS(100));
-	}
-	int16_t ax, ay, az;
-	HAL_StatusTypeDef ret;
+    ret = ADXL345_Init(&hi2c2);
+    if (ret != HAL_OK) {
+        printf("ADXL345 Initialization Failed!\n");
+    } else {
+        printf("ADXL345 Initialized Successfully!\n");
+    }
 
-	ret = ADXL345_Init(&hi2c2);
-	if (ret != HAL_OK) {
-		printf("ADXL345 Initialization Failed!\n");
-	} else {
-		printf("ADXL345 Initialized Successfully!\n");
-	}
-
-	for (;;) {
-		ret = ADXL345_ReadAccel(&hi2c2, &ax, &ay, &az);
-		if (ret == HAL_OK) {
-			if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-				latestSensorData.accel_x = ax;
-				latestSensorData.accel_y = ay;
-				latestSensorData.accel_z = az;
-				xSemaphoreGive(sensorDataMutex);
-			}
-		} else {
-			printf("ADXL345 Read Error!\n");
-		}
-		osDelay(pdMS_TO_TICKS(3000));
-	}
+    for (;;) {
+        ret = ADXL345_ReadAccel(&hi2c2, &ax, &ay, &az);
+        if (ret == HAL_OK) {
+            if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+                latestSensorData.accel_x = ax;
+                latestSensorData.accel_y = ay;
+                latestSensorData.accel_z = az;
+                if (!sensors_ready && latestSensorData.temperature != 0.0f) {
+                    sensors_ready = true;
+                }
+                xSemaphoreGive(sensorDataMutex);
+            }
+        } else {
+            printf("ADXL345 Read Error!\n");
+        }
+        osDelay(pdMS_TO_TICKS(3000));
+    }
 }
 
 void SensorDataMQTTTask(void *argument) {
-	static TickType_t lastPublishTime = 0;
-	TickType_t lastWakeTime = xTaskGetTickCount();
-	const TickType_t frequency = pdMS_TO_TICKS(20000);
+    static TickType_t lastPublishTime = 0;
+    TickType_t lastWakeTime = xTaskGetTickCount();
+    const TickType_t frequency = pdMS_TO_TICKS(20000);
+    bool first_publish = true;
 
-	while (!dhcp_supplied_address(&myConn.netif)) {
-		printf("Sensor Data MQTT Task: Waiting for DHCP configuration...\n");
-		osDelay(pdMS_TO_TICKS(2000));
-	}
-	for (;;) {
-		if (mqtt_connected) {
-			system_ready = true;
-			TickType_t currentTime = xTaskGetTickCount();
-			if (lastPublishTime != 0) {
-				printf("Time since last publish: %lu ms\n",
-				       (unsigned long)((currentTime - lastPublishTime) * portTICK_PERIOD_MS));
-			}
-			lastPublishTime = currentTime;
+    while (!dhcp_supplied_address(&myConn.netif)) {
+        printf("Sensor Data MQTT Task: Waiting for DHCP configuration...\n");
+        osDelay(pdMS_TO_TICKS(2000));
+    }
+    for (;;) {
+        if (mqtt_connected) {
+            system_ready = true;
+            if (first_publish && !sensors_ready) {
+                printf("Waiting for sensors to initialize...\n");
+                osDelay(pdMS_TO_TICKS(1000));
+                continue;
+            }
 
-			int ret = client_mqtt_publish_sensor_data();
-			if (ret != ERR_OK) {
-				printf("Publish failed: %d\n", ret);
-				if (ret == ERR_CONN || ret == ERR_MEM) {
-					mqtt_connected = false;
-					mqtt_connecting = false;
-					printf("Connection lost, retrying in 5 seconds...\n");
-					osDelay(pdMS_TO_TICKS(5000));
-				}
-			}
-		} else if (!mqtt_connecting) {
-			printf("MQTT not connected, attempting to connect...\n");
-			mqtt_connecting = true;
+            TickType_t currentTime = xTaskGetTickCount();
+            if (lastPublishTime != 0) {
+                printf("Time since last publish: %lu ms\n",
+                       (unsigned long)((currentTime - lastPublishTime) * portTICK_PERIOD_MS));
+            }
+            lastPublishTime = currentTime;
+
+            int ret = client_mqtt_publish_sensor_data();
+            if (ret == ERR_OK) {
+                first_publish = false;
+            } else {
+                printf("Publish failed: %d\n", ret);
+                if (ret == ERR_CONN || ret == ERR_MEM) {
+                    mqtt_connected = false;
+                    mqtt_connecting = false;
+                    printf("Connection lost, retrying in 5 seconds...\n");
+                    osDelay(pdMS_TO_TICKS(5000));
+                }
+            }
+        } else if (!mqtt_connecting) {
+            printf("MQTT not connected, attempting to connect...\n");
+            mqtt_connecting = true;
             client_mqtt_init();
             TickType_t startTime = xTaskGetTickCount();
             while (mqtt_connecting && !mqtt_connected &&

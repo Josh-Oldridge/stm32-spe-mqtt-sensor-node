@@ -5,6 +5,8 @@
 #include "lwip/err.h"
 
 extern mqtt_client_t *mqtt_client;
+extern volatile bool sensors_ready;
+
 void my_debug(void *ctx, int level, const char *file, int line, const char *str);
 
 /* Function prototypes for MQTT client logic */

@@ -48,6 +48,7 @@ static struct altcp_tls_config *tls_config = NULL;
 
 volatile bool mqtt_connected = false;
 volatile bool mqtt_connecting = false;
+volatile bool sensors_ready = false;
 
 void my_debug(void *ctx, int level, const char *file, int line, const char *str) {
 	const char *p = str;
