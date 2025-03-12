@@ -55,98 +55,91 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p,
  * @retval lwIP error code.
  */
 err_t udp_send_query(void) {
-	struct pbuf *p;
-	err_t err;
+    struct pbuf *p;
+    err_t err;
 
-#ifdef TCP_IP_DEBUG
-	if (myConn.netif.ip_addr.addr == 0) {
-		DEBUG_MESSAGE(
-				"[NETWORK] Skipping UDP query: No valid IP assigned yet.\r\n");
-		return ERR_CONN;
-	}
-#endif /* TCP/IP_DEBUG */
+#ifdef UDP_QUERY_DEBUG
+    if (myConn.netif.ip_addr.addr == 0) {
+        DEBUG_MESSAGE("[NETWORK] Skipping UDP query: No valid IP assigned yet.\r\n");
+        return ERR_CONN;
+    }
+#endif
 
-	p = pbuf_alloc(PBUF_TRANSPORT, sizeof(queryMsg) - 1, PBUF_RAM);
-	if (p == NULL) {
-		DEBUG_MESSAGE("[ERROR] Failed to allocate pbuf for UDP query\r\n");
-		return ERR_MEM;
-	}
-	memcpy(p->payload, queryMsg, sizeof(queryMsg) - 1);
+    p = pbuf_alloc(PBUF_TRANSPORT, sizeof(queryMsg) - 1, PBUF_RAM);
+    if (p == NULL) {
+        DEBUG_MESSAGE("[ERROR] Failed to allocate pbuf for UDP query\r\n");
+        return ERR_MEM;
+    }
+    memcpy(p->payload, queryMsg, sizeof(queryMsg) - 1);
 
-	if (query_udp_pcb == NULL) {
-		query_udp_pcb = udp_new();
-		if (query_udp_pcb == NULL) {
-			DEBUG_MESSAGE("[ERROR] Failed to create UDP PCB\r\n");
-			pbuf_free(p);
-			return ERR_MEM;
-		}
-		err = udp_bind(query_udp_pcb, IP4_ADDR_ANY, LOCAL_UDP_PORT);
-		if (err != ERR_OK) {
-			DEBUG_MESSAGE("[ERROR] UDP bind failed: %d\r\n", err);
-			pbuf_free(p);
-			return err;
-		}
-		udp_recv(query_udp_pcb, udp_recv_callback, NULL);
-	}
-	IP4_ADDR(&remoteIP, 192, 168, 1, 11);
-	err = udp_sendto(query_udp_pcb, p, &remoteIP, REMOTE_UDP_PORT);
-	if (err == ERR_OK) {
-		querySentTime = BSP_SysNow();
-		queryState = STATE_WAITING_FOR_RESPONSE;
-		DEBUG_MESSAGE("[NETWORK] UDP Query sent at %lu ms\r\n", querySentTime);
-	} else {
-		DEBUG_MESSAGE("[ERROR] UDP send failed: %d\r\n", err);
-	}
-	pbuf_free(p);
-	return err;
+    if (query_udp_pcb == NULL) {
+        query_udp_pcb = udp_new();
+        if (query_udp_pcb == NULL) {
+            DEBUG_MESSAGE("[ERROR] Failed to create UDP PCB\r\n");
+            pbuf_free(p);
+            return ERR_MEM;
+        }
+        err = udp_bind(query_udp_pcb, IP4_ADDR_ANY, LOCAL_UDP_PORT);
+        if (err != ERR_OK) {
+            DEBUG_MESSAGE("[ERROR] UDP bind failed: %d\r\n", err);
+            udp_remove(query_udp_pcb);  // Clean up PCB on failure
+            query_udp_pcb = NULL;
+            pbuf_free(p);
+            return err;
+        }
+        udp_recv(query_udp_pcb, udp_recv_callback, NULL);
+    }
+    IP4_ADDR(&remoteIP, 192, 168, 1, 11);
+    err = udp_sendto(query_udp_pcb, p, &remoteIP, REMOTE_UDP_PORT);
+    if (err == ERR_OK) {
+        querySentTime = BSP_SysNow();
+        queryState = STATE_WAITING_FOR_RESPONSE;
+        DEBUG_MESSAGE("[NETWORK] UDP Query sent at %lu ms\r\n", querySentTime);
+    } else {
+        DEBUG_MESSAGE("[ERROR] UDP send failed: %d\r\n", err);
+    }
+    pbuf_free(p);
+    return err;
 }
 
 /**
  * @brief  Processes the UDP query state machine.*/
 
 void process_udp_query(void) {
-	static int queryRetryCount = 0;
-	static uint32_t nextRetryTime = 0;
-	uint32_t now = BSP_SysNow();
+    static int queryRetryCount = 0;
+    uint32_t now = BSP_SysNow();
 
-	switch (queryState) {
-	case STATE_IDLE:
-		DEBUG_MESSAGE("[NETWORK] Initiating new UDP query...\r\n");
-		udp_send_query();
-		queryRetryCount = 0;
-		querySentTime = now;
-		queryState = STATE_WAITING_FOR_RESPONSE;
-		break;
+    switch (queryState) {
+    case STATE_IDLE:
+        DEBUG_MESSAGE("[NETWORK] Initiating new UDP query...\r\n");
+        udp_send_query();
+        queryRetryCount = 0;
+        querySentTime = now;
+        queryState = STATE_WAITING_FOR_RESPONSE;
+        break;
 
-	case STATE_WAITING_FOR_RESPONSE:
-		if ((now - querySentTime) >= QUERY_TIMEOUT) {
-			if (queryRetryCount < MAX_QUERY_RETRIES) {
-				queryRetryCount++;
-				DEBUG_MESSAGE(
-						"[NETWORK] UDP Query timeout, retrying in %d ms... (%d/%d)\r\n",
-						QUERY_TIMEOUT, queryRetryCount, MAX_QUERY_RETRIES);
-				nextRetryTime = now + QUERY_TIMEOUT;
-				queryState = STATE_WAITING_FOR_RETRY;
-			} else {
-				DEBUG_MESSAGE(
-						"[NETWORK] Max UDP Query retries reached. Stopping retries.\r\n");
-				queryState = STATE_IDLE;
-			}
-		}
-		break;
+    case STATE_WAITING_FOR_RESPONSE:
+        if ((now - querySentTime) >= QUERY_TIMEOUT) {
+            if (queryRetryCount < MAX_QUERY_RETRIES) {
+                queryRetryCount++;
+                DEBUG_MESSAGE("[NETWORK] UDP Query timeout, retrying... (%d/%d)\r\n",
+                              queryRetryCount, MAX_QUERY_RETRIES);
+                udp_send_query();  // Retry immediately
+                querySentTime = now;
+                queryState = STATE_WAITING_FOR_RESPONSE;
+            } else {
+                DEBUG_MESSAGE("[NETWORK] Max UDP Query retries reached. Stopping.\r\n");
+                queryState = STATE_IDLE;
+            }
+        }
+        break;
 
-	case STATE_WAITING_FOR_RETRY:
-		if (now >= nextRetryTime) {
-			DEBUG_MESSAGE("[NETWORK] Retrying UDP query...\r\n");
-			udp_send_query();
-			querySentTime = now;
-			queryState = STATE_WAITING_FOR_RESPONSE;
-		}
-		break;
+    case STATE_RESPONSE_RECEIVED:
+        queryState = STATE_IDLE;
+        queryRetryCount = 0;
+        break;
 
-	case STATE_RESPONSE_RECEIVED:
-		queryState = STATE_IDLE;
-		queryRetryCount = 0;
-		break;
-	}
+    default:
+        break;
+    }
 }

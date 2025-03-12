@@ -31,8 +31,6 @@ typedef void (* ADI_CB) (
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
-#include "sysclock.h"
-
 
 /* Buffer for debug messages written to UART. */
 extern char aDebugString[200u];

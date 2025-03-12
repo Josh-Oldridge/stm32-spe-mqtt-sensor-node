@@ -1,5 +1,5 @@
 #include "tmp102.h"
-#include "i2c.h"    // This file should declare hi2c2, the I2C2 handle.
+#include "i2c.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include <stdio.h>

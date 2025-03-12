@@ -133,7 +133,7 @@ HAL_StatusTypeDef submitRxBuffer (uint8_t * buffer, int nbBytes)
 HAL_StatusTypeDef submitTxBuffer (uint8_t * buffer, int nbBytes)
 {
 
-  return HAL_UART_Transmit(&hlpuart1, (uint8_t*)buffer, nbBytes,5);
+  return HAL_UART_Transmit(&hlpuart1, (uint8_t*)buffer, nbBytes, 100);
 }
 
 /**

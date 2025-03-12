@@ -1036,7 +1036,7 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
   altcp_mbedtls_state_t *state;
   static u8_t write_buffer[1024];
   static size_t write_buffer_len = 0;
-  static int in_write = 0;  // Re-entry detection
+  static int in_write = 0;
 
   LWIP_UNUSED_ARG(apiflags);
 
@@ -1052,17 +1052,14 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
     return ERR_VAL;
   }
 
-  // Check for re-entry
   if (in_write) {
     printf("Re-entry detected in altcp_mbedtls_write from task: %s\n", pcTaskGetName(NULL));
     return ERR_ABRT;
   }
   in_write = 1;
 
-  // Log calling task for debugging
   printf("altcp_mbedtls_write called from task: %s\n", pcTaskGetName(NULL));
 
-  // Append data
   if (write_buffer_len + len > sizeof(write_buffer)) {
     printf("Buffer overflow in altcp_mbedtls_write\n");
     in_write = 0;
@@ -1071,7 +1068,6 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
   memcpy(write_buffer + write_buffer_len, dataptr, len);
   write_buffer_len += len;
 
-  // Process complete packets
   while (write_buffer_len >= 2) {
     size_t rem_len = 0;
     size_t multiplier = 1;
@@ -1093,7 +1089,6 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
       return ERR_OK;
     }
 
-    // Validate packet length
     if (packet_len > sizeof(write_buffer) || packet_len < 2) {
       printf("Invalid packet length: %lu\n", (unsigned long)packet_len);
       write_buffer_len = 0;
@@ -1101,7 +1096,6 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
       return ERR_VAL;
     }
 
-    // Use safe logging with %lu for compatibility
     printf("Sending MQTT packet of length %lu: ", (unsigned long)packet_len);
     for (size_t j = 0; j < packet_len; j++) {
       printf("%02X ", write_buffer[j]);
