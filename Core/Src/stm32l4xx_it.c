@@ -22,7 +22,7 @@
 #include "stm32l4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "boardsupport.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,56 +52,7 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#include <stdio.h>
-#include "core_cm4.h"  // For SCB and __get_MSP()
 
-/* Helper function to print the fault stack information.
-   This function is called from the naked HardFault_Handler. */
-//void HardFault_HandlerC(uint32_t *pulFaultStackAddress)
-//{
-//    // The stacked registers are stored as follows:
-//    // pulFaultStackAddress[0] = R0
-//    // pulFaultStackAddress[1] = R1
-//    // pulFaultStackAddress[2] = R2
-//    // pulFaultStackAddress[3] = R3
-//    // pulFaultStackAddress[4] = R12
-//    // pulFaultStackAddress[5] = LR  (Link Register)
-//    // pulFaultStackAddress[6] = PC  (Program Counter)
-//    // pulFaultStackAddress[7] = xPSR
-//
-//    printf("\n--- Hard Fault ---\n");
-//    printf("R0  = 0x%08lx\n", pulFaultStackAddress[0]);
-//    printf("R1  = 0x%08lx\n", pulFaultStackAddress[1]);
-//    printf("R2  = 0x%08lx\n", pulFaultStackAddress[2]);
-//    printf("R3  = 0x%08lx\n", pulFaultStackAddress[3]);
-//    printf("R12 = 0x%08lx\n", pulFaultStackAddress[4]);
-//    printf("LR  = 0x%08lx\n", pulFaultStackAddress[5]);
-//    printf("PC  = 0x%08lx\n", pulFaultStackAddress[6]);
-//    printf("xPSR= 0x%08lx\n", pulFaultStackAddress[7]);
-//
-//    printf("CFSR = 0x%08lx\n", SCB->CFSR);
-//    printf("HFSR = 0x%08lx\n", SCB->HFSR);
-//    printf("DFSR = 0x%08lx\n", SCB->DFSR);
-//    printf("AFSR = 0x%08lx\n", SCB->AFSR);
-//    printf("MMFAR = 0x%08lx\n", SCB->MMFAR);
-//    printf("BFAR = 0x%08lx\n", SCB->BFAR);
-//
-//     while (1);  // Loop forever for debugging.
-//}
-//
-///* Naked HardFault Handler.
-//   This function overrides the weak default symbol provided by the startup file. */
-//__attribute__((naked)) void HardFault_Handler(void)
-//{
-//    __asm volatile
-//    (
-//        "TST LR, #4          \n" // Test bit 2 of LR to decide which stack pointer to use.
-//        "ITE EQ              \n"
-//        "MRSEQ R0, MSP       \n" // If bit 2 is 0, use MSP.
-//        "MRSNE R0, PSP       \n" // Otherwise, use PSP.
-//        "B HardFault_HandlerC \n" // Branch to our C function.
-//    );
-//}
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
