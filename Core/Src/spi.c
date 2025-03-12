@@ -22,7 +22,6 @@
 
 /* USER CODE BEGIN 0 */
 #include "boardsupport.h"
-HAL_StatusTypeDef   status;
 
 static          ADI_CB gpfSpiCallback = NULL;
 static void     *gpSpiCBParam = NULL;

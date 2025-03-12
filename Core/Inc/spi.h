@@ -35,8 +35,6 @@ extern "C" {
 extern SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN Private defines */
-HAL_StatusTypeDef   ETH_SPI_Init            (void);
-HAL_StatusTypeDef   HAL_SPI_Write_Read      (uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma);
 /* USER CODE END Private defines */
 
 void MX_SPI1_Init(void);
@@ -44,6 +42,7 @@ void MX_SPI1_Init(void);
 /* USER CODE BEGIN Prototypes */
 void ADIN1110_CS_Select(void);
 void ADIN1110_CS_Deselect(void);
+HAL_StatusTypeDef   HAL_SPI_Write_Read      (uint8_t *pBufferTx, uint8_t *pBufferRx, uint32_t nbBytes, bool useDma);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
