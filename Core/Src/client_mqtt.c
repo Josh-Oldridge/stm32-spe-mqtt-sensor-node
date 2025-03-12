@@ -11,37 +11,13 @@
 #include "adxl345.h"
 #include "i2c.h"
 #include "sensor_data.h"
+#include "certificates.h"
 
 mqtt_client_t *mqtt_client = NULL;
 
 #define MQTT_BROKER_IP_STR "192.168.1.5"
 #define MQTT_BROKER_PORT_SECURE 8883
 #define MQTT_CLIENT_ID     "STM32_Client"
-
-static const char broker_ca_cert[] = "-----BEGIN CERTIFICATE-----\r\n"
-		"MIIEFTCCAv2gAwIBAgIUWvV++iL8gce2QslhoJECvdVxUCAwDQYJKoZIhvcNAQEL\r\n"
-		"BQAwgZkxCzAJBgNVBAYTAkRFMRswGQYDVQQIDBJCYWRlbi1XdWVydHRlbWJlcmcx\r\n"
-		"EzARBgNVBAcMCk9iZXJrb2NoZW4xHDAaBgNVBAoME0NhcmwgWmVpc3MgU01UIEdt\r\n"
-		"YkgxEDAOBgNVBAMMB0NBX1ByYWsxKDAmBgkqhkiG9w0BCQEWGWpvc2h1YS5vbGRy\r\n"
-		"aWRnZUB6ZWlzcy5jb20wHhcNMjUwMjE4MTM0MzA4WhcNMjYwMjE4MTM0MzA4WjCB\r\n"
-		"mTELMAkGA1UEBhMCREUxGzAZBgNVBAgMEkJhZGVuLVd1ZXJ0dGVtYmVyZzETMBEG\r\n"
-		"A1UEBwwKT2JlcmtvY2hlbjEcMBoGA1UECgwTQ2FybCBaZWlzcyBTTVQgR21iSDEQ\r\n"
-		"MA4GA1UEAwwHQ0FfUHJhazEoMCYGCSqGSIb3DQEJARYZam9zaHVhLm9sZHJpZGdl\r\n"
-		"QHplaXNzLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJj603zz\r\n"
-		"r1XUJlnPULNj+02DBTiI4rEHo34pyu+ZaMevukowjdegKr4bLU94V5nLW8NPUDpP\r\n"
-		"4ZbGeGk3lm7lDRerGGL92h6aiK/aO9t9dFRRQlExv5MUdveriis4loA7GTcL4/PJ\r\n"
-		"vyWVRQIJEiNr0yWOuHnvRkRV/3DSuJ5yryXWHZgb35mqRZZ5ykvmLQC2fWfc+FlC\r\n"
-		"p8UMKYtFkEvGR+DIaQ87DRWfSTm3T5la5ONZ0CcA+UFBLoKhwTLybzRPHSCQKfHC\r\n"
-		"tPKD/JmjnmO74Jt4Lm8AbShNz6OskagV+z50GaRtJq+KAv4xidhZiP1Xk8h0lGt/\r\n"
-		"DMO0DGvquF0XL6UCAwEAAaNTMFEwHQYDVR0OBBYEFLNMUB6QwB43shKgaS98kpVF\r\n"
-		"ezsLMB8GA1UdIwQYMBaAFLNMUB6QwB43shKgaS98kpVFezsLMA8GA1UdEwEB/wQF\r\n"
-		"MAMBAf8wDQYJKoZIhvcNAQELBQADggEBAG4J7LFQ86B7CGuDO8mJ9t9v+EQm6e8g\r\n"
-		"mZ8P31t+vQ7XMn6F2yU1D18GHmUCZi6zj75iXRLKT8d97lTD4jQTrQ1r8hsTKnHz\r\n"
-		"lFlErgPU233YAAsTkBGd4ZBFRg+H6zHk/1p8qERYTFyLZJQ0ZZLsarXPo+LRc0h1\r\n"
-		"f3wjkL1Pdfj2QD01fLBwvt57+QlsvnslNV696vTFdg6dkzc1InrnWnPqRXxq3jM0\r\n"
-		"/Hdvu7hGR+5yniEv44wANOlaQizNZFt20NpMy2W1r9Q5Osdrzhw9lFu32uXgYCIE\r\n"
-		"Ek4sgPOo2fvxK1ssBJlxLtBwqxJ4m6QmWiF8x3SBkQF218DuDsXzGUc=\r\n"
-		"-----END CERTIFICATE-----\r\n";
 
 static ip_addr_t broker_ip;
 static struct altcp_tls_config *tls_config = NULL;
