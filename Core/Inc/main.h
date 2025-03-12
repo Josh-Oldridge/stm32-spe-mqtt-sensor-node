@@ -50,7 +50,6 @@ extern "C" {
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
 
 #define FRAME_COUNT (10)
-#define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
 #define TEST_FRAMES_COUNT   (2)
 
 #define MAC_ADDR_0_0  (0x00)
