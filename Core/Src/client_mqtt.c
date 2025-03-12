@@ -26,12 +26,14 @@ volatile bool mqtt_connected = false;
 volatile bool mqtt_connecting = false;
 volatile bool sensors_ready = false;
 
+#ifdef TLS_DEBUG
 void my_debug(void *ctx, int level, const char *file, int line, const char *str) {
-	const char *p = str;
-	while (*p && (*p == '\r' || *p == '\n'))
-		p++;
-	printf("[mbedTLS debug] %d: %s:%04d: %s", level, file, line, p);
+    const char *p = str;
+    while (*p && (*p == '\r' || *p == '\n'))
+        p++;
+    printf("[mbedTLS debug] %d: %s:%04d: %s", level, file, line, p);
 }
+#endif
 
 void client_mqtt_init(void) {
 	err_t err;
@@ -72,9 +74,10 @@ void client_mqtt_init(void) {
 			MBEDTLS_SSL_MAX_FRAG_LEN_4096);
 	ci.tls_config = tls_config;
 
-	/* Uncomment for mbedtls Debug Messages */
-//    mbedtls_ssl_conf_dbg((mbedtls_ssl_config*) tls_config, my_debug, NULL);
-//    mbedtls_debug_set_threshold(3);
+#ifdef TLS_DEBUG
+    mbedtls_ssl_conf_dbg((mbedtls_ssl_config*)tls_config, my_debug, NULL);
+    mbedtls_debug_set_threshold(3);
+#endif
 #endif
 
 	if (!ipaddr_aton(MQTT_BROKER_IP_STR, &broker_ip)) {
@@ -159,11 +162,12 @@ void mqtt_pub_request_cb(void *arg, err_t result) {
 			}
 			mqtt_client_free(mqtt_client);
 			mqtt_client = NULL;
-			printf(
-					"Connection lost, resources freed, ready for reconnection\n");
+			printf("Connection lost, resources freed, ready for reconnection\n");
 		}
 	} else {
-		printf("Publish request successful\n");
+#ifdef MQTT_CLIENT_DEBUG
+        printf("Publish request successful\n");
+#endif
 	}
 }
 
@@ -203,7 +207,10 @@ err_t client_mqtt_publish_sensor_data(void) {
            "\"voltage\":%.2f,\"current\":%.2f}", temperature, accel_x,
            accel_y, accel_z, voltage, current);
 
+#ifdef MQTT_CLIENT_DEBUG
   printf("Publishing to topic: %s, Payload: %s\n", "sensors/data", payload);
+#endif
+
   err_t err = mqtt_publish(mqtt_client, "sensors/data", payload,
                           strlen(payload), 0, 0, mqtt_pub_request_cb, NULL);
   if (err != ERR_OK) {

@@ -119,7 +119,9 @@ err_t LwIP_ADIN1110LinkInput(struct netif *netif) {
 
 	struct pbuf *p = (struct pbuf*) readPQ(&pQ[0]);
 	if (p == NULL) {
-		DEBUG_MESSAGE("Failed to read packet from the queue.\r\n");
+#ifdef QUEUE_DEBUG
+        DEBUG_MESSAGE("Failed to read packet from the queue.\r\n");
+#endif
 		return ERR_MEM;
 	}
 
@@ -425,7 +427,9 @@ void writePQ(pQueue_t *pQ, uint8_t *ethFrame, int lenEthFrame) {
 
 void* readPQ(pQueue_t *pQ) {
 	if (pQ->nRdQ == pQ->nWrQ) {
-		DEBUG_MESSAGE("ERROR: Queue empty, no packet to read!\n");
+#ifdef QUEUE_DEBUG
+        DEBUG_MESSAGE("ERROR: Queue empty, no packet to read!\n");
+#endif
 		return NULL;
 	}
 	int ethFrmLen = pQ->lenData[pQ->nRdQ];

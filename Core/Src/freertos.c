@@ -352,8 +352,10 @@ void SensorDataMQTTTask(void *argument) {
 
             TickType_t currentTime = xTaskGetTickCount();
             if (lastPublishTime != 0) {
+#ifdef MQTT_CLIENT_DEBUG
                 printf("Time since last publish: %lu ms\n",
                        (unsigned long)((currentTime - lastPublishTime) * portTICK_PERIOD_MS));
+#endif
             }
             lastPublishTime = currentTime;
 

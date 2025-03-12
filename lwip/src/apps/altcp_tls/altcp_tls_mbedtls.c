@@ -1058,7 +1058,9 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
   }
   in_write = 1;
 
+#ifdef TLS_DEBUG
   printf("altcp_mbedtls_write called from task: %s\n", pcTaskGetName(NULL));
+#endif
 
   if (write_buffer_len + len > sizeof(write_buffer)) {
     printf("Buffer overflow in altcp_mbedtls_write\n");
@@ -1096,11 +1098,13 @@ altcp_mbedtls_write(struct altcp_pcb *conn, const void *dataptr, u16_t len, u8_t
       return ERR_VAL;
     }
 
+#ifdef TLS_DEBUG
     printf("Sending MQTT packet of length %lu: ", (unsigned long)packet_len);
     for (size_t j = 0; j < packet_len; j++) {
-      printf("%02X ", write_buffer[j]);
+       printf("%02X ", write_buffer[j]);
     }
     printf("\n");
+#endif
 
     ret = mbedtls_ssl_write(&state->ssl_context, write_buffer, packet_len);
     if (ret == packet_len) {
