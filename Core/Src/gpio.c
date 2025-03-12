@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "gpio.h"
+
 /* USER CODE BEGIN 0 */
 static          ADI_CB gpfIntCallback = NULL;
 static void     *gpIntCBParam = NULL;
