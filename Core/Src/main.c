@@ -34,13 +34,10 @@
 #include "frames.h"
 #ifdef USE_LWIP
 #include "lwIP_adin1110_app.h"
-#include "lwip/timeouts.h"
-#include "lwip/etharp.h"
 #endif /* USE_LWIP */
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-#include "tmp102.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
