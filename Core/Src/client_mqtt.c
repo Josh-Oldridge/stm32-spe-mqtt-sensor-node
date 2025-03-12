@@ -71,6 +71,8 @@ void client_mqtt_init(void) {
 	mbedtls_ssl_conf_max_frag_len((mbedtls_ssl_config*) tls_config,
 			MBEDTLS_SSL_MAX_FRAG_LEN_4096);
 	ci.tls_config = tls_config;
+
+	/* Uncomment for mbedtls Debug Messages */
 //    mbedtls_ssl_conf_dbg((mbedtls_ssl_config*) tls_config, my_debug, NULL);
 //    mbedtls_debug_set_threshold(3);
 #endif
