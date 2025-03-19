@@ -9,7 +9,18 @@
  *---------------------------------------------------------------------------
  */
 
-/** @addtogroup phy PHY Definitions
+/**
+ * @file    adi_phy.h
+ * @brief   Definitions for the ADI Ethernet PHY driver.
+ * @details Provides types, macros, and structures for the ADIN1110 PHY driver used
+ *          in the CN0575 SPE board, interfacing with the STM32L496ZG-P Nucleo board
+ *          over SPI (via an internal SPI-to-MDIO bridge) to manage 10BASE-T1L Ethernet
+ *          communication. Supports link status and diagnostics for secure MQTT transmission
+ *          over TLSv1.2 using lwIP and mbedtls. Note: MDIO references are abstracted over SPI
+ *          for the ADIN1110; no separate MDIO bus is used.
+ */
+
+/** @addtogroup phy ADI PHY Driver
  *  @{
  */
 
