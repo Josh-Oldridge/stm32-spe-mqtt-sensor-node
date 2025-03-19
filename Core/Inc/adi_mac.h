@@ -15,6 +15,7 @@
  * @details Provides types, macros, and structures for the ADIN1110 MAC driver used
  *          in the CN0575 SPE board, interfacing with the STM32L496ZG-P Nucleo board
  *          over SPI to transmit sensor data via MQTT with lwIP and mbedtls (TLSv1.2).
+ *          Includes SPI-to-MDIO bridge access for PHY registers.
  */
 
 /** @addtogroup mac ADI MAC Driver
@@ -201,7 +202,7 @@ typedef struct
 {
     void            *pDevMem;           /*!< Pointer to memory area used by the driver.                                                         */
     uint32_t        devMemSize;         /*!< Size of the memory used by the driver. Needs to be greater than or equal to #ADI_MAC_DEVICE_SIZE.  */
-    bool            fcsCheckEn;         /*!< Configure the driver to check  */
+    bool            fcsCheckEn;         /*!< Enable Frame Check Sequence validation on the host for SPI transactions. */
 } adi_mac_DriverConfig_t;
 
 /*!
@@ -578,8 +579,8 @@ typedef struct
  */
 typedef struct
 {
-    adi_mac_FrameHeader_t   header;                 /*!< Frame header.                                  */
-    adi_eth_BufDesc_t       *pBufDesc;              /*!< Pointer to the buffer descriptor.              */
+    adi_mac_FrameHeader_t   header;                 /*!< Frame header containing metadata. */
+    adi_eth_BufDesc_t       *pBufDesc;              /*!< Pointer to the buffer descriptor. */
 } adi_mac_FrameStruct_t;
 
 /*!
@@ -587,76 +588,67 @@ typedef struct
  */
 typedef struct
 {
-    adi_mac_FrameStruct_t       *pEntries;          /*!< Pointer to the frames in the queue.                */
-    uint32_t                    numEntries;         /*!< Number of frames that can be held in the queue.    */
-    volatile uint32_t           head;               /*!< Queue head index.                                  */
-    volatile uint32_t           tail;               /*!< Queue tail index.                                  */
+    adi_mac_FrameStruct_t       *pEntries;          /*!< Pointer to the frames in the queue. */
+    uint32_t                    numEntries;         /*!< Number of frames that can be held in the queue. */
+    volatile uint32_t           head;               /*!< Queue head index (next to dequeue). */
+    volatile uint32_t           tail;               /*!< Queue tail index (next to enqueue). */
 } adi_mac_Queue_t;
-
-
 
 /*!
  * @brief Device descriptor structure.
  */
 typedef struct
 {
-    volatile adi_mac_State_e        state;                                      /*!< MAC state.                                             */
-    volatile adi_mac_SpiState_e     spiState;                                   /*!< SPI state.                                             */
-    volatile uint32_t               spiErr;                                     /*!< Pointer to the high-level device ADINxxxx.             */
-    adi_eth_Callback_t              cbFunc[ADI_MAC_EVT_MAX];                    /*!< Callback function pointers.                            */
-    void                            *cbParam[ADI_MAC_EVT_MAX];                  /*!< Callback functions parameters.                         */
-    void                            *adinDevice;                                /*!< Pointer to the high-level device ADINxxxx.             */
-    uint32_t                        phyAddr;                                    /*!< Address of the PHY device.                             */
-    uint16_t                        addrFilterActive;                           /*!< Mark address filter entries as active/inactive.        */
-    uint32_t                        irqMask0;                                   /*!< Interrupt mask for the STATUS0 register.               */
-    uint32_t                        irqMask1;                                   /*!< Interrupt mask for the STATUS1 register.               */
-    adi_mac_FrameStruct_t           txQueueFrames[TX_QUEUE_NUM_ENTRIES_RAW];    /*!< Transmit frames held by \ref txQueue.                  */
-    adi_mac_Queue_t                 txQueue;                                    /*!< Transmit frames queue.                                 */
-    adi_mac_Queue_t                 *pRxQueue;                                  /*!< Pointer to active receive frames queue.                */
-    adi_mac_FrameStruct_t           rxQueueLpFrames[RX_QUEUE_NUM_ENTRIES_RAW];  /*!< Receive frames held by \ref rxQueueLp.                 */
-    adi_mac_Queue_t                 rxQueueLp;                                  /*!< Receive frames queue.                                  */
+    volatile adi_mac_State_e        state;                                      /*!< MAC driver state. */
+    volatile adi_mac_SpiState_e     spiState;                                   /*!< SPI interface state. */
+    volatile uint32_t               spiErr;                                     /*!< SPI error status. */
+    adi_eth_Callback_t              cbFunc[ADI_MAC_EVT_MAX];                    /*!< Callback function pointers for events. */
+    void                            *cbParam[ADI_MAC_EVT_MAX];                  /*!< Callback function parameters. */
+    void                            *adinDevice;                                /*!< Pointer to the associated ADIN device (e.g., HAL context). */
+    uint32_t                        phyAddr;                                    /*!< Address of the PHY on the internal MDIO bus. */
+    uint16_t                        addrFilterActive;                           /*!< Bitmask of active address filter entries. */
+    uint32_t                        irqMask0;                                   /*!< Interrupt mask for STATUS0 register. */
+    uint32_t                        irqMask1;                                   /*!< Interrupt mask for STATUS1 register. */
+    adi_mac_FrameStruct_t           txQueueFrames[TX_QUEUE_NUM_ENTRIES_RAW];    /*!< Transmit frames held by txQueue. */
+    adi_mac_Queue_t                 txQueue;                                    /*!< Transmit frames queue. */
+    adi_mac_Queue_t                 *pRxQueue;                                  /*!< Pointer to active receive queue (low or high priority). */
+    adi_mac_FrameStruct_t           rxQueueLpFrames[RX_QUEUE_NUM_ENTRIES_RAW];  /*!< Low-priority receive frames held by rxQueueLp. */
+    adi_mac_Queue_t                 rxQueueLp;                                  /*!< Low-priority receive frames queue. */
 #if defined(ADI_MAC_ENABLE_RX_QUEUE_HI_PRIO)
-    adi_mac_FrameStruct_t           rxQueueHpFrames[RX_QUEUE_NUM_ENTRIES_RAW];  /*!< High priority receive frames held by \ref rxQueueHp.   */
-    adi_mac_Queue_t                 rxQueueHp;                                  /*!< High priority receive frames queue.                    */
+    adi_mac_FrameStruct_t           rxQueueHpFrames[RX_QUEUE_NUM_ENTRIES_RAW];  /*!< High-priority receive frames held by rxQueueHp. */
+    adi_mac_Queue_t                 rxQueueHp;                                  /*!< High-priority receive frames queue. */
 #endif
-
-    volatile bool                   pendingCtrl;                                /*!< Pending control transaction request flag.              */
-    bool                            configSync;                                 /*!< Configuration has been synchronized.                   */
-    bool                            fcsCheckEn;                                 /*!< Enable Frame Check Sequence validation on the host.    */
-    adi_mac_TsFormat_e              timestampFormat;                            /*!< Format of ingress/egress timestamp.                    */
-    adi_mac_StatusRegisters_t       statusRegisters;                            /*!< Status register values updated on interrupt assertion. */
-    uint32_t                        phyIrqMask;                                 /*!< Interrupt mask for PHY status regsiters.               */
+    volatile bool                   pendingCtrl;                                /*!< Flag for pending control transaction request. */
+    bool                            configSync;                                 /*!< Configuration synchronized flag. */
+    bool                            fcsCheckEn;                                 /*!< Enable FCS validation on host for SPI transactions. */
+    adi_mac_TsFormat_e              timestampFormat;                            /*!< Format of ingress/egress timestamps. */
+    adi_mac_StatusRegisters_t       statusRegisters;                            /*!< Status register values updated on interrupt. */
+    uint32_t                        phyIrqMask;                                 /*!< Interrupt mask for PHY status registers. */
 
 #if defined(SPI_OA_EN)
-    /* Only used for OA SPI */
-    uint32_t                        oaTxc;                                      /*!< TXC value read from the OA footer.                     */
-    uint32_t                        oaRca;                                      /*!< RCA value read from the OA footer.                     */
-    uint32_t                        oaTxCurBufByteOffset;                       /*!< Current byte offset in the OA Tx buffer.               */
-    uint32_t                        oaRxCurBufByteOffset;                       /*!< Current byte offset in the OA Rx buffer.               */
-    uint32_t                        oaTxCurBufIdx;                              /*!< Current Tx buffer index in the OA Tx queue.            */
-    uint32_t                        oaRxCurBufIdx;                              /*!< Current Rx buffer index in the OA Rx queue.            */
-    uint32_t                        oaCps;                                      /*!< OA Chunk Payload Selector currently configured.        */
-    uint32_t                        oaMaxChunkCount;                            /*!< Maximum number of chunks in an OA SPI transaction.     */
-    uint32_t                        oaTrxSize;                                  /*!< Latest/current OA transaction size, in bytes.          */
-    bool                            oaTimestampSplit;                           /*!< Current 64b timestamp is split across OA chunks.       */
-    uint8_t                         oaTimestampParity;                          /*!< RTSP value read form the OA footer.                    */
-    adi_mac_OaValidFlag_e           oaValidFlag;                                /*!< Latest valid flag (EV or SV) from the OA footer.       */
-    adi_mac_OaErrorStats_t          oaErrorStats;                               /*!< OA Error statistics.                                   */
-    bool                            oaRxUseBackupBuf;                           /*!< Use OA Rx backup buffer (if Rx queue is empty).
-                                                                                 *   Note this is not currently used!                       */
-    uint32_t                        oaRxBufChunkStart;                          /*!< Start of the first unprocessed chunk when OA Rx
-                                                                                 *   backup buffer engaged.
-                                                                                 *   Note this is not currently used!                       */
-    uint32_t                        oaRxBufTrxSize;                             /*!< Transaction size when OA Rx backup buffer engaged.
-                                                                                 *   Note this is not currently used!                       */
-    uint8_t                         oaRxBackupBuf[ADI_OA_RX_BACKUP_BUF_SIZE];   /*!< OA Rx backup buffer size, in bytes.
-                                                                                 *   Note this is not currently used!                       */
-    uint32_t                        wnr;                                        /*!< Write (1) or read (0) OA control transactions.         */
-    uint32_t                        regAddr;                                    /*!< Register address for OA control transactions.          */
-    uint32_t                        *pRegData;                                  /*!< Pointer to register data for OA control transactions.  */
-    uint32_t                        cnt;                                        /*!< Register count for OA control transactions.            */
-    uint8_t                         ctrlTxBuf[ADI_MAC_SPI_CTRL_BUF_SIZE];       /*!< Transmit (write) buffer for OA control transactions.   */
-    uint8_t                         ctrlRxBuf[ADI_MAC_SPI_CTRL_BUF_SIZE];       /*!< Receive (read) buffer for OA control transactions.     */
+    uint32_t                        oaTxc;                                      /*!< TXC value from OA footer. */
+    uint32_t                        oaRca;                                      /*!< RCA value from OA footer. */
+    uint32_t                        oaTxCurBufByteOffset;                       /*!< Current byte offset in OA Tx buffer. */
+    uint32_t                        oaRxCurBufByteOffset;                       /*!< Current byte offset in OA Rx buffer. */
+    uint32_t                        oaTxCurBufIdx;                              /*!< Current Tx buffer index in OA Tx queue. */
+    uint32_t                        oaRxCurBufIdx;                              /*!< Current Rx buffer index in OA Rx queue. */
+    uint32_t                        oaCps;                                      /*!< OA Chunk Payload Selector value. */
+    uint32_t                        oaMaxChunkCount;                            /*!< Maximum chunks in an OA SPI transaction. */
+    uint32_t                        oaTrxSize;                                  /*!< Latest/current OA transaction size (bytes). */
+    bool                            oaTimestampSplit;                           /*!< 64-bit timestamp split across OA chunks. */
+    uint8_t                         oaTimestampParity;                          /*!< RTSP value from OA footer. */
+    adi_mac_OaValidFlag_e           oaValidFlag;                                /*!< Latest valid flag (EV or SV) from OA footer. */
+    adi_mac_OaErrorStats_t          oaErrorStats;                               /*!< OA error statistics. */
+    bool                            oaRxUseBackupBuf;                           /*!< Use OA Rx backup buffer if Rx queue empty (unused). */
+    uint32_t                        oaRxBufChunkStart;                          /*!< Start of unprocessed chunk in OA Rx backup (unused). */
+    uint32_t                        oaRxBufTrxSize;                             /*!< Transaction size in OA Rx backup (unused). */
+    uint8_t                         oaRxBackupBuf[ADI_OA_RX_BACKUP_BUF_SIZE];   /*!< OA Rx backup buffer (unused). */
+    uint32_t                        wnr;                                        /*!< Write (1) or read (0) for OA control transactions. */
+    uint32_t                        regAddr;                                    /*!< Register address for OA control transactions. */
+    uint32_t                        *pRegData;                                  /*!< Pointer to register data for OA control transactions. */
+    uint32_t                        cnt;                                        /*!< Register count for OA control transactions. */
+    uint8_t                         ctrlTxBuf[ADI_MAC_SPI_CTRL_BUF_SIZE];       /*!< Transmit buffer for OA control transactions. */
+    uint8_t                         ctrlRxBuf[ADI_MAC_SPI_CTRL_BUF_SIZE];       /*!< Receive buffer for OA control transactions. */
 #endif
 } adi_mac_Device_t;
 
