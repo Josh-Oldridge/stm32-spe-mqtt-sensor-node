@@ -15,7 +15,8 @@
  * @details Contains the driver logic for the ADIN1110 MAC, interfacing with the
  *          STM32L496ZG-P Nucleo board via SPI to manage Ethernet communication
  *          for the CN0575 SPE board. Integrates with lwIP and mbedtls for secure
- *          MQTT transmission of sensor data over TLSv1.2.
+ *          MQTT transmission of sensor data over TLSv1.2. Uses an internal
+ *          SPI-to-MDIO bridge for PHY register access.
  */
 
 /** @addtogroup mac ADI MAC Driver
@@ -73,13 +74,13 @@ static adi_eth_Result_e     MAC_ProcessTxQueue  (adi_mac_Device_t *hDevice);
 
 /**
  * @brief Initialize a MAC queue.
- * @details Sets up a queue structure with the provided frame entries and size,
- *          initializing all headers and buffer descriptors to zero.
  * @param [in] pQueue Pointer to the queue structure.
  * @param [in] pEntries Array of frame structures for the queue.
  * @param [in] numEntries Number of entries in the queue (raw size).
+ * @details Sets up a queue structure with the provided frame entries and size,
+ *          initializing all headers and buffer descriptors to zero. Used for
+ *          Tx and Rx queues in the ADIN1110 MAC driver on the CN0575 SPE board.
  */
-
 void queueInit(adi_mac_Queue_t *pQueue, adi_mac_FrameStruct_t *pEntries, uint32_t numEntries)
 {
     /* This is the _RAW value */
@@ -99,6 +100,9 @@ void queueInit(adi_mac_Queue_t *pQueue, adi_mac_FrameStruct_t *pEntries, uint32_
  * @brief Calculate the number of items in a queue.
  * @param [in] pQueue Pointer to the queue structure.
  * @return Number of items currently in the queue.
+ * @details Inline function to compute the count using head and tail indices,
+ *          accounting for wrap-around with PSEUDO_MODULO. Used in the ADIN1110
+ *          MAC driver for managing Tx and Rx queues on the CN0575 SPE board.
  */
 static inline uint32_t queueCount(adi_mac_Queue_t *pQueue)
 {
@@ -109,17 +113,38 @@ static inline uint32_t queueCount(adi_mac_Queue_t *pQueue)
     return PSEUDO_MODULO(n, pQueue->numEntries);
 }
 
-
+/**
+ * @brief Calculate the number of available slots in a queue.
+ * @param [in] pQueue Pointer to the queue structure.
+ * @return Number of available slots in the queue.
+ * @details Computes the remaining capacity of the queue by subtracting the current
+ *          count from the maximum usable slots (numEntries - 1), accounting for
+ *          one reserved slot in the ADIN1110’s queue design.
+ */
 uint32_t queueAvailable(adi_mac_Queue_t *pQueue)
 {
     return (pQueue->numEntries - 1) - queueCount(pQueue);
 }
 
+/**
+ * @brief Check if the queue is full.
+ * @param [in] pQueue Pointer to the queue structure.
+ * @return True if the queue is full, false otherwise.
+ * @details Determines if the queue has reached its maximum usable capacity
+ *          (numEntries - 1) in the ADIN1110 MAC driver, reserving one slot.
+ */
 bool queueIsFull(adi_mac_Queue_t *pQueue)
 {
     return (pQueue->numEntries - 1) == queueCount(pQueue);
 }
 
+/**
+ * @brief Check if the queue is empty.
+ * @param [in] pQueue Pointer to the queue structure.
+ * @return True if the queue is empty, false otherwise.
+ * @details Compares head and tail indices to determine if the queue is empty
+ *          in the ADIN1110 MAC driver’s Tx or Rx queues.
+ */
 bool queueIsEmpty(adi_mac_Queue_t *pQueue)
 {
     uint32_t head = pQueue->head;
@@ -128,12 +153,24 @@ bool queueIsEmpty(adi_mac_Queue_t *pQueue)
     return head == tail;
 }
 
+/**
+ * @brief Add an item to the queue.
+ * @param [in] pQueue Pointer to the queue structure.
+ * @details Increments the head index with wrap-around using PSEUDO_MODULO,
+ *          adding a frame to the ADIN1110’s Tx or Rx queue. Assumes queue is not full.
+ */
 void queueAdd(adi_mac_Queue_t *pQueue)
 {
     uint32_t n = pQueue->head + 1;
     pQueue->head = PSEUDO_MODULO(n, pQueue->numEntries);
 }
 
+/**
+ * @brief Remove an item from the queue.
+ * @param [in] pQueue Pointer to the queue structure.
+ * @details Increments the tail index with wrap-around using PSEUDO_MODULO,
+ *          removing a frame from the ADIN1110’s Tx or Rx queue. Assumes queue is not empty.
+ */
 void queueRemove(adi_mac_Queue_t *pQueue)
 {
     uint32_t n = pQueue->tail + 1;
@@ -151,13 +188,13 @@ void queueRemove(adi_mac_Queue_t *pQueue)
 #if !defined(SPI_OA_EN)
 /**
  * @brief Handle MAC interrupts for Generic SPI.
- * @details Processes interrupt events from the MAC, reading and clearing status
- *          registers, updating device state, and invoking registered callbacks
- *          for link changes, timestamps, or general status. Manages Rx/Tx queue
- *          operations based on interrupt conditions.
  * @param [in] pCBParam Pointer to the MAC device structure (cast from void*).
  * @param [in] Event Event ID (unused in this implementation).
  * @param [in] pArg Event-specific argument (unused in this implementation).
+ * @details Processes interrupt events from the ADIN1110 MAC, reading and clearing
+ *          status registers over SPI, updating device state, and invoking registered
+ *          callbacks for link changes, timestamps, or general status. Manages Rx/Tx
+ *          queue operations based on interrupt conditions (e.g., RX_RDY, TX_RDY).
  */
 static void macCallback(void *pCBParam, uint32_t Event, void *pArg)
 {
@@ -466,7 +503,14 @@ end:
 
 }
 #else
-
+/**
+ * @brief Handle MAC interrupts for OPEN Alliance SPI.
+ * @param [in] pCBParam Pointer to the MAC device structure (cast from void*).
+ * @param [in] Event Event ID (unused in this implementation).
+ * @param [in] pArg Event-specific argument (unused in this implementation).
+ * @details Delegates interrupt handling to oaIrqHandler for OA SPI protocol,
+ *          managing state transitions and callbacks via the OA state machine.
+ */
 static void macCallback(void *pCBParam, uint32_t Event, void *pArg)
 {
     adi_mac_Device_t    *hDevice = (adi_mac_Device_t *)pCBParam;
@@ -487,6 +531,15 @@ static void macCallback(void *pCBParam, uint32_t Event, void *pArg)
 /****************************************/
 /****************************************/
 
+/**
+ * @brief Initialize the MAC device.
+ * @param [out] phDevice Pointer to store the device handle.
+ * @param [in] cfg Pointer to driver configuration structure.
+ * @param [in] adinDevice Pointer to associated ADIN device (e.g., HAL context).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets up the ADIN1110 MAC via SPI, initializing queues, interrupts,
+ *          and performing a full reset. Configures FCS validation based on cfg.
+ */
 adi_eth_Result_e MAC_Init(adi_mac_Device_t **phDevice, adi_mac_DriverConfig_t *cfg, void *adinDevice)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -592,8 +645,10 @@ end:
 
 /**
  * @brief Initialize MAC registers and interrupts.
- * @details Configures interrupt masks, FCS settings, and registers the IRQ callback.
- *          Called during initialization or reset to ensure the MAC is properly set up.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures interrupt masks, FCS settings, and registers the IRQ callback
+ *          via SPI. Called during initialization or reset to set up the ADIN1110 MAC.
  */
 static adi_eth_Result_e macInit(adi_mac_Device_t *hDevice)
 {
@@ -720,9 +775,10 @@ end:
 }
 
 /*
- * @brief           MAC device uninitialization.
- * @param [in]      hDevice     Device driver handle.
- * @return 0 in case of success, positive error code otherwise.
+ * @brief MAC device uninitialization.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success, ADI_ETH_INVALID_HANDLE if hDevice is NULL.
+ * @details Disables interrupts and resets the MAC state to uninitialized.
  */
 adi_eth_Result_e MAC_UnInit(adi_mac_Device_t *hDevice)
 {
@@ -743,9 +799,12 @@ end:
 }
 
 /*
- * @brief Reset MAC IC
- * @param [in] dev - Pointer to the HW driver.
- * @return 0 in case of success, positive error code otherwise.
+ * @brief Reset MAC IC.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] resetType Type of reset (MAC-only or MAC+PHY).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Performs a software reset via SPI, retrying if needed during power-up,
+ *          and reinitializes the MAC. Disables IRQ during reset, re-enabled by SyncConfig.
  */
 adi_eth_Result_e MAC_Reset(adi_mac_Device_t *hDevice, adi_eth_ResetType_e resetType)
 {
@@ -841,8 +900,13 @@ end:
 
 /*
  * @brief Register callback function for MAC.
- * @param [in]      hDevice     Device driver handle.
- * @return 0 in case of success, positive error code otherwise.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] cbFunc Callback function to register.
+ * @param [in] cbEvent Event to trigger the callback.
+ * @param [in] cbParam Parameter passed to the callback.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Registers a callback for specific MAC events, updating interrupt masks
+ *          via SPI as needed (e.g., link change, timestamp ready).
  */
 adi_eth_Result_e MAC_RegisterCallback(adi_mac_Device_t *hDevice, adi_eth_Callback_t cbFunc, adi_mac_InterruptEvt_e cbEvent, void *cbParam)
 {
@@ -907,6 +971,15 @@ end:
     return result;
 }
 
+/*
+ * @brief Read a MAC register.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] regAddr Register address to read.
+ * @param [out] regData Pointer to store the register value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads a 32-bit register value via SPI, handling timeouts and byte order
+ *          conversion for Generic SPI, or using the OA state machine for OA SPI.
+ */
 adi_eth_Result_e MAC_ReadRegister(adi_mac_Device_t *hDevice, uint16_t regAddr, uint32_t *regData)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1000,6 +1073,15 @@ end:
     return result;
 }
 
+/*
+ * @brief Write to a MAC register.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] regAddr Register address to write.
+ * @param [in] regData Value to write to the register.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Writes a 32-bit value to a register via SPI, handling timeouts and byte
+ *          order conversion for Generic SPI, or using the OA state machine for OA SPI.
+ */
 adi_eth_Result_e MAC_WriteRegister(adi_mac_Device_t *hDevice, uint16_t regAddr, uint32_t regData)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1094,10 +1176,11 @@ end:
 
 /**
  * @brief Wait for MDIO transaction to complete.
- * @details Polls the MDIO ready bit with a retry limit to ensure the transaction finishes.
  * @param [in] hDevice Pointer to the MAC device structure.
- * @param [in] addrOffset MDIO register address offset.
+ * @param [in] addrOffset MDIO register address offset (e.g., ADDR_MAC_MDIOACC_0_ or ADDR_MAC_MDIOACC_1_).
  * @return ADI_ETH_SUCCESS if ready, ADI_ETH_MDIO_TIMEOUT if timed out.
+ * @details Polls the MDIO ready bit (MDIO_TRDONE) via SPI with a retry limit to ensure the transaction
+ *          completes. Used for PHY register access through the SPI-to-MDIO bridge in the ADIN1110.
  */
 adi_eth_Result_e waitMdioReady(adi_mac_Device_t *hDevice, uint16_t addrOffset)
 {
@@ -1126,9 +1209,10 @@ adi_eth_Result_e waitMdioReady(adi_mac_Device_t *hDevice, uint16_t addrOffset)
 
 /**
  * @brief Wait for the MAC device to be ready after reset.
- * @details Polls the PHYID and STATUS0 registers to confirm the device is operational.
  * @param [in] hDevice Pointer to the MAC device structure.
  * @return ADI_ETH_SUCCESS if ready, ADI_ETH_SW_RESET_TIMEOUT or ADI_ETH_COMM_TIMEOUT on failure.
+ * @details Polls the PHYID and STATUS0 registers via SPI to confirm the ADIN1110 is operational
+ *          post-reset. Ensures the device is powered up and reset is complete.
  */
 adi_eth_Result_e waitDeviceReady(adi_mac_Device_t *hDevice)
 {
@@ -1177,14 +1261,15 @@ end:
 }
 
 /*
- * @brief PHY Register Read via SPI<->MDIO bridge
- * @param [in] hDevice - Pointer to the MAC device driver handle.
- * @param [in] hwAddr - PHY MDIO hardware address (0-31), identifying the PHY port.
- * @param [in] regAddr - PHY MDIO register address (32-bit, combining device type and register).
- * @param [out] regData - Pointer to a 16-bit buffer to store the read register value.
- * @return 0 in case of success, positive error code otherwise.
- * @details Uses the SPI-to-MDIO bridge to read a PHY register in two steps: first sets the address
- *          in MDIOACC_0, then performs the read via MDIOACC_1, supporting Clause 45 addressing.
+ * @brief PHY Register Read via SPI-to-MDIO bridge.
+ * @param [in] hDevice Pointer to the MAC device driver handle.
+ * @param [in] hwAddr PHY MDIO hardware address (0-31), identifying the PHY port.
+ * @param [in] regAddr PHY MDIO register address (32-bit, combining device type and register).
+ * @param [out] regData Pointer to a 16-bit buffer to store the read register value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Uses the ADIN1110’s SPI-to-MDIO bridge to read a PHY register in two steps:
+ *          1) Sets the address in MDIOACC_0_, 2) Performs the read via MDIOACC_1_.
+ *          Supports Clause 45 addressing for the CN0575 SPE board’s PHY access.
  */
 adi_eth_Result_e MAC_PhyRead(adi_mac_Device_t *hDevice,  uint8_t hwAddr, uint32_t regAddr, uint16_t *regData)
 {
@@ -1225,6 +1310,17 @@ end:
     return result;
 }
 
+/*
+ * @brief PHY Register Write via SPI-to-MDIO bridge.
+ * @param [in] hDevice Pointer to the MAC device driver handle.
+ * @param [in] hwAddr PHY MDIO hardware address (0-31), identifying the PHY port.
+ * @param [in] regAddr PHY MDIO register address (32-bit, combining device type and register).
+ * @param [in] data 16-bit value to write to the register.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Uses the ADIN1110’s SPI-to-MDIO bridge to write a PHY register in two steps:
+ *          1) Sets the address in MDIOACC_0_, 2) Writes the data via MDIOACC_1_.
+ *          Supports Clause 45 addressing for the CN0575 SPE board’s PHY access.
+ */
 adi_eth_Result_e MAC_PhyWrite(adi_mac_Device_t *hDevice,  uint8_t hwAddr, uint32_t regAddr, uint16_t data)
 {
     adi_eth_Result_e       result = ADI_ETH_SUCCESS;
@@ -1262,6 +1358,15 @@ end:
     return result;
 }
 
+/*
+ * @brief Submit a buffer to the transmit queue.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] header Frame header with metadata (e.g., timestamp, priority).
+ * @param [in] pBufDesc Buffer descriptor containing frame data and settings.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Adds a frame to the ADIN1110’s Tx queue via SPI, calculating FCS if enabled,
+ *          and triggers transmission if the MAC is ready.
+ */
 adi_eth_Result_e MAC_SubmitTxBuffer(adi_mac_Device_t *hDevice, adi_mac_FrameHeader_t header, adi_eth_BufDesc_t *pBufDesc)
 {
     adi_eth_Result_e          result = ADI_ETH_SUCCESS;
@@ -1331,7 +1436,14 @@ end:
     return result;
 }
 
-
+/*
+ * @brief Submit a buffer to the low-priority receive queue.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] pBufDesc Buffer descriptor for receiving frames.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Adds a buffer to the ADIN1110’s low-priority Rx queue, unmasking RX_RDY
+ *          interrupts for Generic SPI or triggering an OA SPI data transaction.
+ */
 adi_eth_Result_e MAC_SubmitRxBuffer(adi_mac_Device_t *hDevice, adi_eth_BufDesc_t *pBufDesc)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1408,6 +1520,14 @@ end:
 }
 
 #if defined(ADI_MAC_ENABLE_RX_QUEUE_HI_PRIO)
+/*
+ * @brief Submit a buffer to the high-priority receive queue.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] pBufDesc Buffer descriptor for receiving frames.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Adds a buffer to the ADIN1110’s high-priority Rx queue, unmasking RX_RDY
+ *          interrupts for Generic SPI or triggering an OA SPI data transaction.
+ */
 adi_eth_Result_e MAC_SubmitRxBufferHp(adi_mac_Device_t *hDevice, adi_eth_BufDesc_t *pBufDesc)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1486,7 +1606,10 @@ end:
 
 /**
  * @brief Process the transmit queue.
- * @details Sends frames from the Tx queue when the MAC is ready, managing IRQ states.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sends frames from the Tx queue via SPI when the ADIN1110 MAC is ready,
+ *          managing IRQ states to ensure safe transmission.
  */
 adi_eth_Result_e MAC_ProcessTxQueue(adi_mac_Device_t *hDevice)
 {
@@ -1522,13 +1645,14 @@ adi_eth_Result_e MAC_ProcessTxQueue(adi_mac_Device_t *hDevice)
 }
 
 /*
- * @brief  MAC Get Statistics Counters
- * @param [in] hDevice - Pointer to the HW driver.
- * @param [in] port - Port number (0 or 1) to retrieve statistics for; ignored for single-port devices.
- * @param [out] stat - Statistics counters.
- * @return 0 in case of success, positive error code otherwise.
- * @details For ADIN2111 (multi-port device), port selects between Port 1 (0) and Port 2 (1) counters.
- *          For single-port devices (e.g., ADIN1110), port is ignored, and Port 1 counters are used.
+ * @brief Get MAC Statistics Counters.
+ * @param [in] hDevice Pointer to the MAC device driver handle.
+ * @param [in] port Port number (0 or 1) to retrieve statistics for; ignored for single-port devices.
+ * @param [out] stat Pointer to statistics counters structure.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads ADIN1110 statistics counters via SPI. For ADIN2111 (multi-port),
+ *          port selects between Port 1 (0) and Port 2 (1). For ADIN1110 (single-port),
+ *          port is ignored, and Port 1 counters are used. Uses burst read for Generic SPI.
  */
 adi_eth_Result_e MAC_GetStatCounters(adi_mac_Device_t *hDevice, uint32_t port, adi_eth_MacStatCounters_t *stat)
 {
@@ -1667,6 +1791,16 @@ end:
     return result;
 }
 
+/*
+ * @brief Add an address filter entry.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] macAddr Pointer to 6-byte MAC address.
+ * @param [in] macAddrMask Pointer to 6-byte MAC address mask (NULL for exact match).
+ * @param [in] addrRule Address rule bitmask (e.g., TO_HOST, APPLY2PORT1).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures an address filter entry in the ADIN1110 via SPI, supporting
+ *          masked or exact matches for frame forwarding rules.
+ */
 adi_eth_Result_e MAC_AddAddressFilter(adi_mac_Device_t *hDevice, uint8_t *macAddr, uint8_t *macAddrMask, uint16_t addrRule)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1762,6 +1896,14 @@ end:
     return result;
 }
 
+/*
+ * @brief Clear an address filter entry.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] addrIndex Index of the address filter entry to clear (0-15).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Disables an address filter entry in the ADIN1110 by writing zero to its
+ *          upper register via SPI and updating the active filter bitmask.
+ */
 adi_eth_Result_e MAC_ClearAddressFilter(adi_mac_Device_t *hDevice, uint32_t addrIndex)
 {
     adi_eth_Result_e        result = ADI_ETH_SUCCESS;
@@ -1800,6 +1942,15 @@ end:
     return result;
 }
 
+/*
+ * @brief Get link status.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] port Port number (ignored for ADIN1110 single-port devices).
+ * @param [out] linkStatus Pointer to store the link status (UP or DOWN).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110’s STATUS1 register via SPI to determine link status
+ *          for single-port devices. Not implemented for ADIN2111 (multi-port).
+ */
 adi_eth_Result_e MAC_GetLinkStatus(adi_mac_Device_t *hDevice, uint32_t port, adi_eth_LinkStatus_e *linkStatus)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1826,6 +1977,14 @@ end:
 }
 
 #if defined(SPI_OA_EN)
+/*
+ * @brief Set chunk size for OPEN Alliance SPI.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] cps Chunk Payload Selector value (e.g., 8, 16, 32, 64 bytes).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110’s CONFIG0 register via SPI to set the OA SPI
+ *          chunk size, updating internal state for transaction handling.
+ */
 adi_eth_Result_e MAC_SetChunkSize(adi_mac_Device_t *hDevice, adi_mac_OaCps_e cps)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1859,6 +2018,14 @@ end:
     return result;
 }
 
+/*
+ * @brief Get chunk size for OPEN Alliance SPI.
+ * @param [in] hDevice Device driver handle.
+ * @param [out] pCps Pointer to store the current Chunk Payload Selector value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110’s CONFIG0 register via SPI to retrieve the OA SPI
+ *          chunk size, verifying it matches the internal state.
+ */
 adi_eth_Result_e MAC_GetChunkSize(adi_mac_Device_t *hDevice, adi_mac_OaCps_e *pCps)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1886,6 +2053,15 @@ end:
 }
 #endif
 
+/*
+ * @brief Set cut-through mode.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] txcte Enable transmit cut-through.
+ * @param [in] rxcte Enable receive cut-through (not supported for Generic SPI).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110’s CONFIG0 register via SPI to enable/disable
+ *          cut-through mode for Tx and Rx (OA SPI only for Rx).
+ */
 adi_eth_Result_e MAC_SetCutThroughMode(adi_mac_Device_t *hDevice, bool txcte, bool rxcte)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1922,6 +2098,15 @@ end:
     return result;
 }
 
+/*
+ * @brief Get cut-through mode.
+ * @param [in] hDevice Device driver handle.
+ * @param [out] pTxcte Pointer to store transmit cut-through status.
+ * @param [out] pRxcte Pointer to store receive cut-through status.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110’s CONFIG0 register via SPI to retrieve the current
+ *          cut-through mode settings for Tx and Rx.
+ */
 adi_eth_Result_e MAC_GetCutThroughMode(adi_mac_Device_t *hDevice, bool *pTxcte, bool *pRxcte)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1943,6 +2128,13 @@ end:
     return result;
 }
 
+/*
+ * @brief Set FIFO sizes.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] writeVal FIFO size configuration value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Writes to the ADIN1110’s FIFO_SIZE register via SPI to configure FIFO sizes.
+ */
 adi_eth_Result_e MAC_SetFifoSizes(adi_mac_Device_t *hDevice, uint32_t writeVal)
 {
     adi_eth_Result_e    result  = ADI_ETH_SUCCESS;
@@ -1959,11 +2151,25 @@ end:
     return result;
 }
 
+/*
+ * @brief Get FIFO sizes.
+ * @param [in] hDevice Device driver handle.
+ * @param [out] readVal Pointer to store the FIFO size configuration value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110’s FIFO_SIZE register via SPI to retrieve FIFO sizes.
+ */
 adi_eth_Result_e MAC_GetFifoSizes(adi_mac_Device_t *hDevice, uint32_t *readVal)
 {
     return MAC_ReadRegister(hDevice, ADDR_MAC_FIFO_SIZE, readVal);
 }
 
+/*
+ * @brief Clear FIFOs.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] clearMode FIFO clear mode (e.g., Rx, Tx, all).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Writes to the ADIN1110’s FIFO_CLR register via SPI to clear specified FIFOs.
+ */
 adi_eth_Result_e MAC_ClearFifos(adi_mac_Device_t *hDevice, adi_mac_FifoClrMode_e clearMode)
 {
     adi_eth_Result_e    result  = ADI_ETH_SUCCESS;
@@ -1979,6 +2185,14 @@ end:
     return result;
 }
 
+/*
+ * @brief Set promiscuous mode.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] bFlag True to enable, false to disable promiscuous mode.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110’s CONFIG2 register via SPI to enable/disable
+ *          forwarding of unknown frames to the host (Port 1).
+ */
 adi_eth_Result_e MAC_SetPromiscuousMode(adi_mac_Device_t *hDevice, bool bFlag)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -2011,6 +2225,14 @@ end:
     return result;
 }
 
+/*
+ * @brief Get promiscuous mode status.
+ * @param [in] hDevice Device driver handle.
+ * @param [out] pFlag Pointer to store promiscuous mode status (true if enabled).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110’s CONFIG2 register via SPI to check if promiscuous
+ *          mode (forward unknown frames to host) is enabled.
+ */
 adi_eth_Result_e MAC_GetPromiscuousMode(adi_mac_Device_t *hDevice, bool *pFlag)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -2030,7 +2252,14 @@ end:
     return result;
 }
 
-
+/*
+ * @brief Enable timestamping.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] format Timestamp format to enable (e.g., 32-bit free, 1588).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110’s timestamping via CONFIG0 and TS_CFG registers
+ *          over SPI, setting the specified format for ingress/egress timestamps.
+ */
 adi_eth_Result_e MAC_TsEnable(adi_mac_Device_t *hDevice, adi_mac_TsFormat_e format)
 {
     adi_eth_Result_e     result = ADI_ETH_SUCCESS;
@@ -2098,6 +2327,13 @@ end:
     return result;
 }
 
+/*
+ * @brief Clear timestamp counters.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets the TS_CLR bit in the ADIN1110’s TS_CFG register via SPI to reset
+ *          timestamp counters.
+ */
 adi_eth_Result_e MAC_TsClear(adi_mac_Device_t *hDevice)
 {
     adi_eth_Result_e     result = ADI_ETH_SUCCESS;
@@ -2116,6 +2352,14 @@ end:
     return result;
 }
 
+/*
+ * @brief Start the timestamp timer.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] pTimerConfig Pointer to timer configuration structure.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110’s TS_TIMER registers via SPI to start a timer
+ *          waveform with specified period, duty cycle, and start time.
+ */
 adi_eth_Result_e MAC_TsTimerStart(adi_mac_Device_t *hDevice, adi_mac_TsTimerConfig_t *pTimerConfig)
 {
     adi_eth_Result_e     result = ADI_ETH_SUCCESS;
@@ -2183,6 +2427,13 @@ end:
     return result;
 }
 
+/*
+ * @brief Stop the timestamp timer.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets the TS_TIMER_STOP bit in the ADIN1110’s TS_CFG register via SPI
+ *          to halt the timer waveform.
+ */
 adi_eth_Result_e MAC_TsTimerStop(adi_mac_Device_t *hDevice)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -2201,6 +2452,16 @@ end:
     return result;
 }
 
+/*
+ * @brief Convert raw timestamp to timespec format.
+ * @param [in] timestampLowWord Lower 32 bits of the timestamp.
+ * @param [in] timestampHighWord Upper 32 bits of the timestamp.
+ * @param [in] format Timestamp format to convert from.
+ * @param [out] pTimespec Pointer to store the converted timespec (seconds and nanoseconds).
+ * @return ADI_ETH_SUCCESS on success, ADI_ETH_NO_TS_FORMAT if format is invalid.
+ * @details Converts ADIN1110 timestamp values to a timespec structure, supporting
+ *          32-bit free-running, 32-bit 1588, and 64-bit 1588 formats.
+ */
 adi_eth_Result_e MAC_TsConvert(uint32_t timestampLowWord, uint32_t timestampHighWord, adi_mac_TsFormat_e format, adi_mac_TsTimespec_t *pTimespec)
 {
     adi_eth_Result_e result = ADI_ETH_SUCCESS;
@@ -2237,6 +2498,14 @@ adi_eth_Result_e MAC_TsConvert(uint32_t timestampLowWord, uint32_t timestampHigh
     return result;
 }
 
+/*
+ * @brief Get external capture timestamp.
+ * @param [in] hDevice Device driver handle.
+ * @param [out] pCapturedTimespec Pointer to store the captured timestamp.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110’s external capture timestamp registers via SPI,
+ *          converting to timespec based on the configured format.
+ */
 adi_eth_Result_e MAC_TsGetExtCaptTimestamp(adi_mac_Device_t *hDevice, adi_mac_TsTimespec_t *pCapturedTimespec)
 {
     adi_eth_Result_e result = ADI_ETH_SUCCESS;
@@ -2278,6 +2547,15 @@ end:
 
 }
 
+/*
+ * @brief Get egress timestamp.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] egressReg Egress capture register to read (A, B, or C).
+ * @param [out] pCapturedTimespec Pointer to store the captured timestamp.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110’s egress timestamp registers (TTSCAx) via SPI,
+ *          converting to timespec based on the configured format.
+ */
 adi_eth_Result_e MAC_TsGetEgressTimestamp(adi_mac_Device_t *hDevice, adi_mac_EgressCapture_e egressReg, adi_mac_TsTimespec_t *pCapturedTimespec)
 {
     adi_eth_Result_e result = ADI_ETH_SUCCESS;
@@ -2323,6 +2601,15 @@ end:
     return result;
 }
 
+/*
+ * @brief Set timer to an absolute time.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] seconds Seconds component of the absolute time.
+ * @param [in] nanoseconds Nanoseconds component of the absolute time.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets the ADIN1110’s timestamp counter to an absolute value via SPI,
+ *          stopping the clock during update and ensuring valid nanosecond range.
+ */
 adi_eth_Result_e MAC_TsSetTimerAbsolute(adi_mac_Device_t *hDevice, uint32_t seconds, uint32_t nanoseconds)
 {
     adi_eth_Result_e result = ADI_ETH_SUCCESS;
@@ -2368,6 +2655,16 @@ end:
     return result;
 }
 
+/*
+ * @brief Synchronize the timestamp clock.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] tError Time error in nanoseconds.
+ * @param [in] referenceTimeNsDiff Reference time difference in nanoseconds.
+ * @param [in] localTimeNsDiff Local time difference in nanoseconds.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Adjusts the ADIN1110’s timestamp clock addend via SPI based on time
+ *          error and differences, preventing overflow in calculations.
+ */
 adi_eth_Result_e MAC_TsSyncClock(adi_mac_Device_t *hDevice, int64_t tError, uint64_t referenceTimeNsDiff, uint64_t localTimeNsDiff)
 {
     adi_eth_Result_e result = ADI_ETH_SUCCESS;
@@ -2407,6 +2704,14 @@ end:
     return result;
 }
 
+/*
+ * @brief Subtract two timestamps.
+ * @param [in] pTsA First timestamp (minuend).
+ * @param [in] pTsB Second timestamp (subtrahend).
+ * @return Difference in nanoseconds (TsA - TsB).
+ * @details Computes the difference between two ADIN1110 timestamps in nanoseconds,
+ *          converting seconds and nanoseconds to a unified 64-bit value.
+ */
 int64_t MAC_TsSubtract(adi_mac_TsTimespec_t *pTsA, adi_mac_TsTimespec_t *pTsB)
 {
     int64_t tsAns;
@@ -2426,7 +2731,13 @@ int64_t MAC_TsSubtract(adi_mac_TsTimespec_t *pTsA, adi_mac_TsTimespec_t *pTsB)
     return tsAns - tsBns;
 }
 
-
+/*
+ * @brief Synchronize configuration and enable interrupts.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets the SYNC bit in the ADIN1110’s CONFIG0 register via SPI and enables
+ *          interrupts, marking configuration as synchronized.
+ */
 adi_eth_Result_e MAC_SyncConfig(adi_mac_Device_t *hDevice)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -2455,13 +2766,12 @@ end:
 }
 
 /*
- * @brief           Calculates the parity over a number of bytes.
- * @param [in]      p           Pointer to the input data.
- * @param [in]      nBytes      Size of the input data, in bytes.
- * @return          Returns 1 if input data has odd parity. Otherwise 0.
- * @details         Calculates the odd parity of the input data. Used for the
- *                  header/footer parity fields defined by the OPEN Alliance specification
- *                  and for timestamp parity checking in both SPI protocols.
+ * @brief Calculate parity over a number of bytes.
+ * @param [in] p Pointer to the input data.
+ * @param [in] nBytes Size of the input data, in bytes.
+ * @return 1 if odd parity, 0 if even parity.
+ * @details Calculates odd parity for OPEN Alliance SPI header/footer fields and
+ *          timestamp parity checking in both SPI protocols on the ADIN1110.
  */
 uint8_t MAC_CalculateParity(uint8_t *p, uint32_t nBytes)
 {
