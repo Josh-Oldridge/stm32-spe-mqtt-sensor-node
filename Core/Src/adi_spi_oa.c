@@ -9,14 +9,39 @@
  *---------------------------------------------------------------------------
  */
 
+/**
+ * @file    adi_spi_oa.c
+ * @brief   Implementation of the OPEN Alliance SPI protocol support.
+ * @details Implements the OPEN Alliance (OA) SPI protocol for the ADIN1110 MAC driver
+ *          on the CN0575 SPE board, interfacing with the STM32L496ZG-P Nucleo board
+ *          to manage Ethernet communication over 10BASE-T1L. Handles data and control
+ *          transactions via SPI, supporting secure MQTT transmission of sensor data
+ *          using lwIP and mbedtls (TLSv1.2). Complements adi_mac.c for OA-specific operations.
+ */
+
+/** @addtogroup mac ADI MAC Driver
+ *  @{
+ */
+
 #include "adi_spi_oa.h"
 
-/*! Size of data buffer used in SPI transactions, in bytes. */
+/**
+ * @brief Size of data buffer used in SPI transactions, in bytes.
+ * @details Fixed buffer size (2000 bytes) for OA SPI Rx and Tx operations, accommodating
+ *          multiple chunks up to ADI_OA_MAX_CHUNK_COUNT or ADI_OA_MAX_CHUNK64_COUNT.
+ */
 #define BUFFERSIZE 2000
 
-/*! SPI receive data buffer. */
+/**
+ * @brief SPI receive data buffer.
+ * @details Aligned buffer for receiving OA SPI data chunks from the ADIN1110 MAC.
+ */
 DMA_BUFFER_ALIGN(static uint8_t spiRxBuf[BUFFERSIZE], 4);
-/*! SPI transmit data buffer. */
+
+/**
+ * @brief SPI transmit data buffer.
+ * @details Aligned buffer for transmitting OA SPI data chunks to the ADIN1110 MAC.
+ */
 DMA_BUFFER_ALIGN(static uint8_t spiTxBuf[BUFFERSIZE], 4);
 
 /* Function prototypes. */
@@ -31,16 +56,12 @@ static adi_eth_Result_e     oaPhyRegReadStart       (adi_mac_Device_t *hDevice, 
 static adi_eth_Result_e     oaPhyRegReadStep        (adi_mac_Device_t *hDevice, ADI_MAC_MDIOACC_0__t *mdioCmd);
 
 
-/*!
- * @brief           MAC-PHY interrupt service routine.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          None
- *
- * @details         Called from the INT_N interrupt handler. Executes the OA state machine.
- *
- * @sa              oaStateMachine()
+/*
+ * @brief MAC-PHY interrupt service routine.
+ * @param [in] hDevice Device driver handle.
+ * @details Called from the INT_N interrupt handler when the ADIN1110 asserts an interrupt.
+ *          Disables further interrupts and triggers the OA SPI state machine if SPI is idle.
+ * @sa oaStateMachine()
  */
 void oaIrqHandler(adi_mac_Device_t *hDevice)
 {
@@ -54,17 +75,14 @@ void oaIrqHandler(adi_mac_Device_t *hDevice)
     }
 }
 
-/*!
- * @brief           SPI callback function.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          None
- *
- * @details         Called from the SPI interrupt handler (if SPI uses interrupts) or DMA interrupt handler
- *                  (if SPI uses DMA). Executes the OA state machine.
- *
- * @sa              oaStateMachine()
+/*
+ * @brief SPI callback function.
+ * @param [in] pCBParam Pointer to the MAC device structure (cast from void*).
+ * @param [in] Event Event ID (unused in this implementation).
+ * @param [in] pArg Event-specific argument (unused in this implementation).
+ * @details Called from the SPI or DMA interrupt handler when an OA SPI transaction completes.
+ *          Triggers the OA SPI state machine to process the received data.
+ * @sa oaStateMachine()
  */
 void spiCallback(void *pCBParam, uint32_t Event, void *pArg)
 {
@@ -73,19 +91,14 @@ void spiCallback(void *pCBParam, uint32_t Event, void *pArg)
     oaStateMachine(hDevice);
 }
 
-/*!
- * @brief           OPEN Alliance SPI state machine.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *                  - #ADI_ETH_INVALID_PARAM        Configured memory size too small.
- *                  - #ADI_ETH_COMM_ERROR           MDIO communication failure.
- *                  - #ADI_ETH_UNSUPPORTED_DEVICE   Device not supported.
- *
- * @details         Implements the OPEN Alliance SPI protocol.
- *
+/*
+ * @brief OPEN Alliance SPI state machine.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Implements the OPEN Alliance SPI protocol for the ADIN1110 on the CN0575 SPE board,
+ *          managing control and data transactions over SPI. Handles state transitions for
+ *          register access, frame transmission/reception, interrupt processing, and PHY register
+ *          reads via the SPI-to-MDIO bridge. Updates device state and invokes callbacks as needed.
  */
 adi_eth_Result_e oaStateMachine(adi_mac_Device_t *hDevice)
 {
@@ -748,6 +761,16 @@ adi_eth_Result_e oaStateMachine(adi_mac_Device_t *hDevice)
     return result;
 }
 
+/*
+ * @brief Start a PHY register read via OA SPI.
+ * @param [in] hDevice Device driver handle.
+ * @param [in,out] mdioCmd Pointer to MDIO command structure.
+ * @param [in] prtad PHY port address (1 or 2).
+ * @param [in] regAddr PHY register address.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Initiates a PHY register read by writing the address to MDIOACC_0_ over OA SPI,
+ *          part of a multi-step process for the ADIN1110’s SPI-to-MDIO bridge.
+ */
 adi_eth_Result_e oaPhyRegReadStart(adi_mac_Device_t *hDevice, ADI_MAC_MDIOACC_0__t *mdioCmd, uint32_t prtad, uint32_t regAddr)
 {
     adi_eth_Result_e        result;
@@ -785,6 +808,15 @@ end:
     return result;
 }
 
+/*
+ * @brief Perform a step in the PHY register read via OA SPI.
+ * @param [in] hDevice Device driver handle.
+ * @param [in,out] mdioCmd Pointer to MDIO command structure.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Executes the read or write step of a PHY register access over OA SPI,
+ *          either writing to MDIOACC_1_ or polling for completion, for the ADIN1110’s
+ *          SPI-to-MDIO bridge.
+ */
 adi_eth_Result_e oaPhyRegReadStep(adi_mac_Device_t *hDevice, ADI_MAC_MDIOACC_0__t *mdioCmd)
 {
     adi_eth_Result_e        result;
@@ -818,6 +850,13 @@ end:
     return result;
 }
 
+/*
+ * @brief Handle SPI interrupts for OA protocol.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Processes interrupt status from the ADIN1110 via OA SPI, invoking callbacks
+ *          for link changes, timestamps, or general status, then clears status bits.
+ */
 adi_eth_Result_e oaSpiIntHandle(adi_mac_Device_t *hDevice)
 {
     adi_eth_Result_e        result;
@@ -901,22 +940,13 @@ end:
 }
 
 
-/*!
- * @brief           Process transmit queue and create payload for data transactions.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Creates a SPI Tx payload of maximum #ADI_OA_MAX_CHUNK_COUNT chunks,
- *                  based on the available data in the Tx queue and TXC/RCA values
- *                  read from the MAC device.
- *
- *                  This function can be executed as a result of INT_N assertion
- *                  (MAC interrupt handler), in which case it will create a
- *                  one-chunk transaction.
- *
+/*
+ * @brief Process transmit queue and create payload for data transactions.
+ * @param [in] hDevice Device driver handle.
+ * @return ADI_ETH_SUCCESS on success.
+ * @details Creates an OA SPI Tx payload of up to ADI_OA_MAX_CHUNK_COUNT chunks based on
+ *          the Tx queue and available credits (TXC/RCA) from the ADIN1110 MAC. Handles
+ *          both Tx and Rx data, adjusting chunk count for IRQ responses if needed.
  */
 static adi_eth_Result_e oaSpiProcess(adi_mac_Device_t *hDevice)
 {
@@ -997,23 +1027,14 @@ static adi_eth_Result_e oaSpiProcess(adi_mac_Device_t *hDevice)
     return result;
 }
 
-/*!
- * @brief           Creates SPI transmit payload for one chunk.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      pBuf        Pointer to the destination buffer for the chunk data.
- * @param [in]      txEn        Enables inserting Tx data into the chunk.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Creates the 4-byte transmit header and the chunk payload data for one chunk.
- *
- *                  The chunk purpose may be to read frame data from the RxFIFO without writing
- *                  any new frame data to the TxFIFO, for example if TXC=0 and RCA>0. This is
- *                  flagged via the txEn parameter: if true it will populate frame data into the
- *                  chunk, if false it will only read.
- *
+/*
+ * @brief Create SPI transmit payload for one chunk.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] pBuf Pointer to the destination buffer for the chunk data.
+ * @param [in] txEn Enables inserting Tx data into the chunk.
+ * @return ADI_ETH_SUCCESS on success.
+ * @details Creates a 4-byte OA SPI Tx header and chunk payload for the ADIN1110, optionally
+ *          including frame data if txEn is true, based on Tx queue state and credits.
  */
 static adi_eth_Result_e oaCreateNextChunk(adi_mac_Device_t *hDevice, uint8_t *pBuf, bool txEn)
 {

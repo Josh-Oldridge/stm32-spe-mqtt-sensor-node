@@ -731,3 +731,5 @@ void                    queueRemove                 (adi_mac_Queue_t *pQueue);
 #endif
 
 #endif /* ADI_MAC_H */
+
+/** @} */

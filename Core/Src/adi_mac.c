@@ -2835,3 +2835,5 @@ adi_mac_DriverEntry_t macDriverEntry =
     MAC_PhyRead,
     MAC_PhyWrite
 };
+
+/** @} */

@@ -2013,3 +2013,4 @@ adi_phy_DriverEntry_t phyDriverEntry =
     PHY_FrameChkReadErrorCnt,
 };
 
+/** @} */
