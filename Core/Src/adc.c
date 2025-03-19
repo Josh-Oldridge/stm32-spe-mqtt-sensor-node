@@ -4,6 +4,10 @@
   * @file    adc.c
   * @brief   This file provides code for the configuration
   *          of the ADC instances.
+  * @details This file configures the ADC1 instance on the STM32L496ZG-P Nucleo board
+  *          to sample analog sensor data from the ACS723 Current Sensor module via
+  *          channel 8 (PA3). The data is stored in a DMA buffer for processing and
+  *          subsequent transmission over MQTT using lwIP and mbedtls.
   ******************************************************************************
   * @attention
   *
@@ -21,6 +25,15 @@
 #include "adc.h"
 
 /* USER CODE BEGIN 0 */
+/** @addtogroup adc ADC Module
+ *  @{
+ */
+
+/**
+ * @brief Buffer to store ADC conversion results.
+ * @details This buffer holds the raw 12-bit ADC values sampled from the sensor
+ *          connected to ADC1 channel 8 (PA3). Used with DMA for continuous sampling.
+ */
 uint16_t adcBuffer[ADC_BUFFER_SIZE];
 /* USER CODE END 0 */
 
@@ -178,8 +191,18 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 }
 
 /* USER CODE BEGIN 1 */
+/**
+ * @brief  Callback for ADC conversion complete.
+ * @param  hadc Pointer to the ADC handle structure
+ * @retval None
+ * @details Called when the ADC1 DMA transfer completes, indicating that adcBuffer
+ *          contains new sensor data from the CN0575 board. Can be used to process
+ *          or signal the data for MQTT transmission.
+ */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
     }
 }
+
+/** @} */ /* End of group adc */
 /* USER CODE END 1 */
