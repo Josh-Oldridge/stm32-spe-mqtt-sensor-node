@@ -504,7 +504,7 @@ adi_eth_Result_e PHY_AnAdvMstSlvCfg(adi_phy_Device_t *hDevice, adi_phy_AnAdvMast
         goto end;
     }
     val16 &= ~BITM_AN_ADV_ABILITY_M_AN_ADV_MST;
-    if ((msCfg == ADI_PHY_AN_ADV_FORCED_MASTER) || (msCfg == ADI_PHY_AN_ADV_PREFFERED_MASTER))
+    if ((msCfg == ADI_PHY_AN_ADV_FORCED_MASTER) || (msCfg == ADI_PHY_AN_ADV_PREFERRED_MASTER))
     {
         val16 |= (1 << BITP_AN_ADV_ABILITY_M_AN_ADV_MST);
     }
