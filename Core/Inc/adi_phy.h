@@ -99,8 +99,8 @@ typedef enum
 {
     ADI_PHY_AN_ADV_FORCED_MASTER = 0,       /*!< Force master.          */
     ADI_PHY_AN_ADV_FORCED_SLAVE,            /*!< Force slave.           */
-    ADI_PHY_AN_ADV_PREFFERED_MASTER,        /*!< Preferred master.      */
-    ADI_PHY_AN_ADV_PREFFERED_SLAVE,         /*!< Preferred slave.       */
+    ADI_PHY_AN_ADV_PREFERRED_MASTER,        /*!< Preferred master.      */
+    ADI_PHY_AN_ADV_PREFERRED_SLAVE,         /*!< Preferred slave.       */
 } adi_phy_AnAdvMasterSlaveCfg_e;
 
 /*!
@@ -128,16 +128,16 @@ typedef enum
  */
 typedef enum
 {
-    ADI_PHY_EVT_HW_RESET            = (1 << BITP_CRSM_IRQ_STATUS_CRSM_HRD_RST_IRQ_LH),
-    ADI_PHY_EVT_SW_RESET            = (1 << BITP_CRSM_IRQ_STATUS_CRSM_SW_IRQ_LH),
-    ADI_PHY_EVT_LINK_STAT_CHANGE    = (1 << (BITP_PHY_SUBSYS_IRQ_STATUS_LINK_STAT_CHNG_LH + 16)),
-    ADI_PHY_EVT_MAC_IF_BUF          = (1 << (BITP_PHY_SUBSYS_IRQ_STATUS_MAC_IF_EBUF_ERR_IRQ_LH + 16)),
-    ADI_PHY_EVT_CRSM_HW_ERROR       = ADI_PHY_CRSM_HW_ERROR,
+    ADI_PHY_EVT_HW_RESET            = (1 << BITP_CRSM_IRQ_STATUS_CRSM_HRD_RST_IRQ_LH),                 /*!< Hardware reset occurred. */
+    ADI_PHY_EVT_SW_RESET            = (1 << BITP_CRSM_IRQ_STATUS_CRSM_SW_IRQ_LH),                      /*!< Software reset occurred. */
+    ADI_PHY_EVT_LINK_STAT_CHANGE    = (1 << (BITP_PHY_SUBSYS_IRQ_STATUS_LINK_STAT_CHNG_LH + 16)),      /*!< Link status changed. */
+    ADI_PHY_EVT_MAC_IF_BUF          = (1 << (BITP_PHY_SUBSYS_IRQ_STATUS_MAC_IF_EBUF_ERR_IRQ_LH + 16)), /*!< MAC interface buffer error. */
+    ADI_PHY_EVT_CRSM_HW_ERROR       = ADI_PHY_CRSM_HW_ERROR,                                           /*!< Hardware error requiring reset (mask of CRSM errors). */
 } adi_phy_InterruptEvt_e;
 
 /*!
  * @name PHY Capabilities
- * List of PHY capabilities.
+ * @brief List of PHY capabilities as bitmasks.
  */
 /** @{ */
 #define ADI_PHY_CAP_NONE                    (0)         /*!< No PHY support (base value).                  */
@@ -179,17 +179,17 @@ typedef enum
     ADI_PHY_TEST_MODE_1,                        /*!< Test mode 1 from IEEE 802.3cgTM-2019, subclause 146.5.2.                   */
     ADI_PHY_TEST_MODE_2,                        /*!< Test mode 2 from IEEE 802.3cgTM-2019, subclause 146.5.2.                   */
     ADI_PHY_TEST_MODE_3,                        /*!< Test mode 3 from IEEE 802.3cgTM-2019, subclause 146.5.2.                   */
-    ADI_PHY_TEST_MODE_TX_DISABLE,               /*!< Transmite disable mode from IEEE 802.3cgTM-2019, subclause 45.2.1.186a.2.  */
+    ADI_PHY_TEST_MODE_TX_DISABLE,               /*!< Transmit disable mode from IEEE 802.3cgTM-2019, subclause 45.2.1.186a.2.  */
 } adi_phy_TestMode_e;
 
 /*!
-* @brief Link quality.
-*/
+ * @brief Link quality metrics.
+ */
 typedef enum
 {
-    ADI_PHY_LINK_QUALITY_POOR = 0,
-    ADI_PHY_LINK_QUALITY_MARGINAL,
-    ADI_PHY_LINK_QUALITY_GOOD,
+    ADI_PHY_LINK_QUALITY_POOR = 0,              /*!< Poor link quality (MSE > 0x0766). */
+    ADI_PHY_LINK_QUALITY_MARGINAL,              /*!< Marginal link quality (MSE between 0x05E1 and 0x0766). */
+    ADI_PHY_LINK_QUALITY_GOOD,                  /*!< Good link quality (MSE < 0x05E1). */
 } adi_phy_LinkQuality_e;
 
 /*!
@@ -316,23 +316,23 @@ typedef uint32_t (*HAL_WriteFn_t)   (uint8_t hwAddr, uint32_t regAddr, uint16_t 
 
 typedef struct
 {
-    uint32_t linkDropped;
+    uint32_t linkDropped;                   /*!< Count of link drop events. */
 } adi_phy_Stats_t;
 
 typedef struct
 {
-    uint32_t                phyAddr;
-    adi_phy_State_e         state;
-    HAL_ReadFn_t            readFn;
-    HAL_WriteFn_t           writeFn;
-    adi_phy_LinkStatus_e    linkStatus;
-    adi_eth_Callback_t      cbFunc;
-    uint32_t                cbEvents;
-    void                    *cbParam;
-    void                    *adinDevice;
-    uint32_t                irqMask;
-    bool                    irqPending;
-    adi_phy_Stats_t         stats;
+    uint32_t                phyAddr;        /*!< MDIO bus address of the PHY (accessed via SPI). */
+    adi_phy_State_e         state;          /*!< Current state of the PHY driver. */
+    HAL_ReadFn_t            readFn;         /*!< Function pointer for reading PHY registers via SPI. */
+    HAL_WriteFn_t           writeFn;        /*!< Function pointer for writing PHY registers via SPI. */
+    adi_phy_LinkStatus_e    linkStatus;     /*!< Current link status. */
+    adi_eth_Callback_t      cbFunc;         /*!< Callback function for interrupt events. */
+    uint32_t                cbEvents;       /*!< Bitmask of enabled interrupt events. */
+    void                    *cbParam;       /*!< Callback parameter passed to cbFunc. */
+    void                    *adinDevice;    /*!< Pointer to the associated ADIN device (e.g., MAC). */
+    uint32_t                irqMask;        /*!< Interrupt mask for enabled events. */
+    bool                    irqPending;     /*!< Flag indicating a pending interrupt. */
+    adi_phy_Stats_t         stats;          /*!< PHY statistics (e.g., link drops). */
 } adi_phy_Device_t;
 
 typedef struct
