@@ -9,9 +9,24 @@
  *---------------------------------------------------------------------------
  */
 
+/**
+ * @file    adi_phy.c
+ * @brief   Implementation of the ADI Ethernet PHY driver.
+ * @details Contains the driver logic for the ADIN1110 PHY on the CN0575 SPE board,
+ *          interfacing with the STM32L496ZG-P Nucleo board via SPI (using an internal
+ *          SPI-to-MDIO bridge) to manage 10BASE-T1L Ethernet communication. Supports
+ *          initialization, auto-negotiation, and diagnostics for secure MQTT transmission
+ *          over TLSv1.2 with lwIP and mbedtls.
+ */
+
+/** @addtogroup phy ADI PHY Driver
+ *  @{
+ */
+
 #include "adi_phy.h"
 #include "hal.h"
 
+/* Function prototypes (static functions defined in this file) */
 static adi_eth_Result_e         PHY_Init                    (adi_phy_Device_t **hPhyDevice, adi_phy_DriverConfig_t *cfg, void *adinDevice, HAL_ReadFn_t readFn, HAL_WriteFn_t writeFn);
 static adi_eth_Result_e         PHY_UnInit                  (adi_phy_Device_t *hDevice);
 static adi_eth_Result_e         PHY_ReInitPhy               (adi_phy_Device_t *hDevice);
@@ -61,7 +76,7 @@ static adi_eth_Result_e         PHY_FrameChkReadFrameCnt    (adi_phy_Device_t *h
 static adi_eth_Result_e         PHY_FrameChkReadRxErrCnt    (adi_phy_Device_t *hDevice, uint16_t *cnt);
 static adi_eth_Result_e         PHY_FrameChkReadErrorCnt    (adi_phy_Device_t *hDevice, adi_phy_FrameChkErrorCounters_t *cnt);
 
-/* Forward declarations. */
+/* Helper function prototypes */
 static adi_eth_Result_e         checkIdentity               (adi_phy_Device_t *hDevice, uint32_t *modelNum, uint32_t *revNum);
 #if defined(ADIN1100)
 static adi_eth_Result_e         waitMdio                    (adi_phy_Device_t *hDevice);
@@ -70,20 +85,22 @@ static adi_eth_Result_e         phyInit                     (adi_phy_Device_t *h
 static adi_eth_Result_e         phyStaticConfig             (adi_phy_Device_t *hDevice, uint32_t modelNum, uint32_t revNum);
 static void                     irqCb                       (void *pCBParam, uint32_t Event, void *pArg);
 
+/* MSE-to-SQI conversion table */
 static const uint16_t convMseToSqi[ADI_PHY_SQI_NUM_ENTRIES - 1] = {
     0x0A74, 0x084E, 0x0698, 0x053D, 0x0429, 0x034E, 0x02A0
 };
 
 /*!
  * @brief           PHY device initialization.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      hDevice     Device driver handle (returned as phDevice).
+ * @param [in]      cfg         Pointer to driver configuration structure.
+ * @param [in]      adinDevice  Pointer to associated ADIN device (e.g., MAC).
+ * @param [in]      readFn      SPI-based function to read PHY registers.
+ * @param [in]      writeFn     SPI-based function to write PHY registers.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Initializes the ADIN1110 PHY via SPI, setting up interrupts and
+ *                  default configuration. Places the PHY in software powerdown mode
+ *                  upon completion.
  */
 adi_eth_Result_e PHY_Init(adi_phy_Device_t **phDevice, adi_phy_DriverConfig_t *cfg, void *adinDevice, HAL_ReadFn_t readFn, HAL_WriteFn_t writeFn)
 {
@@ -144,14 +161,9 @@ end:
 
 /*!
  * @brief           PHY device uninitialization.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @return          ADI_ETH_SUCCESS on success, ADI_ETH_INVALID_HANDLE if hDevice is NULL.
+ * @details         Disables interrupts and resets the PHY state to uninitialized.
  */
 adi_eth_Result_e PHY_UnInit(adi_phy_Device_t *hDevice)
 {
@@ -180,15 +192,10 @@ adi_eth_Result_e PHY_ReInitPhy(adi_phy_Device_t *hDevice)
 
 /*!
  * @brief           Local function called by PHY initialization APIs.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return          - ADI_ETH_SUCCESS
- *                  - ADI_ETH_HW_ERROR
- *
- * @details
- *
- * @sa
+ * @return          ADI_ETH_SUCCESS on success, error code (e.g., ADI_ETH_HW_ERROR) otherwise.
+ * @details         Initializes the ADIN1110 PHY by verifying identity, configuring interrupts,
+ *                  and setting static configuration. Ensures the PHY enters software powerdown.
  */
 static adi_eth_Result_e phyInit(adi_phy_Device_t *hDevice)
 {
@@ -306,15 +313,13 @@ end:
 /**************************************************/
 
 /*
- * @brief
- *
+ * @brief           Register a callback for PHY interrupt events.
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      cbFunc      Callback function to invoke on interrupt.
+ * @param [in]      cbEvents    Bitmask of events to trigger the callback.
+ * @param [in]      cbParam     Parameter passed to the callback.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Configures interrupt masks for specified events via SPI.
  */
 adi_eth_Result_e PHY_RegisterCallback(adi_phy_Device_t *hDevice, adi_eth_Callback_t cbFunc, uint32_t cbEvents, void *cbParam)
 {
@@ -346,14 +351,11 @@ end:
 
 /*
  * @brief           PHY interrupt callback.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      pCBParam    Pointer to the device handle (cast from void*).
+ * @param [in]      Event       Event ID (unused).
+ * @param [in]      pArg        Event argument (unused).
+ * @details         Sets the irqPending flag and invokes the registered callback if set.
+ *                  Called by the HAL when an interrupt occurs on the ADIN1110.
  */
 static void irqCb(void *pCBParam, uint32_t Event, void *pArg)
 {
@@ -376,14 +378,10 @@ static void irqCb(void *pCBParam, uint32_t Event, void *pArg)
 
 /*
  * @brief           Read interrupt status.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [out]     status      Pointer to store the combined interrupt status.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads and clears interrupt status from CRSM and PHY_SUBSYS registers via SPI.
  */
 adi_eth_Result_e PHY_ReadIrqStatus(adi_phy_Device_t *hDevice, uint32_t *status)
 {
@@ -424,14 +422,10 @@ end:
 
 /*
  * @brief           Configure the advertised transmit operating mode for auto-negotiation.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      txMode      Transmit mode to advertise.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Sets the 10BASE-T1L transmit level advertisement via SPI-accessed registers.
  */
 adi_eth_Result_e PHY_AnAdvTxMode(adi_phy_Device_t *hDevice, adi_phy_AnAdvTxMode_e txMode)
 {
@@ -470,14 +464,10 @@ end:
 
 /*
  * @brief           Configure the advertised master/slave configuration for auto-negotiation.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      msCfg       Master/slave configuration to advertise.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Sets the master/slave preference or forced mode via SPI-accessed registers.
  */
 adi_eth_Result_e PHY_AnAdvMstSlvCfg(adi_phy_Device_t *hDevice, adi_phy_AnAdvMasterSlaveCfg_e msCfg)
 {
@@ -532,14 +522,11 @@ end:
 
 /*
  * @brief           Enable/disable auto-negotiation.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
+ * @param [in]      enable      True to enable, false to disable.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
  * @details         It is STRONGLY recommended to never disable auto-negotiation!
- *
- * @sa
+ *                  Configures the AN_CONTROL register via SPI.
  */
 adi_eth_Result_e PHY_AnEnable(adi_phy_Device_t *hDevice, bool enable)
 {
@@ -562,14 +549,9 @@ end:
 
 /*
  * @brief           Restart auto-negotiation.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Forces auto-negotiation restart via SPI, ensuring AN_EN is set.
  */
 adi_eth_Result_e PHY_Renegotiate(adi_phy_Device_t *hDevice)
 {
@@ -597,14 +579,11 @@ end:
 
 /*
  * @brief           Get auto-negotiation status.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [out]     status      Pointer to auto-negotiation status structure.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads AN_STATUS and AN_STATUS_EXTRA registers via SPI to report
+ *                  completion, link status, and resolved modes.
  */
 adi_eth_Result_e PHY_GetAnStatus(adi_phy_Device_t *hDevice, adi_phy_AnStatus_t *status)
 {
@@ -685,14 +664,11 @@ end:
 
 /*
  * @brief           Get PHY device capabilities.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [out]     capabilities Pointer to store the capability bitmask.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads the B10L_PMA_STAT register via SPI to determine supported
+ *                  features like 2.4V transmit level and PMA loopback for the ADIN1110.
  */
 adi_eth_Result_e PHY_GetCapabilities(adi_phy_Device_t *hDevice, uint16_t *capabilities)
 {
@@ -724,6 +700,14 @@ end:
     return result;
 }
 
+/**
+ * @brief           Set software powerdown state with timeout.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      enable      True to enter powerdown, false to exit.
+ * @return          ADI_ETH_SUCCESS on success, error code (e.g., ADI_ETH_READ_STATUS_TIMEOUT) otherwise.
+ * @details         Configures the CRSM_SFT_PD_CNTRL register via SPI and waits for the
+ *                  PHY to enter/exit powerdown, updating the driver state accordingly.
+ */
 static adi_eth_Result_e setSoftwarePowerdown(adi_phy_Device_t *hDevice, bool enable)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -773,14 +757,9 @@ end:
 
 /*
  * @brief           Enter software powerdown.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Uses setSoftwarePowerdown to place the PHY in a low-power state via SPI.
  */
 adi_eth_Result_e PHY_EnterSoftwarePowerdown(adi_phy_Device_t *hDevice)
 {
@@ -789,14 +768,9 @@ adi_eth_Result_e PHY_EnterSoftwarePowerdown(adi_phy_Device_t *hDevice)
 
 /*
  * @brief           Exit software powerdown.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Uses setSoftwarePowerdown to return the PHY to operational mode via SPI.
  */
 adi_eth_Result_e PHY_ExitSoftwarePowerdown(adi_phy_Device_t *hDevice)
 {
@@ -805,14 +779,10 @@ adi_eth_Result_e PHY_ExitSoftwarePowerdown(adi_phy_Device_t *hDevice)
 
 /*
  * @brief           Get powerdown status.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [out]     enable      Pointer to store the powerdown state (true if in powerdown).
+ * @return          ADI_ETH_SUCCESS on success, ADI_ETH_COMM_ERROR on failure.
+ * @details         Reads the CRSM_STAT register via SPI to check if the PHY is in software powerdown.
  */
 adi_eth_Result_e PHY_GetSoftwarePowerdown(adi_phy_Device_t *hDevice, bool *enable)
 {
@@ -840,14 +810,11 @@ end:
 
 /*
  * @brief           Get link status.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [out]     status      Pointer to store the link status (UP or DOWN).
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads the AN_STATUS register twice via SPI to detect latched link drops,
+ *                  updating link drop statistics for the CN0575 MQTT application.
  */
 adi_eth_Result_e PHY_GetLinkStatus(adi_phy_Device_t *hDevice, adi_phy_LinkStatus_e *status)
 {
@@ -891,15 +858,13 @@ end:
 
 /*
  * @brief           Static configuration of the PHY.
- *
  * @param [in]      hDevice     Device driver handle.
- * @return
- *
- * @details         This function is called during the initialization of the driver
- *                  or after a reset event. It configures a subset of the PHY registers
- *                  to change the default behaviour of the device, increase performance, etc.
- *
- * @sa
+ * @param [in]      modelNum    Model number from device ID.
+ * @param [in]      revNum      Revision number from device ID.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Configures ADIN1110-specific registers via SPI during initialization
+ *                  or reset to optimize performance, differing from hardware defaults.
+ *                  Applies only to revision 0 devices.
  */
 static adi_eth_Result_e phyStaticConfig(adi_phy_Device_t *hDevice, uint32_t modelNum, uint32_t revNum)
 {
@@ -1034,14 +999,11 @@ end:
 
 /*
  * @brief           Reset the PHY device.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      resetType   Type of reset (software only supported).
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Performs a software reset via SPI by writing to CRSM_SFT_RST,
+ *                  followed by reinitialization. Hardware reset is not supported.
  */
 adi_eth_Result_e PHY_Reset(adi_phy_Device_t *hDevice, adi_phy_ResetType_e resetType)
 {
@@ -1081,14 +1043,11 @@ end:
 
 /*
  * @brief           Configures a PHY loopback mode.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      loopbackMode Loopback mode to configure.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Sets up PCS, PMA, or MAC interface loopback modes via SPI,
+ *                  managing powerdown and auto-negotiation states as needed.
  */
 adi_eth_Result_e PHY_SetLoopbackMode(adi_phy_Device_t *hDevice, adi_phy_LoopbackMode_e loopbackMode)
 {
@@ -1227,14 +1186,11 @@ end:
 
 /*
  * @brief           Configures a PHY test mode.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      testMode    Test mode to configure.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Sets IEEE 802.3cg test modes or transmit disable via SPI,
+ *                  managing powerdown and auto-negotiation states.
  */
 adi_eth_Result_e PHY_SetTestMode(adi_phy_Device_t *hDevice, adi_phy_TestMode_e testMode)
 {
@@ -1357,15 +1313,11 @@ end:
 
 /*
  * @brief           Enable or disable the LED.
- *
  * @param [in]      hDevice     Device driver handle.
- * @param [in]      ledSel      Selection of the LED port.
+ * @param [in]      ledSel      Selection of the LED port (0 or 1).
  * @param [in]      enable      Enable/disable the LED.
- * @return
- *
- * @details
- *
- * @sa
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Configures the LED_CNTRL register via SPI to enable/disable the specified LED.
  */
 static adi_eth_Result_e PHY_LedEn(adi_phy_Device_t *hDevice, adi_phy_LedPort_e ledSel, bool enable)
 {
@@ -1393,18 +1345,13 @@ static adi_eth_Result_e PHY_LedEn(adi_phy_Device_t *hDevice, adi_phy_LedPort_e l
 }
 
 /*
- * @brief
- *
+ * @brief           Set LED blink timing.
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @param [in]      ledSel      Selection of the LED port.
- * @param [in]      blinkOn     LEN blink ON time.
- * @param [in]      blinkOff    LEN blink OFF time.
- * @return
- *
- * @details
- *
- * @sa
+ * @param [in]      ledSel      Selection of the LED port (0 or 1).
+ * @param [in]      blinkOn     LED blink ON time (0-255, in 4ms units).
+ * @param [in]      blinkOff    LED blink OFF time (0-255, in 4ms units).
+ * @return          ADI_ETH_SUCCESS on success, ADI_ETH_INVALID_PARAM if times exceed 255.
+ * @details         Configures the LEDx_BLINK_TIME_CNTRL register via SPI for the specified LED.
  */
 static adi_eth_Result_e PHY_LedBlinkTime(adi_phy_Device_t *hDevice, adi_phy_LedPort_e ledSel, uint32_t blinkOn, uint32_t blinkOff)
 {
@@ -1436,14 +1383,13 @@ end:
 }
 
 /*
-* @brief MDIO Write, according to clause 45
- *
- * @param [in] dev - Pointer to the HW driver.
- * @param [in] regAddr - PHY MDIO Register address to write.
- * @param [out] data -  Data to write.
- *
- * @return 0 in case of success, positive error code otherwise.
-*/
+ * @brief           MDIO Write, according to Clause 45.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      regAddr     PHY MDIO register address to write.
+ * @param [in]      data        Data to write (16-bit).
+ * @return          ADI_ETH_SUCCESS on success, ADI_ETH_COMM_ERROR on failure.
+ * @details         Writes to the specified PHY register via SPI using the provided writeFn.
+ */
 adi_eth_Result_e PHY_Write(adi_phy_Device_t *hDevice, uint32_t regAddr, uint16_t data)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1466,15 +1412,13 @@ adi_eth_Result_e PHY_Write(adi_phy_Device_t *hDevice, uint32_t regAddr, uint16_t
 }
 
 /*
-* @brief MDIO Read, according to clause 45
- *
- * @param [in] instance - Pointer to the HW driver.
- * @param [in] hwAddr - PHY MDIO Hardware address.
- * @param [in] regAddr - PHY MDIO Register address to read.
- * @param [out] data - Pointer to the data buffer.
- *
- * @return 0 in case of success, positive error code otherwise.
-*/
+ * @brief           MDIO Read, according to Clause 45.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      regAddr     PHY MDIO register address to read.
+ * @param [out]     data        Pointer to store the read data (16-bit).
+ * @return          ADI_ETH_SUCCESS on success, ADI_ETH_COMM_ERROR on failure.
+ * @details         Reads from the specified PHY register via SPI using the provided readFn.
+ */
 adi_eth_Result_e PHY_Read(adi_phy_Device_t *hDevice, uint32_t regAddr, uint16_t *data)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1499,6 +1443,14 @@ adi_eth_Result_e PHY_Read(adi_phy_Device_t *hDevice, uint32_t regAddr, uint16_t 
     return result;
 }
 
+/*
+ * @brief           Get Mean Squared Error (MSE) and link quality metrics.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [out]     mseLinkQuality Pointer to store MSE, quality level, and SQI.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads the MSE_VAL register via SPI and calculates link quality and SQI
+ *                  for the CN0575’s 10BASE-T1L link monitoring.
+ */
 adi_eth_Result_e PHY_GetMseLinkQuality(adi_phy_Device_t *hDevice, adi_phy_MseLinkQuality_t *mseLinkQuality)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1537,6 +1489,14 @@ end:
     return result;
 }
 
+/*
+ * @brief           Enable or disable the frame generator.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      enable      True to enable, false to disable.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Configures the FG_EN register via SPI to start/stop frame generation,
+ *                  resetting frame count on enable and clearing payload on disable.
+ */
 adi_eth_Result_e PHY_FrameGenEn(adi_phy_Device_t *hDevice, bool enable)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1603,6 +1563,13 @@ end:
     return result;
 }
 
+/*
+ * @brief           Set frame generator mode (burst or continuous).
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      mode        Frame generation mode.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Writes to FG_CONT_MODE_EN via SPI to configure frame generation behavior.
+ */
 adi_eth_Result_e PHY_FrameGenSetMode(adi_phy_Device_t *hDevice, adi_phy_FrameGenMode_e mode)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1612,6 +1579,13 @@ adi_eth_Result_e PHY_FrameGenSetMode(adi_phy_Device_t *hDevice, adi_phy_FrameGen
     return result;
 }
 
+/*
+ * @brief           Set frame generator frame count.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      frameCnt    Number of frames to generate (32-bit).
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Writes high and low 16-bit parts of frame count to FG_NFRM_H/L via SPI.
+ */
 adi_eth_Result_e PHY_FrameGenSetFrameCnt(adi_phy_Device_t *hDevice, uint32_t frameCnt)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1635,6 +1609,13 @@ end:
     return result;
 }
 
+/*
+ * @brief           Set frame generator payload type.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      payload     Payload type for generated frames.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Configures FG_CNTRL_RSTRT via SPI to set the payload pattern.
+ */
 adi_eth_Result_e PHY_FrameGenSetFramePayload(adi_phy_Device_t *hDevice, adi_phy_FrameGenPayload_e payload)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1653,6 +1634,13 @@ end:
     return result;
 }
 
+/*
+ * @brief           Set frame generator frame length.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      frameLen    Length of frames to generate (in bytes).
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Writes to FG_FRM_LEN via SPI to set the frame size.
+ */
 adi_eth_Result_e PHY_FrameGenSetFrameLen(adi_phy_Device_t *hDevice, uint16_t frameLen)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1662,6 +1650,13 @@ adi_eth_Result_e PHY_FrameGenSetFrameLen(adi_phy_Device_t *hDevice, uint16_t fra
     return result;
 }
 
+/*
+ * @brief           Set frame generator interframe gap length.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      ifgLen      Interframe gap length (in bytes).
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Writes to FG_IFG_LEN via SPI to set the gap between frames.
+ */
 adi_eth_Result_e PHY_FrameGenSetIfgLen(adi_phy_Device_t *hDevice, uint16_t ifgLen)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1672,6 +1667,12 @@ adi_eth_Result_e PHY_FrameGenSetIfgLen(adi_phy_Device_t *hDevice, uint16_t ifgLe
     return result;
 }
 
+/*
+ * @brief           Restart the frame generator.
+ * @param [in]      hDevice     Device driver handle.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Clears FG_DONE and restarts frame generation via SPI by setting FG_RSTRT.
+ */
 adi_eth_Result_e PHY_FrameGenRestart(adi_phy_Device_t *hDevice)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1704,6 +1705,13 @@ end:
     return result;
 }
 
+/*
+ * @brief           Check if frame generation is complete.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [out]     fgDone      Pointer to store completion status (true if done).
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads FG_DONE via SPI to check if the frame generator has finished.
+ */
 adi_eth_Result_e PHY_FrameGenDone(adi_phy_Device_t *hDevice, bool *fgDone)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1721,6 +1729,13 @@ end:
     return result;
 }
 
+/*
+ * @brief           Enable or disable the frame checker.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      enable      True to enable, false to disable.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Configures FC_EN via SPI to start/stop frame checking.
+ */
 adi_eth_Result_e PHY_FrameChkEn(adi_phy_Device_t *hDevice, bool enable)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1740,6 +1755,13 @@ adi_eth_Result_e PHY_FrameChkEn(adi_phy_Device_t *hDevice, bool enable)
     return result;
 }
 
+/*
+ * @brief           Select frame checker source (PHY or MAC).
+ * @param [in]      hDevice     Device driver handle.
+ * @param [in]      source      Source to check frames from.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Writes to FC_TX_SEL via SPI to set the frame checker input.
+ */
 adi_eth_Result_e PHY_FrameChkSourceSelect(adi_phy_Device_t *hDevice, adi_phy_FrameChkSource_e source)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1749,6 +1771,13 @@ adi_eth_Result_e PHY_FrameChkSourceSelect(adi_phy_Device_t *hDevice, adi_phy_Fra
     return result;
 }
 
+/*
+ * @brief           Read frame checker frame count.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [out]     cnt         Pointer to store the 32-bit frame count.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads FC_FRM_CNT_H and FC_FRM_CNT_L via SPI to get total frames checked.
+ */
 adi_eth_Result_e PHY_FrameChkReadFrameCnt(adi_phy_Device_t *hDevice, uint32_t *cnt)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1772,6 +1801,13 @@ end:
     return result;
 }
 
+/*
+ * @brief           Read frame checker receive error count.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [out]     cnt         Pointer to store the 16-bit error count.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads RX_ERR_CNT via SPI to get total receive errors.
+ */
 adi_eth_Result_e PHY_FrameChkReadRxErrCnt(adi_phy_Device_t *hDevice, uint16_t *cnt)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1781,6 +1817,13 @@ adi_eth_Result_e PHY_FrameChkReadRxErrCnt(adi_phy_Device_t *hDevice, uint16_t *c
     return result;
 }
 
+/*
+ * @brief           Read frame checker error counters.
+ * @param [in]      hDevice     Device driver handle.
+ * @param [out]     cnt         Pointer to structure for detailed error counts.
+ * @return          ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details         Reads multiple error counter registers via SPI for diagnostic purposes.
+ */
 adi_eth_Result_e PHY_FrameChkReadErrorCnt(adi_phy_Device_t *hDevice, adi_phy_FrameChkErrorCounters_t *cnt)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1843,19 +1886,13 @@ end:
 /**************************************************/
 
 /*
- * @brief           Check thedevice identity.
- *
+ * @brief           Check the device identity.
  * @param [in]      hDevice     Device driver handle.
- * @param [out]
- * @return
- *
- * @details         This function is called after a reset event and before the
- *                  initialization of the device is performed.
- *                  It reads the MMD1_DEV_ID1/MMD1_DEV_ID2 registers and compares
- *                  them with expected values. If comparison is not successful,
- *                  return ADI_PHY_UNSUPPORTED_DEVID
- *
- * @sa
+ * @param [out]     modelNum    Pointer to store the model number.
+ * @param [out]     revNum      Pointer to store the revision number.
+ * @return          ADI_ETH_SUCCESS on success, ADI_ETH_UNSUPPORTED_DEVICE if ID mismatches.
+ * @details         Reads MMD1_DEV_ID1 and MMD1_DEV_ID2 via SPI to verify the ADIN1110 identity
+ *                  during initialization or reset.
  */
 static adi_eth_Result_e checkIdentity(adi_phy_Device_t *hDevice, uint32_t *modelNum, uint32_t *revNum)
 {
@@ -1902,6 +1939,12 @@ end:
 }
 
 #if defined(ADIN1100)
+/*
+ * @brief           Wait for MDIO interface to be ready (ADIN1100 only).
+ * @param [in]      hDevice     Device driver handle.
+ * @return          ADI_ETH_SUCCESS on success, ADI_ETH_COMM_ERROR if timeout occurs.
+ * @details         Polls the MMD1_DEV_ID1 register via SPI until the MDIO interface is operational.
+ */
 static adi_eth_Result_e waitMdio(adi_phy_Device_t *hDevice)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
