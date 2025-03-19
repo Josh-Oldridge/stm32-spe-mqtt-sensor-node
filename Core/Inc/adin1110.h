@@ -9,6 +9,16 @@
  *---------------------------------------------------------------------------
  */
 
+/**
+ * @file    adin1110.h
+ * @brief   Definitions for the ADIN1110 MAC-PHY Software Driver.
+ * @details Provides types, structures, and function prototypes for the ADIN1110 MAC-PHY
+ *          driver used in the CN0575 SPE board, interfacing with the STM32L496ZG-P Nucleo
+ *          board over SPI (via OPEN Alliance or Generic SPI) to manage 10BASE-T1L Ethernet
+ *          communication. Supports secure MQTT transmission of sensor data over TLSv1.2
+ *          using lwIP and mbedtls. Integrates MAC and PHY functionality into a unified API.
+ */
+
 /** @addtogroup adin1110 ADIN1110 MAC-PHY Software Driver
  *  @{
  */
@@ -32,23 +42,36 @@ extern "C" {
 /*! ADIN1110 driver extra version. */
 #define ADIN1110_VERSION_EXTRA      (0)
 
-/*! ADIN1110 driver version. */
+/**
+ * @brief ADIN1110 driver version.
+ * @details Combines major, minor, patch, and extra versions into a 32-bit value.
+ */
 #define ADIN1110_VERSION            ((ADIN1110_VERSION_MAJOR << 24) | \
                                      (ADIN1110_VERSION_MINOR << 16) | \
                                      (ADIN1110_VERSION_PATCH << 8) | \
                                      (ADIN1110_VERSION_EXTRA))
 
-/*! ADIN1110 device descriptor structure, in bytes. */
+/**
+ * @brief ADIN1110 device descriptor structure size, in bytes.
+ * @details Sum of PHY and MAC device structure sizes (ADI_PHY_DEVICE_SIZE + ADI_MAC_DEVICE_SIZE).
+ */
 #define ADIN1110_DEVICE_SIZE        (ADI_PHY_DEVICE_SIZE + ADI_MAC_DEVICE_SIZE)
 
-/*! PHY address for the ADIN1110, this is fixed in hardware. */
+/**
+ * @brief PHY address for the ADIN1110, fixed in hardware.
+ * @details Internal MDIO bus address (1) for the integrated PHY, accessed via SPI-to-MDIO bridge.
+ */
 #define ADIN1110_PHY_ADDR           (1)
 
-/*! PHY interrupt mask. */
+/**
+ * @brief PHY interrupt mask.
+ * @details Default mask enabling hardware error and reset interrupts for the ADIN1110 PHY.
+ */
 #define ADIN1110_PHY_IRQ_MASK       (ADI_PHY_CRSM_HW_ERROR | BITM_CRSM_IRQ_MASK_CRSM_HRD_RST_IRQ_EN)
 
-/*!
- * @brief ADIN1110 device identification.
+/**
+ * @brief ADIN1110 device identification structure.
+ * @details Contains hardware identification details read from the ADIN1110’s PHY registers.
  */
 typedef struct
 {
@@ -64,8 +87,9 @@ typedef struct
     uint8_t         pkgType;                /*!< Package type.              */
 } adin1110_DeviceId_t;
 
-/*!
+/**
  * @brief ADIN1110 device driver structure.
+ * @details Encapsulates pointers to PHY and MAC driver instances and a user context for the ADIN1110.
  */
 typedef struct
 {
@@ -74,8 +98,9 @@ typedef struct
     void                    *pUserContext;  /*!< Pointer to user context.            */
 } adin1110_DeviceStruct_t;
 
-/*!
- * @brief ADIN1110 driver configuration.
+/**
+ * @brief ADIN1110 driver configuration structure.
+ * @details Configuration parameters for initializing the ADIN1110 driver.
  */
 typedef struct
 {
@@ -85,8 +110,9 @@ typedef struct
                                          *   transaction integrity; the FCS is previously checked by the MAC hardware on frame receive to the MAC.  */
 } adin1110_DriverConfig_t;
 
-/*!
+/**
  * @brief ADIN1110 device handle.
+ * @details Typedef for a pointer to the device structure, used as the driver handle.
  */
 typedef adin1110_DeviceStruct_t*    adin1110_DeviceHandle_t;
 

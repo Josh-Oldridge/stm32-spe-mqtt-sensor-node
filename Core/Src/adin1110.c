@@ -9,6 +9,20 @@
  *---------------------------------------------------------------------------
  */
 
+/**
+ * @file    adin1110.c
+ * @brief   Implementation of the ADIN1110 MAC-PHY Software Driver.
+ * @details Contains the driver logic for the ADIN1110 MAC-PHY, interfacing with the
+ *          STM32L496ZG-P Nucleo board via SPI (OPEN Alliance or Generic) to manage
+ *          10BASE-T1L Ethernet communication on the CN0575 SPE board. Integrates MAC
+ *          and PHY functionality for secure MQTT transmission of sensor data over
+ *          TLSv1.2 using lwIP and mbedtls. Wraps lower-level MAC and PHY driver calls.
+ */
+
+/** @addtogroup adin1110 ADIN1110 MAC-PHY Software Driver
+ *  @{
+ */
+
 #include "adin1110.h"
 #include "hal.h"
 #include "adi_mac.h"
@@ -16,20 +30,32 @@
 #include "adi_eth_common.h"
 #include "ADIN1110_mac_addr_rdef.h"
 
-/** @addtogroup adin1110 ADIN1110 MAC-PHY Software Driver
- *  @{
- */
-
 /*! @cond PRIVATE */
 
+/** @brief Global device handle for internal use in PHY read/write callbacks. */
 adin1110_DeviceHandle_t pDeviceHandle;
 
-
+/**
+ * @brief Write to a PHY register via the MAC driver.
+ * @param [in] hwAddr PHY hardware address (fixed at ADIN1110_PHY_ADDR).
+ * @param [in] regAddr PHY register address (32-bit, Clause 45).
+ * @param [in] data 16-bit value to write.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Internal callback for PHY driver to write registers via the ADIN1110 MAC’s SPI-to-MDIO bridge.
+ */
 static uint32_t PhyWrite(uint8_t hwAddr, uint32_t regAddr, uint16_t data)
 {
     return (uint32_t)macDriverEntry.PhyWrite(pDeviceHandle->pMacDevice , hwAddr, regAddr, data);
 }
 
+/**
+ * @brief Read from a PHY register via the MAC driver.
+ * @param [in] hwAddr PHY hardware address (fixed at ADIN1110_PHY_ADDR).
+ * @param [in] regAddr PHY register address (32-bit, Clause 45).
+ * @param [out] data Pointer to store the 16-bit register value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Internal callback for PHY driver to read registers via the ADIN1110 MAC’s SPI-to-MDIO bridge.
+ */
 static uint32_t PhyRead(uint8_t hwAddr, uint32_t regAddr, uint16_t *data)
 {
     return (uint32_t)macDriverEntry.PhyRead(pDeviceHandle->pMacDevice , hwAddr, regAddr, data);
@@ -37,26 +63,16 @@ static uint32_t PhyRead(uint8_t hwAddr, uint32_t regAddr, uint16_t *data)
 
 /*! @endcond */
 
-/////////////////////////////
-
-/*!
- * @brief           ADIN1110 driver initialization.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      pCfg        Pointer to device configuration structure.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *                  - #ADI_ETH_INVALID_PARAM        Configured memory size too small.
- *                  - #ADI_ETH_UNSUPPORTED_DEVICE   Device not supported.
- *
- * @details         Initializes the driver and the ADIN1110 hardware.
- *                  The configuration structure includes a pointer to a memory chunk to be used for the driver structure.
- *
- *                  When the function finishes execution, the PHY device is in software powerdown state.
- *                  Use adin1110_Enable() to establish the link.
- *
- * @sa              adin1110_UnInit()
+/*
+ * @brief ADIN1110 driver initialization.
+ * @param [out] hDevice Pointer to store the device handle.
+ * @param [in] pCfg Pointer to device configuration structure.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Initializes the ADIN1110 MAC and PHY drivers over SPI with the provided
+ *          configuration. Allocates memory for both MAC and PHY instances within the
+ *          provided buffer. Leaves the PHY in software powerdown state; call
+ *          adin1110_Enable() to activate the link.
+ * @sa adin1110_UnInit()
  */
 adi_eth_Result_e adin1110_Init(adin1110_DeviceHandle_t hDevice, adin1110_DriverConfig_t *pCfg)
 {
@@ -102,17 +118,13 @@ end:
     return result;
 }
 
-/*!
- * @brief           ADIN1110 driver uninitialization.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Uninitializes the driver and the ADIN1110 hardware.
- *
- * @sa              adin1110_Init()
+/*
+ * @brief ADIN1110 driver uninitialization.
+ * @param [in] hDevice Device handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Shuts down the ADIN1110 MAC and PHY drivers, releases hardware resources,
+ *          and clears device pointers. Ensures proper cleanup via SPI.
+ * @sa adin1110_Init()
  */
 adi_eth_Result_e adin1110_UnInit(adin1110_DeviceHandle_t hDevice)
 {
@@ -141,17 +153,13 @@ end:
 	return result;
 }
 
-/*!
- * @brief           ADIN1110 driver enable.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Enable the MAC-PHY operation by bringing PHY out of software powerdown and establishing link.
- *
- * @sa              adin1110_Disable()
+/*
+ * @brief ADIN1110 driver enable.
+ * @param [in] hDevice Device handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Brings the ADIN1110 PHY out of software powerdown via SPI, enabling MAC-PHY
+ *          operation and establishing the link for Ethernet communication.
+ * @sa adin1110_Disable()
  */
 adi_eth_Result_e adin1110_Enable(adin1110_DeviceHandle_t hDevice)
 {
@@ -162,17 +170,13 @@ adi_eth_Result_e adin1110_Enable(adin1110_DeviceHandle_t hDevice)
     return result;
 }
 
-/*!
- * @brief           ADIN1110 driver disable.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Disable the MAC-PHY operation by bringing PHY into software powerdown.
- *
- * @sa              adin1110_Enable()
+/*
+ * @brief ADIN1110 driver disable.
+ * @param [in] hDevice Device handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Places the ADIN1110 PHY into software powerdown via SPI, halting MAC-PHY
+ *          operation and dropping the link.
+ * @sa adin1110_Enable()
  */
 adi_eth_Result_e adin1110_Disable(adin1110_DeviceHandle_t hDevice)
 {
@@ -183,17 +187,14 @@ adi_eth_Result_e adin1110_Disable(adin1110_DeviceHandle_t hDevice)
     return result;
 }
 
-/*!
- * @brief           Get device identity.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]     pDevId      Device identity.
- * 
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         This function reads device identity from port 1 PHY.
- *
+/*
+ * @brief Get device identity.
+ * @param [in] hDevice Device handle.
+ * @param [out] pDevId Pointer to store the device identity structure.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110 PHY’s identification registers (PHYID1, PHYID2, DIGID0,
+ *          DIGID1) via SPI to populate the device ID structure with revision, model,
+ *          OUI, and package type information.
  */
 adi_eth_Result_e adin1110_GetDeviceId(adin1110_DeviceHandle_t hDevice, adin1110_DeviceId_t *pDevId)
 {
@@ -232,20 +233,15 @@ end:
     return result;
 }
 
-/*!
- * @brief           ADIN1110 reset.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      resetType   Reset type.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Software reset. Reset type can specify a MAC-only reset or combined MAC-PHY reset.
- *                  Resetting the MAC clears all user-configured MAC settings, and reinitializes interrupt masks to the driver defaults.
- *                  Before resuming frame transmission/reception, reconfigure the MAC as needed and then call adin1110_SyncConfig().
- *
- * @sa
+/*
+ * @brief ADIN1110 reset.
+ * @param [in] hDevice Device handle.
+ * @param [in] resetType Reset type (MAC-only or MAC+PHY).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Performs a software reset of the ADIN1110 MAC and optionally the PHY via SPI.
+ *          A MAC+PHY reset reinitializes the PHY, while a MAC-only reset clears MAC settings
+ *          and interrupt masks, requiring reconfiguration and a call to adin1110_SyncConfig().
+ * @sa adin1110_SyncConfig()
  */
 adi_eth_Result_e adin1110_Reset(adin1110_DeviceHandle_t hDevice, adi_eth_ResetType_e resetType)
 {
@@ -262,44 +258,27 @@ adi_eth_Result_e adin1110_Reset(adin1110_DeviceHandle_t hDevice, adi_eth_ResetTy
     return result;
 }
 
-/*!
- * @brief           ADIN1110 configuration synchronization.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         This is a requirement for both OPEN Alliance SPI and Generic SPI. It will set \ref adi_mac_Device_t.configSync to TRUE, 
- *                  which prevents modification of device configuration options via the APIs listed below until adin1110_Reset() or adin1110_Init() is called:
- *                  - adin1110_SetChunkSize()
- *                  - adin1110_SetFifoSizes()
- *                  - adin1110_SetCutThroughMode()
- *                  - adin1110_TsEnable()
- * 
- *                  For OPEN Alliance SPI, this function will aditionally set the bit CONFIG0.SYNC to indicate the device is configured.
- *                  CONFIG0.SYNC is cleared on reset, and the MAC device will not transmit or receive frames until CONFIG0.SYNC is set.
- *
- * @sa              adin1110_Reset()
+/*
+ * @brief ADIN1110 configuration synchronization.
+ * @param [in] hDevice Device handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Synchronizes the ADIN1110 MAC configuration via SPI, setting configSync to true
+ *          and enabling interrupts. For OA SPI, sets CONFIG0.SYNC to allow frame transmission.
+ *          Prevents further configuration changes until reset or reinitialization.
+ * @sa adin1110_Reset()
  */
 adi_eth_Result_e adin1110_SyncConfig(adin1110_DeviceHandle_t hDevice)
 {
     return macDriverEntry.SyncConfig(hDevice->pMacDevice);
 }
 
-/*!
- * @brief           Read link status.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]     linkStatus  Link status.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         This function uses the link status information available
- *                  in the MAC STATUS register. It does not read from the PHY registers.
- *
- * @sa
+/*
+ * @brief Read link status.
+ * @param [in] hDevice Device handle.
+ * @param [out] linkStatus Pointer to store the link status (UP or DOWN).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Retrieves the ADIN1110 MAC’s link status from the STATUS1 register via SPI,
+ *          reflecting the PHY’s link state without direct PHY register access.
  */
 adi_eth_Result_e adin1110_GetLinkStatus(adin1110_DeviceHandle_t hDevice, adi_eth_LinkStatus_e *linkStatus)
 {
@@ -307,99 +286,68 @@ adi_eth_Result_e adin1110_GetLinkStatus(adin1110_DeviceHandle_t hDevice, adi_eth
 
 }
 
-/*!
- * @brief           Read MAC statistics counters.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]     stat        Statistics counters values.
- *
- * @details
- *
- * @sa
+/*
+ * @brief Read MAC statistics counters.
+ * @param [in] hDevice Device handle.
+ * @param [out] stat Pointer to store the MAC statistics counters.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110 MAC’s statistics counters (e.g., frame counts, errors) via SPI
+ *          for Port 1, providing insight into Ethernet traffic and performance.
  */
 adi_eth_Result_e adin1110_GetStatCounters(adin1110_DeviceHandle_t hDevice, adi_eth_MacStatCounters_t *stat)
 {
     return macDriverEntry.GetStatCounters(hDevice->pMacDevice, 1, stat);
 }
 
-/*!
- * @brief           Enable/disable the status LED.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]     enable      Enable/disable the status LED.
- *
- * @details
- *
- * @sa
+/*
+ * @brief Enable/disable the status LED.
+ * @param [in] hDevice Device handle.
+ * @param [in] enable True to enable, false to disable the status LED.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Controls the ADIN1110 PHY’s LED_0 (fixed in hardware) via SPI, used to indicate
+ *          link or activity status on the CN0575 SPE board.
  */
 adi_eth_Result_e adin1110_LedEn(adin1110_DeviceHandle_t hDevice, bool enable)
 {
   return phyDriverEntry.LedEn(hDevice->pPhyDevice, ADI_PHY_LED_0,  enable);
 }
 
-/*!
- * @brief           Set loopback mode.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      loopbackMode    Loopback mode.
- *
- * @details         The ADIN1110 features a number of loopback modes that can
- *                  be configured with this function:
- *
- *                  - #ADI_PHY_LOOPBACK_NONE
- *                  - #ADI_PHY_LOOPBACK_PCS
- *                  - #ADI_PHY_LOOPBACK_PMA
- *                  - #ADI_PHY_LOOPBACK_MACIF
- *                  - #ADI_PHY_LOOPBACK_MACIF_SUPPRESS_TX
- *                  - #ADI_PHY_LOOPBACK_MACIF_REMOTE
- *                  - #ADI_PHY_LOOPBACK_MACIF_REMOTE_SUPPRESS_RX
- *
- *                  To return to normal operation, set loopback mode to #ADI_PHY_LOOPBACK_NONE.
+/*
+ * @brief Set loopback mode.
+ * @param [in] hDevice Device handle.
+ * @param [in] loopbackMode Loopback mode (e.g., PCS, PMA, MACIF).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110 PHY’s loopback mode via SPI for diagnostic testing,
+ *          supporting various modes like PCS, PMA, or MACIF. Set to NONE for normal operation.
  */
 adi_eth_Result_e adin1110_SetLoopbackMode(adin1110_DeviceHandle_t hDevice, adi_phy_LoopbackMode_e loopbackMode)
 {
     return phyDriverEntry.SetLoopbackMode(hDevice->pPhyDevice, loopbackMode);
 }
 
-/*!
- * @brief           Set test mode.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      testMode        Test mode.
- *
- * @details         The ADIN1110 features a number of test modes that can
- *                  be configured with this function:
- *
- *                  - #ADI_PHY_TEST_MODE_NONE
- *                  - #ADI_PHY_TEST_MODE_1
- *                  - #ADI_PHY_TEST_MODE_2
- *                  - #ADI_PHY_TEST_MODE_3
- *                  - #ADI_PHY_TEST_MODE_TX_DISABLE
- *
- *                  To return to normal operation, set loopback mode to #ADI_PHY_TEST_MODE_NONE.
- *
+/*
+ * @brief Set test mode.
+ * @param [in] hDevice Device handle.
+ * @param [in] testMode Test mode (e.g., IEEE 802.3cg modes, TX_DISABLE).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110 PHY’s test mode via SPI for compliance testing (e.g., IEEE
+ *          802.3cg modes 1-3). Set to NONE to resume normal operation.
  */
 adi_eth_Result_e adin1110_SetTestMode(adin1110_DeviceHandle_t hDevice, adi_phy_TestMode_e testMode)
 {
     return phyDriverEntry.SetTestMode(hDevice->pPhyDevice, testMode);
 }
 
-/*!
- * @brief           Set up MAC address filter and corresponding address rules.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      macAddr         MAC address.
- * @param [in]      macAddrMask     MAC address mask.
- * @param [in]      priority        FIFO priority.
- *
- * @details         Search for an available entry in the address filter table implemented in hardware. If no available entry is found,
- *                  it returns ADI_ETH_ADDRESS_FILTER_TABLE_FULL, otherwise the MAC address and corresponding priority
- *                  will be written to the hardware registers. The MAC address mask can be used to indicate how many bits, 
- *                  from left to right, the filter checks against the MAC address.
- *
- *                  If the address filter table is full, an entry can be made available using adin1110_ClearAddressFilter(). 
- *
- * @sa              adin1110_ClearAddressFilter()
+/*
+ * @brief Set up MAC address filter and corresponding address rules.
+ * @param [in] hDevice Device handle.
+ * @param [in] macAddr Pointer to 6-byte MAC address.
+ * @param [in] macAddrMask Pointer to 6-byte MAC address mask (NULL for exact match).
+ * @param [in] priority Priority value for the filter (e.g., TO_HOST).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Adds a MAC address filter to the ADIN1110 via SPI, configuring priority and rules
+ *          (e.g., forward to host). Returns ADI_ETH_ADDRESS_FILTER_TABLE_FULL if no slots are available.
+ * @sa adin1110_ClearAddressFilter()
  */
 adi_eth_Result_e adin1110_AddAddressFilter(adin1110_DeviceHandle_t hDevice, uint8_t *macAddr, uint8_t *macAddrMask, uint32_t priority)
 {
@@ -414,36 +362,28 @@ adi_eth_Result_e adin1110_AddAddressFilter(adin1110_DeviceHandle_t hDevice, uint
     return macDriverEntry.AddAddressFilter(hDevice->pMacDevice, macAddr, macAddrMask, addrRule.VALUE16);
 }
 
-/*!
- * @brief           Clear MAC address filter entry from a specific index.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      addrIndex       Address table index.
- *
- * @details         Frees up an entry in the hardware address filter table by resetting the address rules.
- *
- * @sa              adin1110_AddAddressFilter()
+/*
+ * @brief Clear MAC address filter entry from a specific index.
+ * @param [in] hDevice Device handle.
+ * @param [in] addrIndex Index of the filter entry to clear (0-15).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Frees an ADIN1110 MAC address filter entry via SPI, resetting its rules to make
+ *          it available for reuse.
+ * @sa adin1110_AddAddressFilter()
  */
 adi_eth_Result_e adin1110_ClearAddressFilter(adin1110_DeviceHandle_t hDevice, uint32_t addrIndex)
 {
     return macDriverEntry.ClearAddressFilter(hDevice->pMacDevice, addrIndex);
 }
 
-/*!
- * @brief           Submit Tx buffer.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      pBufDesc        Pointer to the buffer descriptor.
- *
- * @details         Submits a new Tx buffer to the Tx queue, to be scheduled for transmission.
- *                  The buffer information is supplied in the form of a buffer descriptor.
- *                  If the Tx queue is full, an error code is returned to the caller.
- *                  Once the buffer is successfully downloaded to the ADIN1110 Tx FIFO, the
- *                  callback configured as part of the buffer descriptor (if not NULL) will be called.
- *                  Note this indicates the buffer is in the Tx FIFO, not that the transmission was
- *                  successful!
- *
- * @sa
+/*
+ * @brief Submit Tx buffer.
+ * @param [in] hDevice Device handle.
+ * @param [in] pBufDesc Pointer to the buffer descriptor.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Queues a frame for transmission on the ADIN1110 MAC via SPI, setting a reference
+ *          count of 1 (single-port device). Invokes the buffer’s callback when the frame is
+ *          downloaded to the Tx FIFO, not necessarily transmitted successfully.
  */
 adi_eth_Result_e adin1110_SubmitTxBuffer(adin1110_DeviceHandle_t hDevice, adi_eth_BufDesc_t *pBufDesc)
 {
@@ -458,20 +398,14 @@ adi_eth_Result_e adin1110_SubmitTxBuffer(adin1110_DeviceHandle_t hDevice, adi_et
     return macDriverEntry.SubmitTxBuffer(hDevice->pMacDevice, header, pBufDesc);
 }
 
-/*!
- * @brief           Submit Rx buffer.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      pBufDesc        Pointer to the buffer descriptor.
- *
- * @details         Submits a new Rx buffer to the Rx queue. On receiving of a new frame, the buffer
- *                  descriptor will be populated with frame contents before a callback is used to notify the
- *                  application the buffer descriptor is available.
- *
- *                  If high priority queue is enabled by defining the symbol ADI_MAC_ENABLE_RX_QUEUE_HI_PRIO,
- *                  this will submit the buffer to the low (normal) priority queue.
- *
- * @sa
+/*
+ * @brief Submit Rx buffer to the low-priority queue.
+ * @param [in] hDevice Device handle.
+ * @param [in] pBufDesc Pointer to the buffer descriptor.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Queues a buffer for receiving frames in the ADIN1110 MAC’s low-priority queue via
+ *          SPI. Populates the descriptor and invokes its callback upon frame reception.
+ * @sa adin1110_SubmitRxBufferHp()
  */
 adi_eth_Result_e adin1110_SubmitRxBuffer(adin1110_DeviceHandle_t hDevice, adi_eth_BufDesc_t *pBufDesc)
 {
@@ -479,17 +413,14 @@ adi_eth_Result_e adin1110_SubmitRxBuffer(adin1110_DeviceHandle_t hDevice, adi_et
 }
 
 #if defined(ADI_MAC_ENABLE_RX_QUEUE_HI_PRIO)
-/*!
- * @brief           Submit Rx buffer to the high priority queue.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      pBufDesc        Pointer to the buffer descriptor.
- *
- * @details         Submits a new Rx buffer to the high priority Rx queue. On receiving of a new frame, the buffer
- *                  descriptor will be populated with frame contents before a callback is used to notify the
- *                  application the buffer descriptor is available.
- *
- * @sa
+/*
+ * @brief Submit Rx buffer to the high-priority queue.
+ * @param [in] hDevice Device handle.
+ * @param [in] pBufDesc Pointer to the buffer descriptor.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Queues a buffer for receiving frames in the ADIN1110 MAC’s high-priority queue via
+ *          SPI, if enabled by ADI_MAC_ENABLE_RX_QUEUE_HI_PRIO. Invokes callback upon reception.
+ * @sa adin1110_SubmitRxBuffer()
  */
 adi_eth_Result_e adin1110_SubmitRxBufferHp(adin1110_DeviceHandle_t hDevice, adi_eth_BufDesc_t *pBufDesc)
 {
@@ -498,32 +429,27 @@ adi_eth_Result_e adin1110_SubmitRxBufferHp(adin1110_DeviceHandle_t hDevice, adi_
 #endif
 
 #if defined(SPI_OA_EN)
-/*!
- * @brief           Configure the chunk size used in OPEN Alliance frame transfers.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [out]     cps             Chunk payload selector (CPS) value to use.
- *
- * @details         Chunk size must be set before the configuration is synchronized.
- *                  Attempting to set chunk size after calling adin1110_SyncConfig() will return
- *                  an #ADI_ETH_CONFIG_SYNC_ERROR.
- *
- * @sa              adin1110_GetChunkSize()
+/*
+ * @brief Configure the chunk size used in OPEN Alliance frame transfers.
+ * @param [in] hDevice Device handle.
+ * @param [in] cps Chunk Payload Selector value (e.g., 8, 16, 32, 64 bytes).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets the OA SPI chunk size for the ADIN1110 MAC via SPI, must be called before
+ *          adin1110_SyncConfig() or returns ADI_ETH_CONFIG_SYNC_ERROR.
+ * @sa adin1110_GetChunkSize()
  */
 adi_eth_Result_e adin1110_SetChunkSize(adin1110_DeviceHandle_t hDevice, adi_mac_OaCps_e cps)
 {
     return macDriverEntry.SetChunkSize(hDevice->pMacDevice, cps);
 }
 
-/*!
- * @brief           Get current chunk size used in OPEN Alliance frame transfers.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [out]     pCps            Returns the current chunk payload selector (CPS) value.
- *
- * @details
- *
- * @sa              adin1110_SetChunkSize()
+/*
+ * @brief Get current chunk size used in OPEN Alliance frame transfers.
+ * @param [in] hDevice Device handle.
+ * @param [out] pCps Pointer to store the current Chunk Payload Selector value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Retrieves the current OA SPI chunk size setting from the ADIN1110 MAC via SPI.
+ * @sa adin1110_SetChunkSize()
  */
 adi_eth_Result_e adin1110_GetChunkSize(adin1110_DeviceHandle_t hDevice, adi_mac_OaCps_e *pCps)
 {
@@ -531,51 +457,43 @@ adi_eth_Result_e adin1110_GetChunkSize(adin1110_DeviceHandle_t hDevice, adi_mac_
 }
 #endif
 
-/*!
- * @brief           Enable or disable cut-through mode.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      txcte           Enable cut-through in transmit.
- * @param [in]      rxcte           Enable cut-through in receive. Only supported in OPEN Alliance SPI.
- *
- * @details         Cut-through mode must be set before the configuration is synchronized.
- *                  Attempting to set cut-through mode after calling adin1110_SyncConfig() will return
- *                  an #ADI_ETH_CONFIG_SYNC_ERROR.
- *
- * @sa              adin1110_GetCutThroughMode()
+/*
+ * @brief Enable or disable cut-through mode.
+ * @param [in] hDevice Device handle.
+ * @param [in] txcte Enable cut-through in transmit.
+ * @param [in] rxcte Enable cut-through in receive (OA SPI only).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures cut-through mode for the ADIN1110 MAC via SPI, must be set before
+ *          adin1110_SyncConfig() or returns ADI_ETH_CONFIG_SYNC_ERROR.
+ * @sa adin1110_GetCutThroughMode()
  */
 adi_eth_Result_e adin1110_SetCutThroughMode(adin1110_DeviceHandle_t hDevice, bool txcte, bool rxcte)
 {
     return macDriverEntry.SetCutThroughMode(hDevice->pMacDevice, txcte, rxcte);
 }
 
-/*!
- * @brief           Get cut-through mode.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      pTxcte          Returns true if cut-through is enabled in transmit.
- * @param [in]      pRxcte          Returns true if cut-through is enabled in receive. Only supported in OPEN Alliance SPI.
- *
- * @details
- *
- * @sa              adin1110_SetCutThroughMode()
+/*
+ * @brief Get cut-through mode status.
+ * @param [in] hDevice Device handle.
+ * @param [out] pTxcte Pointer to store transmit cut-through status.
+ * @param [out] pRxcte Pointer to store receive cut-through status.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Retrieves the current cut-through mode settings from the ADIN1110 MAC via SPI.
+ * @sa adin1110_SetCutThroughMode()
  */
 adi_eth_Result_e adin1110_GetCutThroughMode(adin1110_DeviceHandle_t hDevice, bool *pTxcte, bool *pRxcte)
 {
     return macDriverEntry.GetCutThroughMode(hDevice->pMacDevice, pTxcte, pRxcte);
 }
 
-/*!
- * @brief           Set the sizes of the FIFOs.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      fifoSizes       Set of FIFO size enumerations to use.
- *
- * @details         FIFO sizes must be set before the configuration is synchronized.
- *                  Attempting to set FIFO sizes after calling adin1110_SyncConfig() will return
- *                  an #ADI_ETH_CONFIG_SYNC_ERROR.
- *
- * @sa              adin1110_GetFifoSizes()
+/*
+ * @brief Set the sizes of the FIFOs.
+ * @param [in] hDevice Device handle.
+ * @param [in] fifoSizes FIFO size configuration structure.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110 MAC FIFO sizes via SPI, validating total size against
+ *          ADI_MAC_FIFO_MAX_SIZE. Must be set before adin1110_SyncConfig().
+ * @sa adin1110_GetFifoSizes()
  */
 adi_eth_Result_e adin1110_SetFifoSizes(adin1110_DeviceHandle_t hDevice, adi_mac_FifoSizes_t fifoSizes)
 {
@@ -596,15 +514,13 @@ adi_eth_Result_e adin1110_SetFifoSizes(adin1110_DeviceHandle_t hDevice, adi_mac_
     }
 }
 
-/*!
- * @brief           Get the current sizes of the FIFOs.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      pFifoSizes      Returns the current set of FIFO size enumerations.
- *
- * @details
- *
- * @sa              adin1110_SetFifoSizes()
+/*
+ * @brief Get the current sizes of the FIFOs.
+ * @param [in] hDevice Device handle.
+ * @param [out] pFifoSizes Pointer to store the FIFO size configuration.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Retrieves the current ADIN1110 MAC FIFO sizes (Tx, Rx low/high) via SPI.
+ * @sa adin1110_SetFifoSizes()
  */
 adi_eth_Result_e adin1110_GetFifoSizes(adin1110_DeviceHandle_t hDevice, adi_mac_FifoSizes_t *pFifoSizes)
 {
@@ -618,259 +534,206 @@ adi_eth_Result_e adin1110_GetFifoSizes(adin1110_DeviceHandle_t hDevice, adi_mac_
     return result;
 }
 
-/*!
- * @brief           Clear receive and/or transmit FIFOs.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      clearMode       Sets which FIFOs will be cleared. Multiple options can be selected with an OR operation.
- *
- * @details
- *
- * @sa
+/*
+ * @brief Clear receive and/or transmit FIFOs.
+ * @param [in] hDevice Device handle.
+ * @param [in] clearMode FIFO clear mode (e.g., Rx, Tx, all).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Clears specified ADIN1110 MAC FIFOs via SPI, supporting multiple clear options
+ *          combined with OR operations.
  */
 adi_eth_Result_e adin1110_ClearFifos(adin1110_DeviceHandle_t hDevice, adi_mac_FifoClrMode_e clearMode)
 {
     return macDriverEntry.ClearFifos(hDevice->pMacDevice, clearMode);
 }
 
-/*!
- * @brief           Enable/disable promiscuous mode.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      bFlag           Enable promiscuous mode if true, disable if false.
- *
- * @details         Configures the MAC to forward to host all frames whose destination address
- *                  does not match any of of the addresses configured in the address filters.
- *                  It does not change the existing address filters configuration.
- *                  Also, frames considered invalid by the MAC are not forwarded to the host and
- *                  instead are dropped by the hardware.
- *
- * @sa              adin1110_GetPromiscuousMode()
+/*
+ * @brief Enable/disable promiscuous mode.
+ * @param [in] hDevice Device handle.
+ * @param [in] bFlag True to enable, false to disable promiscuous mode.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110 MAC via SPI to forward all unmatched frames to the host,
+ *          leaving existing address filters intact. Invalid frames are still dropped by hardware.
+ * @sa adin1110_GetPromiscuousMode()
  */
 adi_eth_Result_e adin1110_SetPromiscuousMode(adin1110_DeviceHandle_t hDevice, bool bFlag)
 {
     return macDriverEntry.SetPromiscuousMode(hDevice->pMacDevice, bFlag);
 }
 
-/*!
- * @brief           Get promiscuous mode status.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [out]     pFlag           Returns true if promiscuous mode is enabled, false if disable.
- *
- * @details
- *
- * @sa              adin1110_SetPromiscuousMode()
+/*
+ * @brief Get promiscuous mode status.
+ * @param [in] hDevice Device handle.
+ * @param [out] pFlag Pointer to store promiscuous mode status.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Retrieves the current promiscuous mode setting from the ADIN1110 MAC via SPI.
+ * @sa adin1110_SetPromiscuousMode()
  */
 adi_eth_Result_e adin1110_GetPromiscuousMode(adin1110_DeviceHandle_t hDevice, bool *pFlag)
 {
     return macDriverEntry.GetPromiscuousMode(hDevice->pMacDevice, pFlag);
 }
 
-/*!
- * @brief           Enable timestamp counters and capture of receive timestamps.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      format          Timestamp format:
- *                                  - 32b free-running counter: 1 lsb = 1/120MHz = 8.33ns.
- *                                  - 32b 1588 timestamp: [31:30] seconds count, [29:0] nanoseconds count.
- *                                  - 64b 1588 timestamp: [63:32] seconds count, [31:30] zero, [29:0] nanoseconds count.
- *
- * @details         Timestamps must be configured before the configuration is synchronized.
- *                  Attempting to enable timestamps after calling adin1110_SyncConfig() will return
- *                  an #ADI_ETH_CONFIG_SYNC_ERROR.
- *
- * @sa
+/*
+ * @brief Enable timestamp counters and capture of receive timestamps.
+ * @param [in] hDevice Device handle.
+ * @param [in] format Timestamp format (e.g., 32-bit free, 1588).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Enables timestamping on the ADIN1110 MAC via SPI with the specified format,
+ *          must be called before adin1110_SyncConfig() or returns ADI_ETH_CONFIG_SYNC_ERROR.
  */
 adi_eth_Result_e adin1110_TsEnable(adin1110_DeviceHandle_t hDevice, adi_mac_TsFormat_e format)
 {
     return macDriverEntry.TsEnable(hDevice->pMacDevice, format);
 }
 
-/*!
- * @brief           Synchronously clear all timestamp counters.
- *
- * @param [in]      hDevice         Device driver handle.
- *
- * @details
- *
- * @sa
+/*
+ * @brief Synchronously clear all timestamp counters.
+ * @param [in] hDevice Device handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Resets all ADIN1110 MAC timestamp counters to zero via SPI synchronously.
  */
 adi_eth_Result_e adin1110_TsClear(adin1110_DeviceHandle_t hDevice)
 {
     return macDriverEntry.TsClear(hDevice->pMacDevice);
 }
 
-/*!
- * @brief           Configure and start TS_TIMER waveform generation.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      pTimerConfig    Pointer to a timer configuration structure.
- *
- * @details         It is required to run adin1110_TsEnable() to enable the timer block before running this function.
- *                  Use the timer configuration to set the period (in nanoseconds), duty cycle, idle state, and start time (in nanoseconds).
- *                  Start time must be greater than or equal to 16. Waveform generation will begin when the nanosecond counter 
- *                  is equal to the start time.
- *
- * @sa              adin1110_TsEnable()
- * @sa              adin1110_TsTimerStop()
+/*
+ * @brief Configure and start TS_TIMER waveform generation.
+ * @param [in] hDevice Device handle.
+ * @param [in] pTimerConfig Pointer to timer configuration structure.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures and starts the ADIN1110 MAC’s TS_TIMER via SPI with period, duty cycle,
+ *          idle state, and start time. Requires prior adin1110_TsEnable() call.
+ * @sa adin1110_TsEnable(), adin1110_TsTimerStop()
  */
 adi_eth_Result_e adin1110_TsTimerStart(adin1110_DeviceHandle_t hDevice, adi_mac_TsTimerConfig_t *pTimerConfig)
 {
     return macDriverEntry.TsTimerStart(hDevice->pMacDevice, pTimerConfig);
 }
 
-/*!
- * @brief           Halt the TS_TIMER waveform generation.
- *
- * @param [in]      hDevice         Device driver handle.
- *
- * @details
- *
- * @sa              adin1110_TsTimerStart()
+/*
+ * @brief Halt the TS_TIMER waveform generation.
+ * @param [in] hDevice Device handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Stops the ADIN1110 MAC’s TS_TIMER waveform generation via SPI.
+ * @sa adin1110_TsTimerStart()
  */
 adi_eth_Result_e adin1110_TsTimerStop(adin1110_DeviceHandle_t hDevice)
 {
     return macDriverEntry.TsTimerStop(hDevice->pMacDevice);
 }
 
-/*!
- * @brief           Set the internal seconds and nanoseconds counters to the given values.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [in]      seconds         Seconds value to program to the seconds counter.
- * @param [in]      nanoseconds     Nanoseconds value to program to the nanoseconds counter.
- *
- * @details         It is required to run adin1110_TsEnable() to enable the timer block before running this function.
- *                  Nanoseconds value will automatically be coerced to the resolution and limits of the counter.
- *                  Use adin1110_TsSyncClock() for fine frequency adjustment.
- *
- * @sa              adin1110_TsEnable()
- * @sa              adin1110_TsSyncClock()
+/*
+ * @brief Set the internal seconds and nanoseconds counters to the given values.
+ * @param [in] hDevice Device handle.
+ * @param [in] seconds Seconds value to set.
+ * @param [in] nanoseconds Nanoseconds value to set.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets the ADIN1110 MAC’s timestamp counters via SPI, coercing nanoseconds to
+ *          counter limits. Requires prior adin1110_TsEnable() call.
+ * @sa adin1110_TsEnable(), adin1110_TsSyncClock()
  */
 adi_eth_Result_e adin1110_TsSetTimerAbsolute(adin1110_DeviceHandle_t hDevice, uint32_t seconds, uint32_t nanoseconds)
 {
     return macDriverEntry.TsSetTimerAbsolute(hDevice->pMacDevice, seconds, nanoseconds);
 }
 
-/*!
- * @brief           Calculate and adjust the counter accumulator addend to adjust its frequency to zero out the given time difference.
- *
- * @param [in]      hDevice                 Device driver handle.
- * @param [in]      tError                  Time difference to correct, e.g. reference time minus local time. Positive or negative value.
- * @param [in]      referenceTimeNsDiff     Current time minus previous time from the reference clock source. Positive value.
- * @param [in]      localTimeNsDiff         Current time minus previous time from the local clock source. Positive value.
- *
- * @details         It is required to run adin1110_TsEnable() to enable the timer block before running this function.
- *                  Use adin1110_TsSetTimerAbsolute() for coarse timer adjustment to an absolute number of seconds and nanoseconds.
- *                  Use adin1110_TsSubtract() to calculate the difference between parsed timestamps stored in timespec structs.
- *
- * @sa              adin1110_TsEnable()
- * @sa              adin1110_TsSetTimerAbsolute()
+/*
+ * @brief Calculate and adjust the counter accumulator addend to adjust its frequency.
+ * @param [in] hDevice Device handle.
+ * @param [in] tError Time difference to correct (reference - local).
+ * @param [in] referenceTimeNsDiff Reference time difference in nanoseconds.
+ * @param [in] localTimeNsDiff Local time difference in nanoseconds.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Fine-tunes the ADIN1110 MAC’s timestamp clock frequency via SPI based on time
+ *          error and differences. Requires prior adin1110_TsEnable() call.
+ * @sa adin1110_TsEnable(), adin1110_TsSetTimerAbsolute()
  */
 adi_eth_Result_e adin1110_TsSyncClock(adin1110_DeviceHandle_t hDevice, int64_t tError, uint64_t referenceTimeNsDiff, uint64_t localTimeNsDiff)
 {
     return macDriverEntry.TsSyncClock(hDevice->pMacDevice, tError, referenceTimeNsDiff, localTimeNsDiff);
 }
 
-/*!
- * @brief           Retrieve and parse the TS_EXT_CAPT timestamp that is captured when the TS_CAPT input pin is asserted.
- *
- * @param [in]      hDevice             Device driver handle.
- * @param [in]      pCapturedTimespec   Pointer to a timespec struct to hold the parsed timestamp data.
- *
- * @details         It is required to run adin1110_TsEnable() to enable the timer block before running this function.
- *                  Uses the timestamp format that was set via adin1110_TsEnable() and adin1110_TsConvert() to parse.
- *
- * @sa              adin1110_TsEnable()
- * @sa              adin1110_TsConvert()
+/*
+ * @brief Retrieve and parse the TS_EXT_CAPT timestamp.
+ * @param [in] hDevice Device handle.
+ * @param [out] pCapturedTimespec Pointer to store the parsed timestamp.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads the ADIN1110 MAC’s external capture timestamp (TS_EXT_CAPT) via SPI,
+ *          triggered by TS_CAPT pin assertion, using the format set by adin1110_TsEnable().
+ * @sa adin1110_TsEnable(), adin1110_TsConvert()
  */
 adi_eth_Result_e adin1110_TsGetExtCaptTimestamp(adin1110_DeviceHandle_t hDevice, adi_mac_TsTimespec_t *pCapturedTimespec)
 {
     return macDriverEntry.TsGetExtCaptTimestamp(hDevice->pMacDevice, pCapturedTimespec);
 }
 
-/*!
- * @brief           Retrieve and parse the TTSC* transmit timestamp that is captured if directed by the frame header.
- *
- * @param [in]      hDevice             Device driver handle.
- * @param [in]      egressReg           Enumeration value to select readback of TTSCA, TTSCB, or TTSCC.
- * @param [in]      pCapturedTimespec   Pointer to a timespec struct to hold the parsed timestamp data.
- *
- * @details         The MAC-PHY can be directed to capture a transmit timestamp by setting the \ref adi_eth_BufDesc_t.egressCapt field.
- *                  It is required to run adin1110_TsEnable() to enable the timer block before running this function.
- *                  Uses the timestamp format that was set via adin1110_TsEnable() and adin1110_TsConvert() to parse.
- *
- * @sa              adin1110_TsEnable()
- * @sa              adin1110_TsConvert()
+/*
+ * @brief Retrieve and parse the TTSC* transmit timestamp.
+ * @param [in] hDevice Device handle.
+ * @param [in] egressReg Egress capture register (A, B, or C).
+ * @param [out] pCapturedTimespec Pointer to store the parsed timestamp.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads an ADIN1110 MAC egress timestamp (TTSCA/B/C) via SPI, captured based on
+ *          frame header settings, using the format from adin1110_TsEnable().
+ * @sa adin1110_TsEnable(), adin1110_TsConvert()
  */
 adi_eth_Result_e adin1110_TsGetEgressTimestamp(adin1110_DeviceHandle_t hDevice, adi_mac_EgressCapture_e egressReg, adi_mac_TsTimespec_t *pCapturedTimespec)
 {
     return macDriverEntry.TsGetEgressTimestamp(hDevice->pMacDevice, egressReg, pCapturedTimespec);
 }
 
-/*!
- * @brief           Parses the a timestamp in a specific format.
- *
- * @param [in]      timestampLowWord    Lower 32 bits of timestamp.
- * @param [in]      timestampHighWord   Upper 32 bits of timestamp. Can be zero if using a 32-bit format.
- * @param [in]      format              Enumeration value to select the timestamp format to be used to parse the raw values.
- * @param [in]      pTimespec           Pointer to a timespec struct to hold the parsed timestamp data.
- *
- * @details
- *
- * @sa
+/*
+ * @brief Parse a timestamp in a specific format.
+ * @param [in] timestampLowWord Lower 32 bits of timestamp.
+ * @param [in] timestampHighWord Upper 32 bits of timestamp (0 for 32-bit formats).
+ * @param [in] format Timestamp format to parse (e.g., 32-bit free, 1588).
+ * @param [out] pTimespec Pointer to store the parsed timespec.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Converts raw ADIN1110 timestamp values to a timespec structure (seconds,
+ *          nanoseconds) based on the specified format.
  */
 adi_eth_Result_e adin1110_TsConvert(uint32_t timestampLowWord, uint32_t timestampHighWord, adi_mac_TsFormat_e format, adi_mac_TsTimespec_t *pTimespec)
 {
     return macDriverEntry.TsConvert(timestampLowWord, timestampHighWord, format, pTimespec);
 }
 
-/*!
- * @brief           Calculate the difference between two parsed timestamps in nanoseconds.
- *
- * @param [in]      pTsA        Pointer to timestamp value A.
- * @param [in]      pTsB        Pointer to timestamp value B.
- *
- * @returns         Nanoseconds value representing TsA - TsB.
- *
- * @details         Difference will be negative if TsB is greater than TsA.
- *
- * @sa
+/*
+ * @brief Calculate the difference between two parsed timestamps in nanoseconds.
+ * @param [in] pTsA First timestamp (minuend).
+ * @param [in] pTsB Second timestamp (subtrahend).
+ * @return Difference in nanoseconds (TsA - TsB).
+ * @details Computes the nanosecond difference between two ADIN1110 timestamps, returning
+ *          a negative value if TsB exceeds TsA.
  */
 int64_t adin1110_TsSubtract(adi_mac_TsTimespec_t *pTsA, adi_mac_TsTimespec_t *pTsB)
 {
     return macDriverEntry.TsSubtract(pTsA, pTsB);
 }
 
-/*!
- * @brief           Register callback for driver events.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      cbFunc      Callback function.
- * @param [in]      cbEvent     Callback event.
- *
- * @details         This is separate from the callbacks configured for the Tx/Rx frames.
- *                  It notifies the application when configured events occur.
- *
- * @sa
+/*
+ * @brief Register callback for driver events.
+ * @param [in] hDevice Device handle.
+ * @param [in] cbFunc Callback function to register.
+ * @param [in] cbEvent Callback event (e.g., LINK_CHANGE, TIMESTAMP_RDY).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Registers a callback with the ADIN1110 MAC via SPI for interrupt-driven events,
+ *          distinct from Tx/Rx buffer callbacks, to notify the application of status changes.
  */
 adi_eth_Result_e adin1110_RegisterCallback(adin1110_DeviceHandle_t hDevice, adi_eth_Callback_t cbFunc, adi_mac_InterruptEvt_e cbEvent)
 {
     return macDriverEntry.RegisterCallback(hDevice->pMacDevice, cbFunc, cbEvent, (void *)hDevice);
 }
 
-/*!
- * @brief           Set user context for the device.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      pContext    Pointer to user context.
- *
- * @details         This is a user-defined variable to allow differentiation between instances
- *                  of the device driver and provide context information specific to a specific
- *                  instance. The driver does not use the user context information at any stage.
- *
- * @sa              adin1110_GetUserContext()
+/*
+ * @brief Set user context for the device.
+ * @param [in] hDevice Device handle.
+ * @param [in] pContext Pointer to user context.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Assigns a user-defined context to the ADIN1110 driver for application-specific
+ *          use, not utilized by the driver itself, with validation for initialized state.
+ * @sa adin1110_GetUserContext()
  */
 adi_eth_Result_e adin1110_SetUserContext(adin1110_DeviceHandle_t hDevice, void *pContext)
 {
@@ -895,17 +758,13 @@ end:
     return result;
 }
 
-/*!
- * @brief           Get user context for the device.
- *
- * @param [in]      hDevice     Device driver handle.
- * @retval          Pointer to user context.
- *
- * @details         Returns the pointer to user context information stored in the device driver.
- *                  If not previously set using adin1110_SetUserContext(), or if driver not initialized,
- *                  it returns NULL.
- *
- * @sa              adin1110_SetUserContext()
+/*
+ * @brief Get user context for the device.
+ * @param [in] hDevice Device handle.
+ * @return Pointer to user context, or NULL if uninitialized or not set.
+ * @details Retrieves the user-defined context from the ADIN1110 driver, returning NULL if
+ *          the device is uninitialized or no context was set.
+ * @sa adin1110_SetUserContext()
  */
 void *adin1110_GetUserContext(adin1110_DeviceHandle_t hDevice)
 {
@@ -931,70 +790,60 @@ end:
 
 }
 
-/*!
- * @brief           Write to a MAC register.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      regAddr     Register address.
- * @param [in]      regData     Register data.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details
- *
- * @sa              adin1110_ReadRegister()
+/*
+ * @brief Write to a MAC register.
+ * @param [in] hDevice Device handle.
+ * @param [in] regAddr Register address (16-bit).
+ * @param [in] regData 32-bit value to write.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Writes a 32-bit value to an ADIN1110 MAC register via SPI, providing direct
+ *          hardware access for advanced configuration.
+ * @sa adin1110_ReadRegister()
  */
 adi_eth_Result_e adin1110_WriteRegister(adin1110_DeviceHandle_t hDevice, uint16_t regAddr, uint32_t regData)
 {
     return macDriverEntry.WriteRegister(hDevice->pMacDevice, regAddr, regData);
 }
 
-/*!
- * @brief           Read from a MAC register.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      regAddr     Register address.
- * @param [out]     regData     Register data.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details
- *
- * @sa              adin1110_WriteRegister()
+/*
+ * @brief Read from a MAC register.
+ * @param [in] hDevice Device handle.
+ * @param [in] regAddr Register address (16-bit).
+ * @param [out] regData Pointer to store the 32-bit register value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads a 32-bit value from an ADIN1110 MAC register via SPI, allowing direct
+ *          hardware status monitoring.
+ * @sa adin1110_WriteRegister()
  */
 adi_eth_Result_e adin1110_ReadRegister(adin1110_DeviceHandle_t hDevice, uint16_t regAddr, uint32_t *regData)
 {
     return macDriverEntry.ReadRegister(hDevice->pMacDevice, regAddr, regData);
 }
 
-/*!
- * @brief           Write to a PHY register.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      regAddr     Register address.
- * @param [in]      regData     Register data.
- *
- * @details
- *
- * @sa              adin1110_PhyRead()
+/*
+ * @brief Write to a PHY register.
+ * @param [in] hDevice Device handle.
+ * @param [in] regAddr PHY register address (32-bit, Clause 45).
+ * @param [in] regData 16-bit value to write.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Writes a 16-bit value to an ADIN1110 PHY register via the SPI-to-MDIO bridge,
+ *          using the fixed PHY address.
+ * @sa adin1110_PhyRead()
  */
 adi_eth_Result_e adin1110_PhyWrite(adin1110_DeviceHandle_t hDevice, uint32_t regAddr, uint16_t regData)
 {
     return macDriverEntry.PhyWrite(hDevice->pMacDevice, hDevice->pPhyDevice->phyAddr, regAddr, regData);
 }
 
-/*!
- * @brief           Read from a PHY register.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      regAddr     Register address.
- * @param [out]     regData     Register data.
- *
- * @details
- *
- * @sa              adin1110_PhyWrite()
+/*
+ * @brief Read from a PHY register.
+ * @param [in] hDevice Device handle.
+ * @param [in] regAddr PHY register address (32-bit, Clause 45).
+ * @param [out] regData Pointer to store the 16-bit register value.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Reads a 16-bit value from an ADIN1110 PHY register via the SPI-to-MDIO bridge,
+ *          using the fixed PHY address.
+ * @sa adin1110_PhyWrite()
  */
 adi_eth_Result_e adin1110_PhyRead(adin1110_DeviceHandle_t hDevice, uint32_t regAddr, uint16_t *regData)
 {
@@ -1002,14 +851,13 @@ adi_eth_Result_e adin1110_PhyRead(adin1110_DeviceHandle_t hDevice, uint32_t regA
 }
 
 
-/*!
- * @brief           Get link quality measure based on the Mean Square Error (MSE) value.
- *
- * @param [in]      hDevice         Device driver handle.
- * @param [out]     mseLinkQuality  Link quality struct.
- *
- * @details
- *
+/*
+ * @brief Get link quality measure based on Mean Square Error (MSE).
+ * @param [in] hDevice Device handle.
+ * @param [out] mseLinkQuality Pointer to store the MSE link quality metrics.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Retrieves the ADIN1110 PHY’s MSE and link quality metrics via SPI, providing
+ *          signal integrity data for the 10BASE-T1L link.
  */
 adi_eth_Result_e adin1110_GetMseLinkQuality(adin1110_DeviceHandle_t hDevice, adi_phy_MseLinkQuality_t *mseLinkQuality)
 {
@@ -1017,233 +865,184 @@ adi_eth_Result_e adin1110_GetMseLinkQuality(adin1110_DeviceHandle_t hDevice, adi
 }
 
 
-/*!
- * @brief           Enable/disable frame generator.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      enable      Enable flag.
- *
- * @details         Enables/disables the frame generator based on the flag value.
- *
+/*
+ * @brief Enable/disable frame generator.
+ * @param [in] hDevice Device handle.
+ * @param [in] enable True to enable, false to disable.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Enables or disables the ADIN1110 PHY’s frame generator via SPI for diagnostic
+ *          traffic generation on the CN0575 SPE board.
  */
 adi_eth_Result_e adin1110_FrameGenEn(adin1110_DeviceHandle_t hDevice, bool enable)
 {
     return phyDriverEntry.FrameGenEn(hDevice->pPhyDevice, enable);
 }
 
-/*!
- * @brief           Set frame generator mode.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      mode        Frame generator mode.
- *
- * @details         Sets one of the following frame generator modes:
- *                  - #ADI_PHY_FRAME_GEN_MODE_BURST: burst mode
- *                  - #ADI_PHY_FRAME_GEN_MODE_CONT: continuous mode
- *
+/*
+ * @brief Set frame generator mode.
+ * @param [in] hDevice Device handle.
+ * @param [in] mode Frame generator mode (BURST or CONTINUOUS).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110 PHY frame generator mode via SPI, choosing between burst
+ *          or continuous frame transmission for testing.
  */
 adi_eth_Result_e adin1110_FrameGenSetMode(adin1110_DeviceHandle_t hDevice, adi_phy_FrameGenMode_e mode)
 {
     return phyDriverEntry.FrameGenSetMode(hDevice->pPhyDevice, mode);
 }
 
-/*!
- * @brief           Set frame generator frame counter.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      frameCnt    Frame count.
- *
- * @details         Updates the frame counter to the given value.
- *
+/*
+ * @brief Set frame generator frame count.
+ * @param [in] hDevice Device handle.
+ * @param [in] frameCnt Number of frames to generate.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets the ADIN1110 PHY frame generator’s frame count via SPI, controlling the
+ *          number of test frames produced.
  */
 adi_eth_Result_e adin1110_FrameGenSetFrameCnt(adin1110_DeviceHandle_t hDevice, uint32_t frameCnt)
 {
     return phyDriverEntry.FrameGenSetFrameCnt(hDevice->pPhyDevice, frameCnt);
 }
 
-/*!
- * @brief           Set frame generator payload.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      payload     Payload type.
- *
- * @details         The valid payloads are:
- *                  - #ADI_PHY_FRAME_GEN_PAYLOAD_NONE
- *                  - #ADI_PHY_FRAME_GEN_PAYLOAD_RANDOM
- *                  - #ADI_PHY_FRAME_GEN_PAYLOAD_0X00
- *                  - #ADI_PHY_FRAME_GEN_PAYLOAD_0XFF
- *                  - #ADI_PHY_FRAME_GEN_PAYLOAD_0x55
- *                  - #ADI_PHY_FRAME_GEN_PAYLOAD_DECR
- *
+/*
+ * @brief Set frame generator payload.
+ * @param [in] hDevice Device handle.
+ * @param [in] payload Payload type (e.g., RANDOM, 0x00).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110 PHY frame generator’s payload pattern via SPI, supporting
+ *          options like random or fixed byte values for testing.
  */
 adi_eth_Result_e adin1110_FrameGenSetFramePayload(adin1110_DeviceHandle_t hDevice, adi_phy_FrameGenPayload_e payload)
 {
     return phyDriverEntry.FrameGenSetFramePayload(hDevice->pPhyDevice, payload);
 }
 
-/*!
- * @brief           Set frame generator frame length.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      frameLen    Frame length.
- *
- * @details         Note the length of frames produced by the generator
- *                  has an additional overhead of 18 bytes: 6 bytes for source address,
- *                  6 bytes for destination address, 2 bytes for the length field and
- *                  4 bytes for the FCS field.
- *
- *                  If the frame length is set to a value less than 46 bytes, which
- *                  results in frames shorter than the minimum Ethernet frame
- *                  (64 bytes), the generator will not implement any padding.
+/*
+ * @brief Set frame generator frame length.
+ * @param [in] hDevice Device handle.
+ * @param [in] frameLen Frame length in bytes (excluding overhead).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Sets the ADIN1110 PHY frame generator’s frame length via SPI, noting an additional
+ *          18-byte overhead (source, destination, length, FCS). No padding for <64-byte frames.
  */
 adi_eth_Result_e adin1110_FrameGenSetFrameLen(adin1110_DeviceHandle_t hDevice, uint16_t frameLen)
 {
     return phyDriverEntry.FrameGenSetFrameLen(hDevice->pPhyDevice, frameLen);
 }
 
-/*!
- * @brief           Set frame generator interframe gap.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      ifgLen      Interframe gap.
- *
- * @details
- *
+/*
+ * @brief Set frame generator interframe gap.
+ * @param [in] hDevice Device handle.
+ * @param [in] ifgLen Interframe gap length in bytes.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110 PHY frame generator’s interframe gap via SPI, controlling
+ *          the spacing between test frames.
  */
 adi_eth_Result_e adin1110_FrameGenSetIfgLen(adin1110_DeviceHandle_t hDevice, uint16_t ifgLen)
 {
     return phyDriverEntry.FrameGenSetIfgLen(hDevice->pPhyDevice, ifgLen);
 }
 
-/*!
- * @brief           Restart frame generator.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @details         Restarts the frame generator. This is required
- *                  to enable frame generation. Before restart,
- *                  the function will read the FG_DONE bit to clear it,
- *                  in case it is still set from a previous run.
- *
+/*
+ * @brief Restart frame generator.
+ * @param [in] hDevice Device handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Restarts the ADIN1110 PHY frame generator via SPI, clearing FG_DONE and initiating
+ *          frame generation based on prior settings.
  */
 adi_eth_Result_e adin1110_FrameGenRestart(adin1110_DeviceHandle_t hDevice)
 {
     return phyDriverEntry.FrameGenRestart(hDevice->pPhyDevice);
 }
 
-/*!
- * @brief           Read frame generator status.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]     fgDone      Frame generator status.
- *
- * @details         Read the FG_DONE bit to determine if the frame generation is complete.
- *
+/*
+ * @brief Read frame generator status.
+ * @param [in] hDevice Device handle.
+ * @param [out] fgDone Pointer to store the done status (true if complete).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Checks the ADIN1110 PHY frame generator’s FG_DONE bit via SPI to determine if
+ *          frame generation has completed.
  */
 adi_eth_Result_e adin1110_FrameGenDone(adin1110_DeviceHandle_t hDevice, bool *fgDone)
 {
     return phyDriverEntry.FrameGenDone(hDevice->pPhyDevice, fgDone);
 }
 
-/*!
- * @brief           Enable/disable frame checker.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      enable      Enable flag.
- *
- * @details         Enables/disables the frame checker based on the flag value.
- *
+/*
+ * @brief Enable/disable frame checker.
+ * @param [in] hDevice Device handle.
+ * @param [in] enable True to enable, false to disable.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Enables or disables the ADIN1110 PHY’s frame checker via SPI for analyzing
+ *          received frame integrity and errors.
  */
 adi_eth_Result_e adin1110_FrameChkEn(adin1110_DeviceHandle_t hDevice, bool enable)
 {
     return phyDriverEntry.FrameChkEn(hDevice->pPhyDevice, enable);
 }
 
-/*!
- * @brief           Select frame checker source.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      source      Frame checker source.
- *
- * @details         Sets one of the following frame checker sources:
- *                  - #ADI_PHY_FRAME_CHK_SOURCE_PHY
- *                  - #ADI_PHY_FRAME_CHK_SOURCE_MAC
- *
+/*
+ * @brief Select frame checker source.
+ * @param [in] hDevice Device handle.
+ * @param [in] source Frame checker source (PHY or MAC).
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Configures the ADIN1110 PHY frame checker’s source via SPI, choosing between PHY
+ *          or MAC input for error analysis.
  */
  adi_eth_Result_e adin1110_FrameChkSourceSelect(adin1110_DeviceHandle_t hDevice, adi_phy_FrameChkSource_e source)
 {
     return phyDriverEntry.FrameChkSourceSelect(hDevice->pPhyDevice, source);
 }
 
-/*!
- * @brief           Read frame checker frame count.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]     cnt         Frame count.
- *
- * @details         Note the frame count value is latched when reading RX_CNT_ERR, therefore
- *                  a call to this function should be preceded by a call to adin1110_FrameChkReadRxErrCnt().
- *
- * @sa              adin1110_FrameChkReadRxErrCnt()
- */
+ /*
+  * @brief Read frame checker frame count.
+  * @param [in] hDevice Device handle.
+  * @param [out] cnt Pointer to store the frame count.
+  * @return ADI_ETH_SUCCESS on success, error code otherwise.
+  * @details Retrieves the ADIN1110 PHY frame checker’s frame count via SPI, latched after
+  *          reading RX_CNT_ERR via adin1110_FrameChkReadRxErrCnt().
+  * @sa adin1110_FrameChkReadRxErrCnt()
+  */
 adi_eth_Result_e adin1110_FrameChkReadFrameCnt(adin1110_DeviceHandle_t hDevice, uint32_t *cnt)
 {
     return phyDriverEntry.FrameChkReadFrameCnt(hDevice->pPhyDevice, cnt);
 }
 
-/*!
- * @brief           Read frame checker receive errors.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]     cnt         Error counter.
- *
- * @details         Note the frame counter/error counter values are latched when reading RX_CNT_ERR, therefore
- *                  a call to this function should preceded calls to adin1110_FrameChkReadFrameCnt()
- *                  or adin1110_FrameChkReadErrorCnt().
- *
- * @sa              adin1110_FrameChkReadFrameCnt()
- * @sa              adin1110_FrameChkReadErrorCnt()
+/*
+ * @brief Read frame checker receive errors.
+ * @param [in] hDevice Device handle.
+ * @param [out] cnt Pointer to store the error count.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Retrieves the ADIN1110 PHY frame checker’s receive error count via SPI, latching
+ *          frame and error counters for subsequent reads.
+ * @sa adin1110_FrameChkReadFrameCnt(), adin1110_FrameChkReadErrorCnt()
  */
 adi_eth_Result_e adin1110_FrameChkReadRxErrCnt(adin1110_DeviceHandle_t hDevice, uint16_t *cnt)
 {
     return phyDriverEntry.FrameChkReadRxErrCnt(hDevice->pPhyDevice, cnt);
 }
 
-/*!
- * @brief           Read frame checker error counters.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [out]     cnt         Error counters.
- *
- * @details         Note the error counter values are latched when reading RX_CNT_ERR, therefore
- *                  a call to this function should be preceded by a call to adin1110_FrameChkReadRxErrCnt().
- *
- * @sa              adin1110_FrameChkReadRxErrCnt()
+/*
+ * @brief Read frame checker error counters.
+ * @param [in] hDevice Device handle.
+ * @param [out] cnt Pointer to store the detailed error counters.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Retrieves detailed error counters from the ADIN1110 PHY frame checker via SPI,
+ *          latched after reading RX_CNT_ERR via adin1110_FrameChkReadRxErrCnt().
+ * @sa adin1110_FrameChkReadRxErrCnt()
  */
 adi_eth_Result_e adin1110_FrameChkReadErrorCnt(adin1110_DeviceHandle_t hDevice, adi_phy_FrameChkErrorCounters_t *cnt)
 {
     return phyDriverEntry.FrameChkReadErrorCnt(hDevice->pPhyDevice, cnt);
 }
 
-/**
- * @brief           Handle ADIN1110 Interrupts.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *                  - #ADI_ETH_INVALID_HANDLE       Invalid device handle.
- *                  - #ADI_ETH_ERROR                General error occurred.
- */
-/**
- * @brief           Handle ADIN1110 Interrupts.
- *
- * @param [in]      hDevice     Device driver handle.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *                  - #ADI_ETH_INVALID_HANDLE       Invalid device handle.
- *                  - #ADI_ETH_ERROR                General error occurred.
+/*
+ * @brief Handle ADIN1110 interrupts.
+ * @param [in] hDevice Device handle.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Processes ADIN1110 MAC interrupts via SPI, reading and clearing STATUS0/STATUS1,
+ *          and invoking registered callbacks for events like link changes or Tx/Rx readiness.
+ *          Typically called from an external ISR on the STM32L496ZG-P.
  */
 adi_eth_Result_e adin1110_HandleInterrupt(adin1110_DeviceHandle_t hDevice)
 {
