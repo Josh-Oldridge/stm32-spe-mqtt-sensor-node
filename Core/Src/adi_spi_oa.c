@@ -1158,20 +1158,16 @@ static adi_eth_Result_e oaCreateNextChunk(adi_mac_Device_t *hDevice, uint8_t *pB
     return result;
 }
 
-/*!
- * @brief           Sets up a control transaction.
- *
- * @param [in]      pBuf        Pointer to the destination buffer for the transaction data.
- * @param [in]      wnr         Transaction type.
- * @param [in]      regAddr     Register address.
- * @param [in]      pRegData    Pointer to the register data.
- * @param [out]     pLen        Pointer to the register data length.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Creates a control transaction data, including the control command header.
- *
+/*
+ * @brief Set up a control transaction.
+ * @param [in] pBuf Pointer to the destination buffer for the transaction data.
+ * @param [in] wnr Transaction type (ADI_MAC_SPI_READ or ADI_MAC_SPI_WRITE).
+ * @param [in] regAddr Register address.
+ * @param [in] pRegData Pointer to the register data.
+ * @param [out] pLen Pointer to the transaction length in bytes.
+ * @return ADI_ETH_SUCCESS on success, ADI_ETH_INVALID_PARAM if buffer too small.
+ * @details Prepares an OA SPI control transaction payload for the ADIN1110, including the
+ *          header and data, with optional protection if SPI_PROT_EN is defined.
  */
 static adi_eth_Result_e oaCtrlSetup(uint8_t *pBuf, uint32_t wnr, uint32_t regAddr, uint32_t *pRegData, uint32_t *pLen)
 {
@@ -1206,14 +1202,14 @@ end:
     return result;
 }
 
-/*!
- * @brief           Creates the control command header.
- *
- * @param [in]      p           Pointer to the destination buffer for the header.
- * @param [in]      wnr         Transaction type.
- * @param [in]      addr        Register address.
- * @param [in]      cnt         Number of registers.
- *
+/*
+ * @brief Create the control command header.
+ * @param [in] p Pointer to the destination buffer for the header.
+ * @param [in] wnr Transaction type (ADI_MAC_SPI_READ or ADI_MAC_SPI_WRITE).
+ * @param [in] addr Register address.
+ * @param [in] cnt Number of registers.
+ * @details Constructs a 32-bit OA SPI control command header for the ADIN1110, setting
+ *          fields like parity, length, and MMS based on the register address.
  */
 static void oaCtrlCmdHeader(uint8_t *p, uint32_t wnr, uint32_t addr, uint32_t cnt)
 {
@@ -1241,23 +1237,14 @@ static void oaCtrlCmdHeader(uint8_t *p, uint32_t wnr, uint32_t addr, uint32_t cn
     memcpy(p, &mem32, 4);
 }
 
-/*!
- * @brief           Read control data.
- *
- * @param [out]     dst         Pointer to register data buffer.
- * @param [in]      src         Pointer to read transaction data.
- * @param [in]      cnt         Number of registers to read.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *                  - #ADI_ETH_PROTECTION_ERROR     Integrity check failure.
- *
- * @details         Reads the data received from a control transaction and converts it
- *                  to 32-but register data.
- *
- *                  If protection is enabled (#SPI_PROT_EN), it checks the integrity of the
- *                  received data and return #ADI_ETH_PROTECTION_ERROR in case of failure.
- *
+/*
+ * @brief Read control data.
+ * @param [out] dst Pointer to register data buffer.
+ * @param [in] src Pointer to read transaction data.
+ * @param [in] cnt Number of registers to read.
+ * @return ADI_ETH_SUCCESS on success, ADI_ETH_PROTECTION_ERROR if integrity check fails.
+ * @details Extracts 32-bit register data from an OA SPI control read response, verifying
+ *          integrity if SPI_PROT_EN is enabled for the ADIN1110.
  */
 static adi_eth_Result_e oaCtrlCmdReadData(uint32_t *dst, uint8_t *src, uint32_t cnt)
 {
@@ -1292,23 +1279,14 @@ end:
     return result;
 }
 
-/*!
- * @brief           Write control data.
- *
- * @param [out]     dst         Pointer to write transaction data.
- * @param [in]      src         Pointer to source register data.
- * @param [in]      cnt         Number of registers to write.
-
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Populates the control transaction data with values to be written
- *                  to registers.
- *
- *                  If protection is enabled (#SPI_PROT_EN), it will add the integrity
- *                  check values as defined by the OPEN Alliance specification.
- *
+/*
+ * @brief Write control data.
+ * @param [out] dst Pointer to write transaction data.
+ * @param [in] src Pointer to source register data.
+ * @param [in] cnt Number of registers to write.
+ * @return ADI_ETH_SUCCESS on success.
+ * @details Populates an OA SPI control write payload with register data for the ADIN1110,
+ *          adding integrity check values if SPI_PROT_EN is enabled.
  */
 static adi_eth_Result_e oaCtrlCmdWriteData(uint8_t *dst, uint32_t *src, uint32_t cnt)
 {
@@ -1334,17 +1312,13 @@ static adi_eth_Result_e oaCtrlCmdWriteData(uint8_t *dst, uint32_t *src, uint32_t
     return result;
 }
 
-/*!
- * @brief           Send frame to the MAC.
- *
- * @param [in]      hDevice     Device driver handle.
- * @param [in]      pFrame      Pointer to the frame definition.
- *
- * @return          Status
- *                  - #ADI_ETH_SUCCESS              Call completed successfully.
- *
- * @details         Executes the state machine to start sending a frame to the MAC.
- *
+/*
+ * @brief Send frame to the MAC.
+ * @param [in] hDevice Device driver handle.
+ * @param [in] pFrame Pointer to the frame definition.
+ * @return ADI_ETH_SUCCESS on success, error code otherwise.
+ * @details Initiates an OA SPI data transaction to send a frame from the ADIN1110’s Tx queue,
+ *          triggering the state machine for transmission.
  */
 adi_eth_Result_e MAC_SendFrame(adi_mac_Device_t *hDevice, adi_mac_FrameStruct_t *pFrame)
 {
@@ -1355,3 +1329,5 @@ adi_eth_Result_e MAC_SendFrame(adi_mac_Device_t *hDevice, adi_mac_FrameStruct_t 
 
     return result;
 }
+
+/** @} */
