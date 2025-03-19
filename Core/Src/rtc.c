@@ -21,7 +21,8 @@
 #include "rtc.h"
 
 /* USER CODE BEGIN 0 */
-
+#include <time.h>
+#include <stdio.h>
 /* USER CODE END 0 */
 
 RTC_HandleTypeDef hrtc;
@@ -62,8 +63,8 @@ void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = 0x9;
-  sTime.Minutes = 0x50;
+  sTime.Hours = 0x0;
+  sTime.Minutes = 0x0;
   sTime.Seconds = 0x0;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
@@ -71,10 +72,10 @@ void MX_RTC_Init(void)
   {
     Error_Handler();
   }
-  sDate.WeekDay = RTC_WEEKDAY_WEDNESDAY;
-  sDate.Month = RTC_MONTH_FEBRUARY;
-  sDate.Date = 0x26;
-  sDate.Year = 0x25;
+  sDate.WeekDay = RTC_WEEKDAY_MONDAY;
+  sDate.Month = RTC_MONTH_JANUARY;
+  sDate.Date = 0x1;
+  sDate.Year = 0x0;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
   {
@@ -130,5 +131,93 @@ void HAL_RTC_MspDeInit(RTC_HandleTypeDef* rtcHandle)
 }
 
 /* USER CODE BEGIN 1 */
+static int is_dst(struct tm *timeinfo) {
+    int month = timeinfo->tm_mon;
+    int day = timeinfo->tm_mday;
+    int hour = timeinfo->tm_hour;
+
+    if (month < 2 || month > 9) { // Before March or after October
+        return 0; // No DST
+    }
+    if (month > 2 && month < 9) { // April to September
+        return 1; // DST
+    }
+
+    struct tm last_sunday;
+    last_sunday = *timeinfo;
+    last_sunday.tm_hour = 0;
+    last_sunday.tm_min = 0;
+    last_sunday.tm_sec = 0;
+
+    // Last Sunday of March
+    last_sunday.tm_mon = 2;
+    last_sunday.tm_mday = 31;
+    mktime(&last_sunday);
+    while (last_sunday.tm_wday != 0) {
+        last_sunday.tm_mday--;
+        mktime(&last_sunday);
+    }
+    int dst_start_day = last_sunday.tm_mday;
+
+    // Last Sunday of October
+    last_sunday.tm_mon = 9;
+    last_sunday.tm_mday = 31;
+    mktime(&last_sunday);
+    while (last_sunday.tm_wday != 0) {
+        last_sunday.tm_mday--;
+        mktime(&last_sunday);
+    }
+    int dst_end_day = last_sunday.tm_mday;
+
+    if (month == 2) {
+        if (day < dst_start_day) return 0;
+        if (day > dst_start_day) return 1;
+        return (hour >= 1);
+    }
+    if (month == 9) {
+        if (day < dst_end_day) return 1;
+        if (day > dst_end_day) return 0;
+        return (hour < 1);
+    }
+
+    return 0;
+}
+
+void set_system_time(uint32_t sec, uint32_t us) {
+    time_t rawtime = (time_t)sec;
+    struct tm *timeinfo = gmtime(&rawtime);
+
+    // (CET, UTC+1)
+    timeinfo->tm_hour += 1;
+
+    // DST in effect --> (CEST, UTC+2)
+    if (is_dst(timeinfo)) {
+        timeinfo->tm_hour += 1;
+    }
+
+    if (timeinfo->tm_hour >= 24) {
+        timeinfo->tm_hour -= 24;
+        timeinfo->tm_mday += 1;
+        mktime(timeinfo);
+    }
+
+    RTC_TimeTypeDef sTime = {0};
+    sTime.Hours = timeinfo->tm_hour;
+    sTime.Minutes = timeinfo->tm_min;
+    sTime.Seconds = timeinfo->tm_sec;
+
+    RTC_DateTypeDef sDate = {0};
+    sDate.WeekDay = timeinfo->tm_wday == 0 ? 7 : timeinfo->tm_wday;
+    sDate.Month = timeinfo->tm_mon + 1;
+    sDate.Date = timeinfo->tm_mday;
+    sDate.Year = timeinfo->tm_year - 100;
+
+    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+    printf("RTC Updated: %02d-%02d-20%02d %02d:%02d:%02d\n",
+           sDate.Date, sDate.Month, sDate.Year,
+           sTime.Hours, sTime.Minutes, sTime.Seconds);
+}
 
 /* USER CODE END 1 */

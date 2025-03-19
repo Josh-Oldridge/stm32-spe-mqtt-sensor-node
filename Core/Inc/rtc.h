@@ -41,7 +41,7 @@ extern RTC_HandleTypeDef hrtc;
 void MX_RTC_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void set_system_time(uint32_t sec, uint32_t us);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

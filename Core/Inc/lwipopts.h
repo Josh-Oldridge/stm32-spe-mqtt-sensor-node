@@ -58,6 +58,8 @@
 
 #define LWIP_TIMERS                     1
 
+#define LWIP_SNTP 						1
+
 #ifndef LWIP_ICMP
 #define LWIP_ICMP                       1
 #endif
@@ -81,6 +83,10 @@
 #define LWIP_DHCP                       1
 
 #define DHCP_DOES_ARP_CHECK             1
+
+#define SNTP_GET_SERVERS_FROM_DHCP      1
+
+#define SNTP_SET_SYSTEM_TIME_US(sec, us) set_system_time(sec, us)
 
 #define LWIP_ALTCP                      1
 
