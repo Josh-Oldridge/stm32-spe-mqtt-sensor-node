@@ -9,14 +9,28 @@
  *---------------------------------------------------------------------------
  */
 
+/**
+ * @file    adi_mac.c
+ * @brief   Implementation of the ADI Ethernet MAC driver.
+ * @details Contains the driver logic for the ADIN1110 MAC, interfacing with the
+ *          STM32L496ZG-P Nucleo board via SPI to manage Ethernet communication
+ *          for the CN0575 SPE board. Integrates with lwIP and mbedtls for secure
+ *          MQTT transmission of sensor data over TLSv1.2.
+ */
+
+/** @addtogroup mac ADI MAC Driver
+ *  @{
+ */
+
 #include "adi_mac.h"
 #include "adi_spi_oa.h"
 
 
-#define PSEUDO_MODULO(N, D) (((N) < (D)) ? (N) : ((N) - (D)))
+#define PSEUDO_MODULO(N, D) (((N) < (D)) ? (N) : ((N) - (D))) /*!< Modulo-like operation for queue indexing. */
 
-#define DWORD               (4)
+#define DWORD               (4) /*!< Size of a double word in bytes. */
 
+/* Function prototypes (static functions defined in this file) */
 static adi_eth_Result_e     MAC_Init                    (adi_mac_Device_t **hDevice, adi_mac_DriverConfig_t *cfg, void *adinDevice);
 static adi_eth_Result_e     MAC_UnInit                  (adi_mac_Device_t *hDevice);
 
@@ -57,7 +71,14 @@ static adi_eth_Result_e     MAC_ProcessTxQueue  (adi_mac_Device_t *hDevice);
 /****************************************/
 /****************************************/
 
-/* Implementation of Tx/Rx queues used by the MAC driver. */
+/**
+ * @brief Initialize a MAC queue.
+ * @details Sets up a queue structure with the provided frame entries and size,
+ *          initializing all headers and buffer descriptors to zero.
+ * @param [in] pQueue Pointer to the queue structure.
+ * @param [in] pEntries Array of frame structures for the queue.
+ * @param [in] numEntries Number of entries in the queue (raw size).
+ */
 
 void queueInit(adi_mac_Queue_t *pQueue, adi_mac_FrameStruct_t *pEntries, uint32_t numEntries)
 {
@@ -74,6 +95,11 @@ void queueInit(adi_mac_Queue_t *pQueue, adi_mac_FrameStruct_t *pEntries, uint32_
     }
 }
 
+/**
+ * @brief Calculate the number of items in a queue.
+ * @param [in] pQueue Pointer to the queue structure.
+ * @return Number of items currently in the queue.
+ */
 static inline uint32_t queueCount(adi_mac_Queue_t *pQueue)
 {
     uint32_t head = pQueue->head;
@@ -123,6 +149,16 @@ void queueRemove(adi_mac_Queue_t *pQueue)
 /****************************************/
 
 #if !defined(SPI_OA_EN)
+/**
+ * @brief Handle MAC interrupts for Generic SPI.
+ * @details Processes interrupt events from the MAC, reading and clearing status
+ *          registers, updating device state, and invoking registered callbacks
+ *          for link changes, timestamps, or general status. Manages Rx/Tx queue
+ *          operations based on interrupt conditions.
+ * @param [in] pCBParam Pointer to the MAC device structure (cast from void*).
+ * @param [in] Event Event ID (unused in this implementation).
+ * @param [in] pArg Event-specific argument (unused in this implementation).
+ */
 static void macCallback(void *pCBParam, uint32_t Event, void *pArg)
 {
     adi_mac_Device_t        *hDevice = (adi_mac_Device_t *)pCBParam;
@@ -554,6 +590,11 @@ end:
 
 }
 
+/**
+ * @brief Initialize MAC registers and interrupts.
+ * @details Configures interrupt masks, FCS settings, and registers the IRQ callback.
+ *          Called during initialization or reset to ensure the MAC is properly set up.
+ */
 static adi_eth_Result_e macInit(adi_mac_Device_t *hDevice)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -680,11 +721,8 @@ end:
 
 /*
  * @brief           MAC device uninitialization.
- *
  * @param [in]      hDevice     Device driver handle.
- *
  * @return 0 in case of success, positive error code otherwise.
- *
  */
 adi_eth_Result_e MAC_UnInit(adi_mac_Device_t *hDevice)
 {
@@ -706,11 +744,9 @@ end:
 
 /*
  * @brief Reset MAC IC
- *
  * @param [in] dev - Pointer to the HW driver.
- *
  * @return 0 in case of success, positive error code otherwise.
-*/
+ */
 adi_eth_Result_e MAC_Reset(adi_mac_Device_t *hDevice, adi_eth_ResetType_e resetType)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -805,11 +841,8 @@ end:
 
 /*
  * @brief Register callback function for MAC.
- *
  * @param [in]      hDevice     Device driver handle.
- *
  * @return 0 in case of success, positive error code otherwise.
- *
  */
 adi_eth_Result_e MAC_RegisterCallback(adi_mac_Device_t *hDevice, adi_eth_Callback_t cbFunc, adi_mac_InterruptEvt_e cbEvent, void *cbParam)
 {
@@ -1059,6 +1092,13 @@ end:
     return result;
 }
 
+/**
+ * @brief Wait for MDIO transaction to complete.
+ * @details Polls the MDIO ready bit with a retry limit to ensure the transaction finishes.
+ * @param [in] hDevice Pointer to the MAC device structure.
+ * @param [in] addrOffset MDIO register address offset.
+ * @return ADI_ETH_SUCCESS if ready, ADI_ETH_MDIO_TIMEOUT if timed out.
+ */
 adi_eth_Result_e waitMdioReady(adi_mac_Device_t *hDevice, uint16_t addrOffset)
 {
     adi_eth_Result_e        result = ADI_ETH_SUCCESS;
@@ -1084,6 +1124,12 @@ adi_eth_Result_e waitMdioReady(adi_mac_Device_t *hDevice, uint16_t addrOffset)
     return result;
 }
 
+/**
+ * @brief Wait for the MAC device to be ready after reset.
+ * @details Polls the PHYID and STATUS0 registers to confirm the device is operational.
+ * @param [in] hDevice Pointer to the MAC device structure.
+ * @return ADI_ETH_SUCCESS if ready, ADI_ETH_SW_RESET_TIMEOUT or ADI_ETH_COMM_TIMEOUT on failure.
+ */
 adi_eth_Result_e waitDeviceReady(adi_mac_Device_t *hDevice)
 {
     adi_eth_Result_e    result = ADI_ETH_SUCCESS;
@@ -1132,14 +1178,14 @@ end:
 
 /*
  * @brief PHY Register Read via SPI<->MDIO bridge
- *
- * @param [in] instance - Pointer to the HW driver.
- * @param [in] hwAddr - PHY MDIO Hardware address.
- * @param [in] regAddr - PHY MDIO Register address to read.
- * @param [out] data - Pointer to the data buffer.
- *
+ * @param [in] hDevice - Pointer to the MAC device driver handle.
+ * @param [in] hwAddr - PHY MDIO hardware address (0-31), identifying the PHY port.
+ * @param [in] regAddr - PHY MDIO register address (32-bit, combining device type and register).
+ * @param [out] regData - Pointer to a 16-bit buffer to store the read register value.
  * @return 0 in case of success, positive error code otherwise.
-*/
+ * @details Uses the SPI-to-MDIO bridge to read a PHY register in two steps: first sets the address
+ *          in MDIOACC_0, then performs the read via MDIOACC_1, supporting Clause 45 addressing.
+ */
 adi_eth_Result_e MAC_PhyRead(adi_mac_Device_t *hDevice,  uint8_t hwAddr, uint32_t regAddr, uint16_t *regData)
 {
     adi_eth_Result_e       result = ADI_ETH_SUCCESS;
@@ -1438,6 +1484,10 @@ end:
 }
 #endif
 
+/**
+ * @brief Process the transmit queue.
+ * @details Sends frames from the Tx queue when the MAC is ready, managing IRQ states.
+ */
 adi_eth_Result_e MAC_ProcessTxQueue(adi_mac_Device_t *hDevice)
 {
     adi_eth_Result_e        result = ADI_ETH_SUCCESS;
@@ -1473,12 +1523,13 @@ adi_eth_Result_e MAC_ProcessTxQueue(adi_mac_Device_t *hDevice)
 
 /*
  * @brief  MAC Get Statistics Counters
- *
- * @param [in] dev - Pointer to the HW driver.
- * @param [out] stat - statistics counters.
- *
+ * @param [in] hDevice - Pointer to the HW driver.
+ * @param [in] port - Port number (0 or 1) to retrieve statistics for; ignored for single-port devices.
+ * @param [out] stat - Statistics counters.
  * @return 0 in case of success, positive error code otherwise.
-*/
+ * @details For ADIN2111 (multi-port device), port selects between Port 1 (0) and Port 2 (1) counters.
+ *          For single-port devices (e.g., ADIN1110), port is ignored, and Port 1 counters are used.
+ */
 adi_eth_Result_e MAC_GetStatCounters(adi_mac_Device_t *hDevice, uint32_t port, adi_eth_MacStatCounters_t *stat)
 {
     adi_eth_Result_e            result      = ADI_ETH_SUCCESS;
@@ -2405,16 +2456,12 @@ end:
 
 /*
  * @brief           Calculates the parity over a number of bytes.
- *
  * @param [in]      p           Pointer to the input data.
  * @param [in]      nBytes      Size of the input data, in bytes.
- *
  * @return          Returns 1 if input data has odd parity. Otherwise 0.
- *
  * @details         Calculates the odd parity of the input data. Used for the
  *                  header/footer parity fields defined by the OPEN Alliance specification
  *                  and for timestamp parity checking in both SPI protocols.
- *
  */
 uint8_t MAC_CalculateParity(uint8_t *p, uint32_t nBytes)
 {
