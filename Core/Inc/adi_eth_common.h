@@ -9,10 +9,19 @@
  *---------------------------------------------------------------------------
  */
 
-/** @addtogroup adi_eth_common Common definition for the ADI Ethernet device drivers
- *  @{
+/**
+ * @file    adi_eth_common.h
+ * @brief   Common definitions for Analog Devices Ethernet device drivers.
+ * @details This header provides shared types and status codes for Ethernet drivers,
+ *          including the ADIN1110 used in the CN0575 SPE board. It defines error
+ *          codes and callback structures for handling Ethernet events, which are
+ *          integrated with the STM32L496ZG-P Nucleo board to transmit sensor data
+ *          over MQTT using lwIP and mbedtls with TLSv1.2 security.
  */
 
+/** @addtogroup adi_eth_common ADI Ethernet Common
+ *  @{
+ */
 #ifndef ADI_ETH_COMMON_H
 #define ADI_ETH_COMMON_H
 
@@ -63,9 +72,16 @@ typedef enum
     ADI_ETH_PLACEHOLDER_ERROR,          /*!< Unassigned (placeholder) error.                            */
 } adi_eth_Result_e;
 
-/*!
-* @brief Callback function definition for the Ethernet devices.
-*/
+/**
+ * @brief Callback function type for Ethernet device events.
+ * @details Defines a callback function signature for handling Ethernet events
+ *          such as frame reception, transmission completion, or errors. Used by
+ *          the ADIN1110 driver to notify the application of asynchronous events.
+ * @param [in] pCBParam Client-supplied callback parameter for context.
+ * @param [in] Event Event ID specific to the Ethernet driver (e.g., frame received).
+ * @param [in] pArg Pointer to event-specific data (e.g., received frame buffer).
+ * @return None
+ */
 typedef void (* adi_eth_Callback_t) (
     void      *pCBParam,                /*!< Client-supplied callback parameter. */
     uint32_t   Event,                   /*!< Event ID specific to the Driver/Service. */
