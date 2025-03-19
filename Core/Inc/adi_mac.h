@@ -9,7 +9,15 @@
  *---------------------------------------------------------------------------
  */
 
-/** @addtogroup mac MAC Definitions
+/**
+ * @file    adi_mac.h
+ * @brief   Definitions for the ADI Ethernet MAC driver.
+ * @details Provides types, macros, and structures for the ADIN1110 MAC driver used
+ *          in the CN0575 SPE board, interfacing with the STM32L496ZG-P Nucleo board
+ *          over SPI to transmit sensor data via MQTT with lwIP and mbedtls (TLSv1.2).
+ */
+
+/** @addtogroup mac ADI MAC Driver
  *  @{
  */
 
