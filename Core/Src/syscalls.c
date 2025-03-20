@@ -38,6 +38,10 @@
 
 
 /* Variables */
+/** @brief Declaration of weak getchar function for LPUART1 input
+  * @details Provides a weak stub for character input, used by _read if implemented; currently unused
+  *          in CN0575 as no input is required, but retained for potential future use or Newlib linkage.
+  */
 extern int __io_getchar(void) __attribute__((weak));
 
 /** @brief Environment variables array (empty stub)
