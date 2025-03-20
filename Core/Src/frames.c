@@ -1,11 +1,35 @@
+/**
+  ******************************************************************************
+  * @file    frames.c
+  * @brief   Custom Ethernet Frame Implementation for CN0575 Project
+  * @details This file implements custom Ethernet frame data for the CN0575 Single Pair
+  *          Ethernet (SPE) board project on the STM32L496ZG-P Nucleo board. Defines multicast
+  *          MAC addresses and test frames used in standalone mode (when USE_LWIP is not defined)
+  *          for Layer 2 transmission via the ADIN1110 MAC-PHY in main.c. Frames include source/
+  *          destination MACs, EtherType, and custom payloads for testing.
+  * @addtogroup ethernet Ethernet Utilities
+  * @{
+  ******************************************************************************
+  */
+
 #include "frames.h"
 
 #ifndef USE_LWIP
+
+/** @brief Multicast MAC addresses for frame filtering
+  * @details Two predefined MAC addresses used in main.c’s adin1110_AddAddressFilter for
+  *          standalone frame testing: [0] = 00:E0:22:FE:DA:C9, [1] = 00:E0:22:FE:DA:CA.
+  */
 uint8_t macAddr[2][6] = {
     {MAC_ADDR_0_0, MAC_ADDR_0_1, MAC_ADDR_0_2, MAC_ADDR_0_3, MAC_ADDR_0_4, MAC_ADDR_0_5},
     {MAC_ADDR_1_0, MAC_ADDR_1_1, MAC_ADDR_1_2, MAC_ADDR_1_3, MAC_ADDR_1_4, MAC_ADDR_1_5},
 };
 
+/** @brief Predefined test frames for standalone transmission
+  * @details Array of TEST_FRAMES_COUNT (2) Ethernet frames, each MAX_FRAME_SIZE bytes, used in
+  *          main.c for Layer 2 testing. Each frame includes destination MAC (00:E0:22:FE:DA:C9),
+  *          source MAC (00:E0:22:FE:DA:CA), EtherType (0x0800 for IP), and custom payloads.
+  */
 uint8_t testFrames[TEST_FRAMES_COUNT][MAX_FRAME_SIZE] =
 {
     {
@@ -400,3 +424,8 @@ uint8_t testFrames[TEST_FRAMES_COUNT][MAX_FRAME_SIZE] =
 
 };
 #endif
+
+
+/**
+  * @}
+  */
