@@ -642,3 +642,4 @@ uint32_t discoveradin1110(adin1110_DeviceHandle_t *hDevice) {
 
 #endif
 
+/** @} */

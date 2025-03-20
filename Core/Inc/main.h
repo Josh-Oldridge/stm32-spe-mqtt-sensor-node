@@ -2,8 +2,15 @@
 /**
   ******************************************************************************
   * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
+  * @brief          : Header for main.c in CN0575 SPE Board Project
+  * @details        : This file contains common definitions and includes for the CN0575
+  *                   Single Pair Ethernet (SPE) board project on the STM32L496ZG-P Nucleo
+  *                   board. It defines GPIO pin mappings, constants for standalone ADIN1110
+  *                   testing (if USE_LWIP is undefined), and includes necessary HAL and
+  *                   FreeRTOS headers. Supports secure MQTT transmission over TLSv1.2 when
+  *                   USE_LWIP is defined, or standalone Ethernet frame testing otherwise.
+  * @addtogroup main Main Module
+  * @{
   ******************************************************************************
   * @attention
   *
@@ -45,13 +52,23 @@ extern "C" {
 #ifdef USE_LWIP
   /* When using lwIP, these definitions come from lwIP_adin1110_app.c */
 #else /* USE_LWIP not defined */
+
+/** @brief Number of initialization retries for ADIN1110 in standalone mode (5 attempts). */
 #define ADIN1110_INIT_ITER  (5)
+
+/** @brief Number of buffer descriptors for standalone frame testing (5 buffers). */
 #define BUFF_DESC_COUNT     (5)
+
+/** @brief Maximum frame buffer size including headers and FCS (1532 bytes). */
 #define MAX_FRAME_BUF_SIZE  (MAX_FRAME_SIZE + 4 + 2)
 
+/** @brief Total number of frames to send in standalone mode (10 frames). */
 #define FRAME_COUNT (10)
+
+/** @brief Number of test frame types in standalone mode (2 types). */
 #define TEST_FRAMES_COUNT   (2)
 
+/** @brief Multicast MAC address 0 for standalone mode (filter 1). */
 #define MAC_ADDR_0_0  (0x00)
 #define MAC_ADDR_0_1  (0xE0)
 #define MAC_ADDR_0_2  (0x22)
@@ -59,6 +76,7 @@ extern "C" {
 #define MAC_ADDR_0_4  (0xDA)
 #define MAC_ADDR_0_5  (0xC9)
 
+/** @brief Multicast MAC address 1 for standalone mode (filter 2). */
 #define MAC_ADDR_1_0  (0x00)
 #define MAC_ADDR_1_1  (0xE0)
 #define MAC_ADDR_1_2  (0x22)

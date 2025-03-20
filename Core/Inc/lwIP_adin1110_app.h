@@ -159,3 +159,4 @@ extern LwIP_ADIN1110_t myConn;
  */
 extern pQueue_t pQ[MAX_PQ];
 #endif /*LWIP_ADIN1110__H*/
+/** @} */

@@ -2,7 +2,17 @@
 /**
  ******************************************************************************
  * @file           : main.c
- * @brief          : Main program body
+ * @brief          : Main Program Body for CN0575 SPE Board Project
+ * @details        : This file serves as the entry point for the STM32L496ZG-P Nucleo board
+ *                   in the CN0575 Single Pair Ethernet (SPE) board project. It initializes
+ *                   hardware peripherals (SPI1, UART, ADC, I2C, GPIO, RTC) and configures
+ *                   the system clock. Depending on the USE_LWIP define, it either sets up
+ *                   a standalone ADIN1110 MAC-PHY test (sending/receiving Ethernet frames)
+ *                   or initializes lwIP with FreeRTOS tasks for secure MQTT transmission
+ *                   of sensor data (ADXL345, TMP102, ADC1) over TLSv1.2 via the ADIN1110.
+ *                   Uses TIM6 as the FreeRTOS timebase source.
+ * @addtogroup main Main Module
+ * @{
  ******************************************************************************
  * @attention
  *
@@ -58,43 +68,89 @@
 
 /* USER CODE BEGIN PV */
 
+/** @brief ADIN1110 device structure for standalone mode. */
 adin1110_DeviceStruct_t dev;
+
+/** @brief Handle for the ADIN1110 device, used in both modes. */
 adin1110_DeviceHandle_t hDevice = &dev;
 
 #ifndef USE_LWIP
+
+/** @brief Memory allocation for ADIN1110 driver in standalone mode. */
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
 
+/** @brief Driver configuration for ADIN1110 in standalone mode (FCS check disabled). */
 adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
 		sizeof(devMem), .fcsCheckEn = false, };
 
-
+/**
+  * @brief Prints ADIN1110 statistics in standalone mode
+  * @param [in] hDevice Pointer to the ADIN1110 device handle
+  * @details Logs frame counts and error statistics via UART for standalone testing.
+  */
 void printStats(adin1110_DeviceHandle_t* hDevice);
 
-uint8_t dest_mac[6] = { 0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33 };  // Dell MAC
+/** @brief Destination MAC address for standalone frame testing (Dell MAC). */
+uint8_t dest_mac[6] = { 0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33 };
+
+/** @brief Source MAC address for standalone frame testing. */
 uint8_t mySourceMac[6] = { 0x00, 0xE0, 0x22, 0xFE, 0xDA, 0xCA };
+
+/** @brief EtherType for standalone frame testing (local experimental). */
 uint16_t myEtherType = 0x88B5;
+
+/** @brief Payload string for standalone frame testing. */
 const char payloadStr[] = "CMD:RUN|notepad.exe|Hello from ADIN1110!";
+
+/** @brief Length of the payload string. */
 uint32_t payloadLen = strlen(payloadStr);
 
+/** @brief Index of transmitted frames in standalone mode. */
 uint32_t txIdx = 0;
+
+/** @brief Index of received frames in standalone mode. */
 volatile uint32_t rxIdx = 0;
+
+/** @brief Expected next transmit frame index. */
 volatile uint32_t expectedTxIdx;
+
+/** @brief Expected next receive frame index. */
 volatile uint32_t expectedRxIdx;
+
+/** @brief Count of transmit frame index errors. */
 volatile uint32_t errorTxIdx;
+
+/** @brief Count of receive frame index errors. */
 volatile uint32_t errorRxIdx;
 
+/** @brief Receive buffer array for standalone mode, aligned for DMA. */
 static uint8_t rxBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] __attribute__((aligned(4)));
+
+/** @brief Transmit buffer array for standalone mode, aligned for DMA. */
 static uint8_t txBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] __attribute__((aligned(4)));
 
+/** @brief Availability flags for transmit buffers in standalone mode. */
 bool txBufAvailable[BUFF_DESC_COUNT];
 
 #else /* USE_LWIP defined */
+
+/** @brief Board configuration details for lwIP mode. */
 board_t boardDetails;
+
+/** @brief lwIP and ADIN1110 integration structure for lwIP mode. */
 LwIP_ADIN1110_t myConn;
 
 #endif  /* USE_LWIP */
 
 #ifndef USE_LWIP
+
+/**
+  * @brief Transmit callback for ADIN1110 in standalone mode
+  * @param [in] pCBParam User-defined parameter (unused)
+  * @param [in] Event Event identifier (unused)
+  * @param [in] pArg Pointer to the transmitted buffer descriptor
+  * @details Updates transmit index, checks for errors, and marks buffer as available.
+  */
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	adi_eth_BufDesc_t *pTxBufDesc = (adi_eth_BufDesc_t*) pArg;
 	uint32_t idx;
@@ -114,6 +170,13 @@ static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	}
 }
 
+/**
+  * @brief Receive callback for ADIN1110 in standalone mode
+  * @param [in] pCBParam Pointer to the ADIN1110 device handle
+  * @param [in] Event Event identifier (unused)
+  * @param [in] pArg Pointer to the received buffer descriptor
+  * @details Updates receive index, checks for errors, and resubmits the buffer.
+  */
 static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	adin1110_DeviceHandle_t* hDevice = (adin1110_DeviceHandle_t) pCBParam;
 	adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t*) pArg;
@@ -130,6 +193,13 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 }
 
+/**
+  * @brief Link change callback for ADIN1110 in standalone mode
+  * @param [in] pCBParam User-defined parameter (unused)
+  * @param [in] Event Event identifier (unused)
+  * @param [in] pArg Pointer to the new link status
+  * @details Updates LED (LD3) and logs link state changes via UART.
+  */
 void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
 	adi_eth_LinkStatus_e linkStatus;
 	linkStatus = *(adi_eth_LinkStatus_e*) pArg;
@@ -465,6 +535,7 @@ int main(void)
 
 /**
   * @brief System Clock Configuration
+  * @details Configures the system clock to 80 MHz using HSI and PLL for the CN0575 project.
   * @retval None
   */
 void SystemClock_Config(void)
@@ -519,7 +590,8 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief NVIC Configuration.
+  * @brief NVIC Configuration
+  * @details Sets interrupt priorities and enables NVIC for SPI1, DMA, EXTI, and I2C2 in the CN0575 project.
   * @retval None
   */
 static void MX_NVIC_Init(void)
@@ -556,13 +628,10 @@ static void MX_NVIC_Init(void)
 /* USER CODE BEGIN 4 */
 
 /**
- * @brief GPIO EXTI Callback
- *
- * This function is called by the HAL library when a GPIO EXTI interrupt occurs.
- * It handles the ADIN1110's INT_N interrupt by invoking the driver's interrupt handler.
- *
- * @param GPIO_Pin The GPIO pin number that triggered the interrupt.
- */
+  * @brief GPIO EXTI Callback
+  * @param [in] GPIO_Pin The GPIO pin number that triggered the interrupt
+  * @details Handles ADIN1110 INT_N and reset button interrupts, invoking callbacks or resetting the system in the CN0575 project.
+  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == Reset_Button_Pin) {
         DEBUG_MESSAGE("Reset button interrupt triggered.\r\n");
@@ -592,12 +661,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 /* USER CODE END 4 */
 
 /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM6 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
+  * @brief Period elapsed callback in non-blocking mode
+  * @param [in] htim TIM handle
+  * @details Increments the system tick (uwTick) when TIM6 interrupt occurs, serving as the FreeRTOS timebase in the CN0575 project.
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -613,8 +679,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
+  * @brief Error handler function
+  * @details Disables interrupts and enters an infinite loop on error in the CN0575 project.
   */
 void Error_Handler(void)
 {
@@ -627,11 +693,10 @@ void Error_Handler(void)
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
+  * @brief Reports assert_param error location
+  * @param [in] file Pointer to the source file name
+  * @param [in] line Assert_param error line source number
+  * @details Currently empty; can be extended for debugging in the CN0575 project.
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {

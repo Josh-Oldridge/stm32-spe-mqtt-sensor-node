@@ -2,8 +2,14 @@
 /**
  ******************************************************************************
  * @file    gpio.c
- * @brief   This file provides code for the configuration
- *          of all used GPIO pins.
+ * @brief   GPIO Configuration for CN0575 Project
+ * @details This file provides code for configuring GPIO pins on the STM32L496ZG-P
+ *          Nucleo board in the CN0575 Single Pair Ethernet (SPE) board project. It
+ *          initializes pins for inputs (e.g., interrupt, link status), outputs (e.g.,
+ *          LEDs, chip select, reset), and external interrupts (e.g., INT_N) for the
+ *          ADIN1110 MAC-PHY. Supports secure MQTT transmission over TLSv1.2 via lwIP.
+ * @addtogroup gpio GPIO Module
+ * @{
  ******************************************************************************
  * @attention
  *
@@ -22,7 +28,10 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN 0 */
+/** @brief Interrupt callback function pointer for INT_N, set via HAL_INT_N_Register_Callback. */
 static          ADI_CB gpfIntCallback = NULL;
+
+/** @brief User-defined parameter for INT_N callback, set via HAL_INT_N_Register_Callback. */
 static void     *gpIntCBParam = NULL;
 /* USER CODE END 0 */
 
@@ -127,14 +136,32 @@ void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 2 */
 
+/**
+  * @brief  Gets the interrupt callback function
+  * @return Pointer to the registered ADI_CB callback function for INT_N interrupts
+  * @details Retrieves the callback set for handling ADIN1110 interrupt events.
+  */
 ADI_CB getIntCallback(void) {
     return gpfIntCallback;
 }
 
+/**
+  * @brief  Gets the interrupt callback parameter
+  * @return Pointer to the user-defined parameter for the INT_N callback
+  * @details Retrieves the parameter associated with the ADIN1110 interrupt callback.
+  */
 void *getIntCBParam(void) {
     return gpIntCBParam;
 }
 
+/**
+  * @brief  Registers an interrupt callback for INT_N
+  * @param [in] pfCallback  Callback function to register
+  * @param [in] pCBParam    User-defined parameter for callback
+  * @return  0 on success
+  * @details Sets the global interrupt callback and parameter for handling ADIN1110
+  *          INT_N interrupt events, with priority set to 0.
+  */
 uint32_t HAL_INT_N_Register_Callback(ADI_CB const *pfCallback,
 		void *const pCBParam) {
 	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
@@ -146,30 +173,34 @@ uint32_t HAL_INT_N_Register_Callback(ADI_CB const *pfCallback,
 }
 
 /**
- * @brief Disable the external interrupt (INT_N).
- *
- * This function disables the specific IRQ associated with the ADIN1110's INT_N pin.
- */
+  * @brief  Disables the external interrupt (INT_N)
+  * @details Disables the IRQ associated with the ADIN1110's INT_N pin (EXTI15_10_IRQn)
+  *          to stop interrupt handling.
+  */
 void HAL_INT_N_DisableIRQ(void) {
 	HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
 }
 
 /**
- * @brief Enable the external interrupt (INT_N).
- *
- * This function enables the specific IRQ associated with the ADIN1110's INT_N pin.
- */
+  * @brief  Enables the external interrupt (INT_N)
+  * @details Enables and sets priority for the IRQ associated with the ADIN1110's INT_N pin
+  *          (EXTI15_10_IRQn) to allow interrupt handling.
+  */
 void HAL_INT_N_EnableIRQ(void) {
 	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 /**
- * @brief Toggle the status LED.
- *
- * This function toggles the GPIO pin connected to the status LED.
- */
+  * @brief  Toggles the status LED
+  * @details Toggles the GPIO pin (PB7) connected to the status LED on the STM32L496ZG-P
+  *          board for visual indication.
+  */
 void MX_Led_Toggle(void) {
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 }
+
+/**
+  * @}
+  */
 /* USER CODE END 2 */

@@ -1,11 +1,38 @@
+/**
+ * @file    adxl345.c
+ * @brief   Implementation of the ADXL345 Accelerometer Driver.
+ * @details Implements I2C communication with the ADXL345 3-axis accelerometer on the
+ *          STM32L496ZG-P Nucleo board for the CN0575 SPE board project. Collects XYZ
+ *          acceleration data using DMA and FreeRTOS synchronization, which is later
+ *          processed into MQTT packets for secure transmission via the ADIN1110 MAC-PHY.
+ */
+
+/** @addtogroup adxl345 ADXL345 Accelerometer Driver
+ *  @{
+ */
+
 #include "adxl345.h"
 #include "i2c.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include <stdio.h>
 
+/**
+ * @brief I2C timeout in FreeRTOS ticks.
+ * @details Defines a 1000ms timeout for I2C operations, converted to ticks using
+ *          pdMS_TO_TICKS for FreeRTOS semaphore waits.
+ */
 #define I2C_TIMEOUT_TICKS   pdMS_TO_TICKS(1000)
 
+/**
+ * @brief Write a single register to the ADXL345 using DMA.
+ * @param [in] hi2c Pointer to the I2C handle structure.
+ * @param [in] reg Register address to write to.
+ * @param [in] data 8-bit data value to write.
+ * @return HAL_OK on success, HAL error code otherwise.
+ * @details Uses DMA to transmit the register address and data over I2C, waiting for
+ *          completion via a FreeRTOS semaphore with a timeout. Prints an error on timeout.
+ */
 static HAL_StatusTypeDef ADXL345_WriteRegister_DMA(I2C_HandleTypeDef *hi2c, uint8_t reg, uint8_t data) {
     HAL_StatusTypeDef ret;
     uint8_t buffer[2];
@@ -23,6 +50,17 @@ static HAL_StatusTypeDef ADXL345_WriteRegister_DMA(I2C_HandleTypeDef *hi2c, uint
     return HAL_OK;
 }
 
+/**
+ * @brief Read one or more registers from the ADXL345 using DMA.
+ * @param [in] hi2c Pointer to the I2C handle structure.
+ * @param [in] reg Starting register address to read from.
+ * @param [out] data Pointer to buffer for received data.
+ * @param [in] size Number of bytes to read.
+ * @return HAL_OK on success, HAL error code otherwise.
+ * @details Performs a two-step DMA operation: transmits the register address, then receives
+ *          the data, using FreeRTOS semaphores for synchronization with timeouts. Prints
+ *          errors on timeout.
+ */
 static HAL_StatusTypeDef ADXL345_ReadRegister_DMA(I2C_HandleTypeDef *hi2c, uint8_t reg, uint8_t *data, uint16_t size) {
     HAL_StatusTypeDef ret;
     ret = HAL_I2C_Master_Transmit_DMA(hi2c, ADXL345_I2C_ADDR, &reg, 1);
@@ -44,6 +82,15 @@ static HAL_StatusTypeDef ADXL345_ReadRegister_DMA(I2C_HandleTypeDef *hi2c, uint8
     return HAL_OK;
 }
 
+/*
+ * @brief Initialize the ADXL345 accelerometer.
+ * @param [in] hi2c Pointer to the I2C handle structure (configured for STM32 I2C peripheral).
+ * @return HAL_OK on success, HAL error code otherwise.
+ * @details Configures the ADXL345 over I2C on the STM32L496ZG-P, setting it to measurement
+ *          mode with a ±2g range and 10-bit resolution to collect XYZ acceleration data
+ *          for the CN0575 SPE board. Verifies device ID before configuration. The data
+ *          is later used in forming MQTT packets for transmission.
+ */
 HAL_StatusTypeDef ADXL345_Init(I2C_HandleTypeDef *hi2c) {
     HAL_StatusTypeDef ret;
     uint8_t devid;
@@ -89,6 +136,17 @@ HAL_StatusTypeDef ADXL345_Init(I2C_HandleTypeDef *hi2c) {
     return HAL_OK;
 }
 
+/*
+ * @brief Read acceleration data from the ADXL345.
+ * @param [in] hi2c Pointer to the I2C handle structure.
+ * @param [out] x Pointer to store the X-axis acceleration (signed 16-bit).
+ * @param [out] y Pointer to store the Y-axis acceleration (signed 16-bit).
+ * @param [out] z Pointer to store the Z-axis acceleration (signed 16-bit).
+ * @return HAL_OK on success, HAL error code otherwise.
+ * @details Reads 6 bytes of XYZ acceleration data from the ADXL345 via I2C, combining low
+ *          and high bytes into signed 16-bit values for each axis. The data is collected
+ *          for subsequent inclusion in MQTT packets in the CN0575 SPE board project.
+ */
 HAL_StatusTypeDef ADXL345_ReadAccel(I2C_HandleTypeDef *hi2c, int16_t *x, int16_t *y, int16_t *z) {
     uint8_t buffer[6] = {0};
     HAL_StatusTypeDef ret;
