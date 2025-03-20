@@ -2,8 +2,15 @@
 /**
   ******************************************************************************
   * @file         stm32l4xx_hal_msp.c
-  * @brief        This file provides code for the MSP Initialization
-  *               and de-Initialization codes.
+  * @brief        Global MSP Initialization for CN0575 Project
+  * @details      This file provides Module Support Package (MSP) initialization and
+  *               de-initialization code for the STM32L496ZG-P Nucleo board in the CN0575
+  *               Single Pair Ethernet (SPE) board project. Initializes system-level clocks
+  *               (SYSCFG, PWR) and PendSV interrupt priority for FreeRTOS, supporting HAL
+  *               drivers across peripherals (e.g., SPI1, I2C2, ADC1) when USE_LWIP is defined.
+  *               Called during HAL initialization in main.c.
+  * @addtogroup hal HAL Support
+  * @{
   ******************************************************************************
   * @attention
   *
@@ -64,7 +71,12 @@ void HAL_MspInit(void)
 {
 
   /* USER CODE BEGIN MspInit 0 */
-
+  /**
+    * @fn void HAL_MspInit(void)
+	* @brief Initializes the Global MSP
+	* @details Configures system clocks (SYSCFG, PWR) and sets PendSV interrupt priority for
+	*          FreeRTOS task switching in the CN0575 project.
+	*/
   /* USER CODE END MspInit 0 */
 
   __HAL_RCC_SYSCFG_CLK_ENABLE();
@@ -80,5 +92,7 @@ void HAL_MspInit(void)
 }
 
 /* USER CODE BEGIN 1 */
-
+/**
+  * @}
+  */
 /* USER CODE END 1 */
