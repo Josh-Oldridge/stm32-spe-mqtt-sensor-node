@@ -34,6 +34,22 @@
   *  Portions Copyright (c) 2020, 2021 Analog Devices, Inc.
   */
 
+/**
+  ******************************************************************************
+  * @file    cc.h
+  * @brief   lwIP Architecture-Specific Definitions for CN0575 Project
+  * @details This file provides architecture-specific definitions for lwIP on the STM32L496ZG-P
+  *          Nucleo board in the CN0575 Single Pair Ethernet (SPE) board project. It configures
+  *          data types, byte order, and diagnostic macros for lwIP integration with the ADIN1110
+  *          MAC-PHY over SPI1. Used when USE_LWIP is defined, it supports secure MQTT transmission
+  *          over TLSv1.2 via FreeRTOS tasks. Key active definitions include DEBUG_MESSAGE for
+  *          LPUART1 logging and time-related settings; others (e.g., custom types) are unused or
+  *          overridden by stm32l4xx_hal.h.
+  * @addtogroup lwip lwIP Configuration
+  * @{
+  ******************************************************************************
+  */
+
 #ifndef __ARCH_CC_H__
 #define __ARCH_CC_H__
 
@@ -42,11 +58,17 @@
 
 #include "lwipopts.h"
 #include "boardsupport.h"
-/** if you want to use the struct timeval provided
- * by your system, set this to 0 and include <sys/time.h> in cc.h */
+/*
+ * Note: LWIP_TIMEVAL_PRIVATE is set to 0, enabling system <time.h> for struct timeval, used by
+ *       lwIP for timing operations in the CN0575 project (e.g., SNTP in freertos.c).
+ */
 #define LWIP_TIMEVAL_PRIVATE 0
 #include <time.h>
 
+/*
+ * Note: BYTE_ORDER is set to LITTLE_ENDIAN for STM32L496ZG-P, matching its architecture, used
+ *       by lwIP for network byte order conversions in the CN0575 project.
+ */
 #ifdef PROCESSOR_LITTLE_ENDIAN
   #ifndef BYTE_ORDER
     #define BYTE_ORDER LITTLE_ENDIAN
@@ -58,6 +80,10 @@
 #endif
 
 #if 0
+/*
+ * Note: Custom type definitions (u8_t, s8_t, etc.) are commented out, relying on stm32l4xx_hal.h
+ *       types instead, as they are unused in the CN0575 project configuration.
+ */
 typedef unsigned   char    u8_t;
 typedef signed     char    s8_t;
 typedef unsigned   short   u16_t;
@@ -84,6 +110,13 @@ typedef signed     long long    s64_t;
 #define PACK_STRUCT_END
 
 #define LWIP_PLATFORM_ASSERT(x)
+
+/**
+  * @brief Macro to print lwIP diagnostic messages via LPUART1
+  * @param[in] x Format string and arguments for DEBUG_MESSAGE
+  * @details Uses boardsupport.h’s DEBUG_MESSAGE to output lwIP diagnostics to LPUART1, active in
+  *          the CN0575 project for network debugging (e.g., link status in main.c).
+  */
 #define LWIP_PLATFORM_DIAG(x) do {  DEBUG_MESSAGE x; } while(0)//xil_printf x; } while(0)
 
 #endif /* __ARCH_CC_H__ */

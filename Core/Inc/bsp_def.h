@@ -1,9 +1,15 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : bsp_def.h (was "main.h")
-  * @brief          : BSP definitions (was "Header for main.c file").
-  *                   This file contains the common defines of the application.
+  * @file    bsp_def.h
+  * @brief   BSP Definitions for CN0575 SPE Board Project
+  * @details Contains additional GPIO pin definitions for the STM32L496ZG-P Nucleo board in
+  *          the CN0575 Single Pair Ethernet (SPE) board project. Originally intended as main.h,
+  *          it defines pins for EEPROM and configuration (CFG0-3), but only a subset (e.g.,
+  *          CFG pins) may be used as placeholders or for future expansion. Most active pin
+  *          definitions are in main.h and bsp_config.h.
+  * @addtogroup bsp Board Support Package
+  * @{
   ******************************************************************************
   * @attention
   *
@@ -61,6 +67,10 @@ extern "C" {
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+/*
+ * Note: EEPROM pins (CS, MISO, SCK) and AltSS are defined but unused in the CN0575 project;
+ *       SPI1 for ADIN1110 uses different pins (PA5, PA6, PA7) from main.h and bsp_config.h.
+ */
 #define EEPROM_CS_Pin             GPIO_PIN_4
 #define EEPROM_CS_GPIO_Port       GPIOA
 #define EEPROM_MISO_Pin           GPIO_PIN_7
@@ -71,6 +81,10 @@ extern "C" {
 #define EEPROM_MISOA6_GPIO_Port   GPIOA
 #define CFG2_Pin                  GPIO_PIN_2
 #define CFG2_GPIO_Port            GPIOB
+/*
+ * Note: CFG0-3 pins (PB0-PB2, PB5) are defined for configuration but only CFG0 (PB0) is read
+ *       in BSP_getConfigPins; their usage is minimal or placeholder in the CN0575 project.
+ */
 #define CFG3_Pin                  GPIO_PIN_5
 #define CFG3_GPIO_Port            GPIOB
 #define AltSS_Pin                 GPIO_PIN_9
