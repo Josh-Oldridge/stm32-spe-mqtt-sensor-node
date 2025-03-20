@@ -119,4 +119,6 @@ typedef signed     long long    s64_t;
   */
 #define LWIP_PLATFORM_DIAG(x) do {  DEBUG_MESSAGE x; } while(0)//xil_printf x; } while(0)
 
+/** @} */
+
 #endif /* __ARCH_CC_H__ */

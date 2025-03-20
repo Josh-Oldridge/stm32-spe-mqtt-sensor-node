@@ -191,3 +191,5 @@
 #endif
 
 #endif /* BSP_CONFIG_H */
+
+/** @} */

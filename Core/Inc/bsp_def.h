@@ -102,4 +102,6 @@ extern "C" {
 
 #endif /* BSP_DEF_H */
 
+/** @} */
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
