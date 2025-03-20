@@ -2,8 +2,14 @@
 /**
   ******************************************************************************
   * @file    rtc.c
-  * @brief   This file provides code for the configuration
-  *          of the RTC instances.
+  * @brief   RTC Configuration for CN0575 Project
+  * @details This file implements RTC configuration for the STM32L496ZG-P Nucleo board in the
+  *          CN0575 Single Pair Ethernet (SPE) board project. Initializes the RTC with LSE clock
+  *          and provides a time-setting function for SNTP synchronization (via 192.168.1.11),
+  *          used by freertos.c’s SensorDataMQTTTask when USE_LWIP is defined. Adjusts for CET/CEST
+  *          and logs updates via LPUART1.
+  * @addtogroup rtc RTC Configuration
+  * @{
   ******************************************************************************
   * @attention
   *
@@ -21,6 +27,9 @@
 #include "rtc.h"
 
 /* USER CODE BEGIN 0 */
+/** @brief Includes for time conversion and logging
+  * @details time.h for struct tm and gmtime, stdio.h for printf to LPUART1 in set_system_time.
+  */
 #include <time.h>
 #include <stdio.h>
 /* USER CODE END 0 */
@@ -32,7 +41,11 @@ void MX_RTC_Init(void)
 {
 
   /* USER CODE BEGIN RTC_Init 0 */
-
+  /**
+    * @fn void MX_RTC_Init(void)
+	* @brief Initialize RTC for timekeeping
+	* @details Configures RTC with LSE clock and initial time/date, called from main.c for SNTP sync.
+	*/
   /* USER CODE END RTC_Init 0 */
 
   RTC_TimeTypeDef sTime = {0};
@@ -94,7 +107,12 @@ void HAL_RTC_MspInit(RTC_HandleTypeDef* rtcHandle)
   if(rtcHandle->Instance==RTC)
   {
   /* USER CODE BEGIN RTC_MspInit 0 */
-
+  /**
+    * @fn void HAL_RTC_MspInit(RTC_HandleTypeDef* rtcHandle)
+	* @brief MSP initialization for RTC
+	* @param [in] rtcHandle RTC handle
+	* @details Sets up LSE clock source and enables RTC peripheral for timekeeping in CN0575.
+	*/
   /* USER CODE END RTC_MspInit 0 */
 
   /** Initializes the peripherals clock
@@ -120,7 +138,12 @@ void HAL_RTC_MspDeInit(RTC_HandleTypeDef* rtcHandle)
   if(rtcHandle->Instance==RTC)
   {
   /* USER CODE BEGIN RTC_MspDeInit 0 */
-
+  /**
+    * @fn void HAL_RTC_MspDeInit(RTC_HandleTypeDef* rtcHandle)
+	* @brief MSP deinitialization for RTC
+	* @param [in] rtcHandle RTC handle
+	* @details Disables RTC clock, cleanup for system shutdown or reset in CN0575.
+	*/
   /* USER CODE END RTC_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_RTC_DISABLE();
@@ -131,16 +154,24 @@ void HAL_RTC_MspDeInit(RTC_HandleTypeDef* rtcHandle)
 }
 
 /* USER CODE BEGIN 1 */
+
+/**
+  * @brief Check for daylight saving time (DST)
+  * @param [in] timeinfo Pointer to struct tm with UTC time
+  * @return 1 if DST (CEST) is active, 0 if not (CET)
+  * @details Determines if DST applies (March last Sunday 1:00 to October last Sunday 1:00 UTC),
+  *          used in set_system_time to adjust for CEST (UTC+2) in CN0575’s time zone (Germany).
+  */
 static int is_dst(struct tm *timeinfo) {
     int month = timeinfo->tm_mon;
     int day = timeinfo->tm_mday;
     int hour = timeinfo->tm_hour;
 
-    if (month < 2 || month > 9) { // Before March or after October
+    if (month < 2 || month > 9) {
         return 0; // No DST
     }
-    if (month > 2 && month < 9) { // April to September
-        return 1; // DST
+    if (month > 2 && month < 9) {
+        return 1;
     }
 
     struct tm last_sunday;
@@ -149,7 +180,6 @@ static int is_dst(struct tm *timeinfo) {
     last_sunday.tm_min = 0;
     last_sunday.tm_sec = 0;
 
-    // Last Sunday of March
     last_sunday.tm_mon = 2;
     last_sunday.tm_mday = 31;
     mktime(&last_sunday);
@@ -159,7 +189,6 @@ static int is_dst(struct tm *timeinfo) {
     }
     int dst_start_day = last_sunday.tm_mday;
 
-    // Last Sunday of October
     last_sunday.tm_mon = 9;
     last_sunday.tm_mday = 31;
     mktime(&last_sunday);
@@ -183,14 +212,19 @@ static int is_dst(struct tm *timeinfo) {
     return 0;
 }
 
+/**
+  * @brief Set system time using RTC
+  * @param [in] sec Seconds since epoch (UTC)
+  * @param [in] us Microseconds (unused in this implementation)
+  * @details Converts SNTP UTC time to CET/CEST, updates RTC, and logs to LPUART1. Called by
+  *          freertos.c’s SensorDataMQTTTask via SNTP_SET_SYSTEM_TIME_US for MQTT timestamping.
+  */
 void set_system_time(uint32_t sec, uint32_t us) {
     time_t rawtime = (time_t)sec;
     struct tm *timeinfo = gmtime(&rawtime);
 
-    // (CET, UTC+1)
     timeinfo->tm_hour += 1;
 
-    // DST in effect --> (CEST, UTC+2)
     if (is_dst(timeinfo)) {
         timeinfo->tm_hour += 1;
     }
@@ -220,4 +254,6 @@ void set_system_time(uint32_t sec, uint32_t us) {
            sTime.Hours, sTime.Minutes, sTime.Seconds);
 }
 
+
+/** @}*/
 /* USER CODE END 1 */
