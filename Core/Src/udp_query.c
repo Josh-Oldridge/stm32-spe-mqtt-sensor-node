@@ -1,3 +1,18 @@
+/**
+  ******************************************************************************
+  * @file    udp_query.c
+  * @brief   UDP Query Implementation for CN0575 Project (Unused)
+  * @details This file implements a UDP query mechanism for the CN0575 Single Pair Ethernet (SPE)
+  *          board project on the STM32L496ZG-P Nucleo board. Originally used to send UDP packets
+  *          to 192.168.1.11:5000 every second, toggling LD1 based on responses ("LD1_ON"/"LD1_OFF"),
+  *          ensuring ICMP ping responses by keeping ADIN1110 buffers active. Currently unused,
+  *          replaced by interrupt-driven ADIN1110 handling in freertos.c when USE_LWIP is defined.
+  *          Logs debug messages via LPUART1 using boardsupport.h’s DEBUG_MESSAGE.
+  * @addtogroup network Network Utilities
+  * @{
+  ******************************************************************************
+  */
+
 #include "udp_query.h"
 #include "lwip/udp.h"
 #include "lwip/etharp.h"
@@ -8,22 +23,61 @@
 #include "lwIP_adin1110_app.h"
 #include <string.h>
 
+/** @brief Current state of the UDP query process
+  * @details Tracks the state machine state, volatile as it’s updated by callbacks and tasks.
+  */
 volatile QueryState_t queryState = STATE_IDLE;
+
+/** @brief Timestamp of the last UDP query sent
+  * @details Records the send time in milliseconds, volatile for access across contexts.
+  */
 volatile uint32_t querySentTime = 0;
 
+/** @brief UDP protocol control block for queries
+  * @details Static PCB for sending/receiving UDP packets, initialized in udp_send_query.
+  */
 static struct udp_pcb *query_udp_pcb = NULL;
+
+/** @brief Remote IP address for UDP queries
+  * @details Set to 192.168.1.11, the test laptop IP used during development.
+  */
 static ip4_addr_t remoteIP;
+
+/** @brief Remote UDP port for sending queries
+  * @details Set to 5000, the port on 192.168.1.11 for receiving test queries.
+  */
 #define REMOTE_UDP_PORT 5000
+
+/** @brief Local UDP port for binding
+  * @details Set to 5001, the port on CN0575 for sending/receiving test queries.
+  */
 #define LOCAL_UDP_PORT  5001
 
+/** @brief Query message sent via UDP
+  * @details String "CMD:QUERY:LD1_ON?" sent to test LD1 control on 192.168.1.11.
+  */
 static const char queryMsg[] = "CMD:QUERY:LD1_ON?";
+
+/** @brief Response message indicating LD1 on
+  * @details String "CMD:RESPONSE:LD1_ON" expected from 192.168.1.11 to set LD1 high.
+  */
 static const char responseOnMsg[] = "CMD:RESPONSE:LD1_ON";
+
+/** @brief Response message indicating LD1 off
+  * @details String "CMD:RESPONSE:LD1_OFF" expected from 192.168.1.11 to set LD1 low.
+  */
 static const char responseOffMsg[] = "CMD:RESPONSE:LD1_OFF";
 
 /**
- * @brief  Internal callback for UDP reception.
- * @note   This function is private to this file.
- */
+  * @brief Callback for receiving UDP responses
+  * @param [in] arg User argument (unused)
+  * @param [in] pcb UDP protocol control block
+  * @param [in] p Received pbuf with UDP data
+  * @param [in] addr Sender’s IP address
+  * @param [in] port Sender’s port
+  * @details Processes UDP responses from 192.168.1.11:5000, toggling LD1 based on "LD1_ON"/"LD1_OFF"
+  *          messages, logging via DEBUG_MESSAGE. Updates queryState to STATE_RESPONSE_RECEIVED.
+  */
 static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p,
 		const ip_addr_t *addr, u16_t port) {
 	if (p == NULL) {
@@ -50,10 +104,14 @@ static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p,
 	}
 	pbuf_free(p);
 }
+
 /**
- * @brief  Sends a UDP query packet.
- * @retval lwIP error code.
- */
+  * @brief Send a UDP query packet
+  * @return ERR_OK on success, lwIP error code on failure
+  * @details Sends "CMD:QUERY:LD1_ON?" to 192.168.1.11:5000 via UDP, initializing PCB and binding to
+  *          LOCAL_UDP_PORT if needed. Sets queryState and logs via DEBUG_MESSAGE. Returns error on
+  *          allocation or send failure.
+  */
 err_t udp_send_query(void) {
     struct pbuf *p;
     err_t err;
@@ -103,8 +161,11 @@ err_t udp_send_query(void) {
 }
 
 /**
- * @brief  Processes the UDP query state machine.*/
-
+  * @brief Process the UDP query state machine
+  * @details Manages UDP query retries (up to MAX_QUERY_RETRIES) with QUERY_TIMEOUT, toggling between
+  *          idle, waiting, and response states. Logs progress via DEBUG_MESSAGE. Originally called
+  *          every second for testing, now unused in favor of ADIN1110 interrupts in freertos.c.
+  */
 void process_udp_query(void) {
     static int queryRetryCount = 0;
     uint32_t now = BSP_SysNow();
@@ -143,3 +204,7 @@ void process_udp_query(void) {
         break;
     }
 }
+
+/**
+  * @}
+  */
