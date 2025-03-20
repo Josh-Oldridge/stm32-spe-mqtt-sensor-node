@@ -1,12 +1,44 @@
+/**
+  ******************************************************************************
+  * @file    tmp102.c
+  * @brief   TMP102 Temperature Sensor Driver for CN0575 Project
+  * @details This file implements the temperature reading function for the TMP102 sensor on the
+  *          STM32L496ZG-P Nucleo board in the CN0575 Single Pair Ethernet (SPE) board project.
+  *          Uses I2C2 with DMA to read the temperature register, synchronized via FreeRTOS
+  *          semaphore, and updates latestSensorData in freertos.c’s TempTask every 6 seconds
+  *          when USE_LWIP is defined. Logs errors to LPUART1 via printf.
+  * @addtogroup sensor Sensor Drivers
+  * @{
+  ******************************************************************************
+  */
+
+/** @brief Includes for I2C, FreeRTOS, and logging
+  * @details i2c.h for I2C2 access, FreeRTOS.h and semphr.h for semaphore, stdio.h for printf.
+  */
 #include "tmp102.h"
 #include "i2c.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include <stdio.h>
 
-#define TMP102_ADDR        (0x48 << 1)  // 7-bit address 0x48 shifted left by 1 for HAL (change to 0x49 if ADD0 is high)
-#define TMP102_TEMP_REG    0x00         // Temperature register address
+/** @brief I2C address of TMP102 (7-bit 0x48 shifted left by 1 for HAL)
+  * @details Default address is 0x90 (0x48 << 1); change to 0x92 (0x49 << 1) if ADD0 pin is high.
+  */
+#define TMP102_ADDR        (0x48 << 1)
 
+/** @brief Temperature register address in TMP102
+  * @details Points to the read-only temperature register (0x00) for data retrieval.
+  */
+#define TMP102_TEMP_REG    0x00
+
+/**
+  * @brief Read temperature from TMP102 sensor
+  * @return Temperature in Celsius, or -1000 on error
+  * @details Reads the TMP102 temperature register via I2C2 with DMA, using a semaphore for
+  *          synchronization. Converts 12-bit raw data to Celsius (0.0625°C/LSB), handling
+  *          negative values with two’s complement. Returns -1000 on I2C or timeout errors,
+  *          logging to LPUART1. Called by freertos.c’s TempTask every 6 seconds.
+  */
 float TMP102_ReadTemperature(void) {
 	uint8_t reg = TMP102_TEMP_REG;
 	uint8_t data[2] = { 0 };
