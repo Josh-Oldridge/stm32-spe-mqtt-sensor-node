@@ -1,3 +1,19 @@
+/**
+  ******************************************************************************
+  * @file    client_mqtt.c
+  * @brief   MQTT Client Implementation for CN0575 Project
+  * @details This file implements the MQTT client for the CN0575 Single Pair Ethernet (SPE)
+  *          board project on the STM32L496ZG-P Nucleo board. It establishes a secure TLSv1.2
+  *          connection from the ADIN1110 at IP 192.168.1.10 to the MQTT broker at IP 192.168.1.5,
+  *          using the CA certificate from certificates.h. Manages connection, subscription to
+  *          "sensors/config", and publishing of sensor data (temperature, acceleration, ADC)
+  *          to "sensors/data" when USE_LWIP is defined. Integrates with FreeRTOS tasks from
+  *          freertos.c for sensor data collection and uses LPUART1 for debug logging.
+  * @addtogroup mqtt MQTT Configuration
+  * @{
+  ******************************************************************************
+  */
+
 #include "client_mqtt.h"
 #include "lwip/apps/mqtt.h"
 #include "lwip/ip_addr.h"
@@ -13,19 +29,45 @@
 #include "sensor_data.h"
 #include "certificates.h"
 
+/** @brief Global MQTT client instance, initialized in client_mqtt_init. */
 mqtt_client_t *mqtt_client = NULL;
 
+/** @brief IP address of the MQTT broker (192.168.1.5). Static DHCP entry
+ *         on the Pheonix Contact 2303-8SP1 Switch
+ */
 #define MQTT_BROKER_IP_STR "192.168.1.5"
+
+/** @brief Secure port for MQTT over TLS (8883). */
 #define MQTT_BROKER_PORT_SECURE 8883
+
+/** @brief Client ID for MQTT connection ("STM32_Client"). */
 #define MQTT_CLIENT_ID     "STM32_Client"
 
+/** @brief IP address structure for the MQTT broker, parsed from MQTT_BROKER_IP_STR. */
 static ip_addr_t broker_ip;
+
+/** @brief TLS configuration for secure MQTT connection, using broker_ca_cert. */
 static struct altcp_tls_config *tls_config = NULL;
 
+/** @brief Indicates if the MQTT client is connected to the broker. */
 volatile bool mqtt_connected = false;
+
+/** @brief Indicates if the MQTT client is attempting to connect. */
 volatile bool mqtt_connecting = false;
+
+/** @brief Indicates if sensor data is ready for publishing (set by freertos.c tasks). */
 volatile bool sensors_ready = false;
 
+/**
+  * @brief Debug logging function for mbedTLS
+  * @param [in] ctx Context pointer (unused)
+  * @param [in] level Debug level (1-4)
+  * @param [in] file Source file name
+  * @param [in] line Source line number
+  * @param [in] str Debug message string
+  * @details Outputs mbedTLS debug messages to LPUART1 when TLS_DEBUG is defined, skipping
+  *          leading newlines for cleaner logs.
+  */
 #ifdef TLS_DEBUG
 void my_debug(void *ctx, int level, const char *file, int line, const char *str) {
     const char *p = str;
@@ -35,6 +77,12 @@ void my_debug(void *ctx, int level, const char *file, int line, const char *str)
 }
 #endif
 
+/**
+  * @brief Initialize the MQTT client with TLS
+  * @details Creates a new MQTT client instance, configures TLS with broker_ca_cert, and attempts
+  *          to connect to the broker at 192.168.1.5:8883. Sets up client ID, credentials, and
+  *          keep-alive, logging progress via LPUART1. Cleans up on failure.
+  */
 void client_mqtt_init(void) {
 	err_t err;
 	struct mqtt_connect_client_info_t ci;
@@ -107,6 +155,14 @@ void client_mqtt_init(void) {
 	}
 }
 
+/**
+  * @brief MQTT connection callback
+  * @param [in] client MQTT client instance
+  * @param [in] arg User argument (unused)
+  * @param [in] status Connection status
+  * @details Handles connection events: on success, subscribes to "sensors/config" and sets up
+  *          incoming data callbacks; on failure, cleans up resources and logs via LPUART1.
+  */
 void mqtt_connection_cb(mqtt_client_t *client, void *arg,
 		mqtt_connection_status_t status) {
 	mqtt_connecting = false;
@@ -137,11 +193,28 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg,
 	}
 }
 
+/**
+  * @brief MQTT incoming publish callback
+  * @param [in] arg User argument (unused)
+  * @param [in] topic Topic name of the incoming message
+  * @param [in] tot_len Total length of the incoming message
+  * @details Logs the topic and length of incoming publishes to LPUART1; currently a placeholder
+  *          for configuration messages on "sensors/config".
+  */
 void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len) {
 	printf("Incoming publish on topic: %s (total length %u)\n", topic,
 			(unsigned int) tot_len);
 }
 
+/**
+  * @brief MQTT incoming data callback
+  * @param [in] arg User argument (unused)
+  * @param [in] data Data payload of the incoming message
+  * @param [in] len Length of the data chunk
+  * @param [in] flags Flags indicating message state (e.g., end of message)
+  * @details Logs incoming data from "sensors/config" to LPUART1 as a character stream; currently
+  *          a placeholder for processing configuration updates.
+  */
 void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
 	printf("Incoming publish data: ");
 	for (u16_t i = 0; i < len; i++)
@@ -149,6 +222,13 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
 	printf("\n");
 }
 
+/**
+  * @brief MQTT publish request callback
+  * @param [in] arg User argument (unused)
+  * @param [in] result Result of the publish operation
+  * @details Logs publish success or failure to LPUART1; on connection errors (ERR_CONN), cleans
+  *          up resources and signals reconnection in freertos.c’s SensorDataMQTTTask.
+  */
 void mqtt_pub_request_cb(void *arg, err_t result) {
 	if (result != ERR_OK) {
 		printf("Publish request failed: %d\n", result);
@@ -171,6 +251,13 @@ void mqtt_pub_request_cb(void *arg, err_t result) {
 	}
 }
 
+/**
+  * @brief Publish sensor data to MQTT broker
+  * @return ERR_OK on success, lwIP error code on failure
+  * @details Acquires sensor data (temperature, acceleration, ADC) from latestSensorData via
+  *          mutex, formats it as JSON, and publishes to "sensors/data" every 20 seconds via
+  *          SensorDataMQTTTask in freertos.c. Logs errors or debug info to LPUART1.
+  */
 err_t client_mqtt_publish_sensor_data(void) {
   if (!mqtt_connected || mqtt_client == NULL) {
     printf("Cannot publish: MQTT not connected\n");
@@ -220,6 +307,15 @@ err_t client_mqtt_publish_sensor_data(void) {
   return ERR_OK;
 }
 
+/**
+  * @brief Run the MQTT client publishing routine
+  * @details Calls client_mqtt_publish_sensor_data to trigger a single publish cycle; currently
+  *          a simple wrapper used by freertos.c’s SensorDataMQTTTask in the CN0575 project.
+  */
 void client_mqtt_run(void) {
 	client_mqtt_publish_sensor_data();
 }
+
+/**
+  * @}
+  */
