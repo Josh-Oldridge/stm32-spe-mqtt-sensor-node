@@ -2,8 +2,14 @@
 /**
   ******************************************************************************
   * @file    i2c.c
-  * @brief   This file provides code for the configuration
-  *          of the I2C instances.
+  * @brief   I2C Configuration for CN0575 Project
+  * @details This file implements I2C2 configuration for the STM32L496ZG-P Nucleo board in the
+  *          CN0575 Single Pair Ethernet (SPE) board project. Configures I2C2 with DMA for
+  *          communication with the ADXL345 accelerometer and TMP102 temperature sensor, used
+  *          by freertos.c’s AccelTask and TempTask when USE_LWIP is defined. Includes semaphore
+  *          synchronization and error handling with LPUART1 logging.
+  * @addtogroup i2c I2C Configuration
+  * @{
   ******************************************************************************
   * @attention
   *
@@ -21,10 +27,16 @@
 #include "i2c.h"
 
 /* USER CODE BEGIN 0 */
+/** @brief Additional includes for LPUART1 logging */
 #include <stdio.h>
 
+/** @brief Semaphore for I2C2 access synchronization, initialized in I2C2_InitSemaphore */
 SemaphoreHandle_t i2cSemaphore = NULL;
 
+/**
+  * @brief Initialize I2C2 semaphore for FreeRTOS
+  * @details Creates a binary semaphore for I2C2, logging failure to LPUART1 if creation fails.
+  */
 void I2C2_InitSemaphore(void) {
     if (i2cSemaphore == NULL) {
         i2cSemaphore = xSemaphoreCreateBinary();
@@ -34,6 +46,11 @@ void I2C2_InitSemaphore(void) {
     }
 }
 
+/**
+  * @brief I2C error callback
+  * @param [in] hi2c I2C handle
+  * @details Logs I2C2 errors to LPUART1, triggered on communication failures with sensors.
+  */
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 {
     if (hi2c->Instance == I2C2)
@@ -52,7 +69,11 @@ void MX_I2C2_Init(void)
 {
 
   /* USER CODE BEGIN I2C2_Init 0 */
-
+  /**
+    * @fn void MX_I2C2_Init(void)
+	* @brief Initialize I2C2 for sensor communication
+	* @details Configures I2C2 at 100 kHz with DMA for ADXL345 and TMP102, called from main.c.
+	*/
   /* USER CODE END I2C2_Init 0 */
 
   /* USER CODE BEGIN I2C2_Init 1 */
@@ -99,7 +120,12 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
   if(i2cHandle->Instance==I2C2)
   {
   /* USER CODE BEGIN I2C2_MspInit 0 */
-
+  /**
+    * @fn void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
+	* @brief MSP initialization for I2C2
+	* @param [in] i2cHandle I2C handle
+	* @details Sets up I2C2 clock, GPIO (PF0 SDA, PF1 SCL), and DMA (Channels 4 TX, 5 RX) for sensor access.
+	*/
   /* USER CODE END I2C2_MspInit 0 */
 
   /** Initializes the peripherals clock
@@ -173,7 +199,12 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
   if(i2cHandle->Instance==I2C2)
   {
   /* USER CODE BEGIN I2C2_MspDeInit 0 */
-
+  /**
+    * @fn void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
+	* @brief MSP deinitialization for I2C2
+	* @param [in] i2cHandle I2C handle
+	* @details Disables I2C2 clock, GPIO, DMA, and interrupts on deinit, cleanup for sensor interface.
+	*/
   /* USER CODE END I2C2_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_I2C2_CLK_DISABLE();
@@ -200,6 +231,12 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 }
 
 /* USER CODE BEGIN 1 */
+
+/**
+  * @brief I2C2 master transmit complete callback
+  * @param [in] hi2c I2C handle
+  * @details Releases i2cSemaphore from ISR after transmit to ADXL345/TMP102, enabling task continuation.
+  */
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
     if (hi2c->Instance == I2C2)
@@ -210,6 +247,11 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
     }
 }
 
+/**
+  * @brief I2C2 master receive complete callback
+  * @param [in] hi2c I2C handle
+  * @details Releases i2cSemaphore from ISR after receive from ADXL345/TMP102, enabling task continuation.
+  */
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
     if (hi2c->Instance == I2C2)
@@ -219,4 +261,6 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }
+
+/** @}*/
 /* USER CODE END 1 */
