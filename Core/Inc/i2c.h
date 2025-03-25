@@ -41,39 +41,39 @@ extern "C" {
 #include "semphr.h"
 /* USER CODE END Includes */
 
-extern I2C_HandleTypeDef hi2c2;
+extern I2C_HandleTypeDef hi2c1;
 
 /* USER CODE BEGIN Private defines */
 
-/** @fn extern I2C_HandleTypeDef hi2c2
-  * @brief I2C2 handle for sensor communication
+/** @fn extern I2C_HandleTypeDef hi2c1
+  * @brief I2C1 handle for sensor communication
   */
 
-/** @brief Semaphore for synchronizing I2C2 access in FreeRTOS tasks */
+/** @brief Semaphore for synchronizing I2C access in FreeRTOS tasks */
 extern SemaphoreHandle_t i2cSemaphore;
 /* USER CODE END Private defines */
 
-void MX_I2C2_Init(void);
+void MX_I2C1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
 /**
-  * @brief Initialize I2C2 semaphore for FreeRTOS
-  * @details Creates a binary semaphore for synchronizing I2C2 access, called from main.c.
+  * @brief Initialize I2C1 semaphore for FreeRTOS
+  * @details Creates a binary semaphore for synchronizing I2C1 access, called from main.c.
   */
-void I2C2_InitSemaphore(void);
+void I2C1_InitSemaphore(void);
 
 /**
-  * @brief I2C2 master transmit complete callback
+  * @brief I2C1 master transmit complete callback
   * @param [in] hi2c I2C handle
-  * @details Releases the I2C2 semaphore from ISR after transmit completes, used by sensor tasks.
+  * @details Releases the I2C1 semaphore from ISR after transmit completes, used by sensor tasks.
   */
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c);
 
 /**
-  * @brief I2C2 master receive complete callback
+  * @brief I2C1 master receive complete callback
   * @param [in] hi2c I2C handle
-  * @details Releases the I2C2 semaphore from ISR after receive completes, used by sensor tasks.
+  * @details Releases the I2C1 semaphore from ISR after receive completes, used by sensor tasks.
   */
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c);
 

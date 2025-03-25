@@ -138,8 +138,8 @@
 						<entry excluding="src/apps/http/fsdata.h|src/apps/http/fsdata.c|src/apps/http/makefsdata" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="lwip"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="mbedtls-2.16.12"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="mbedtls-2.16.12"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -222,6 +222,7 @@
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="mbedtls-2.16.12"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

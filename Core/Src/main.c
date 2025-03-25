@@ -320,8 +320,8 @@ int main(void)
   MX_SPI1_Init();
   MX_LPUART1_UART_Init();
   MX_ADC1_Init();
-  MX_I2C2_Init();
   MX_RTC_Init();
+  MX_I2C1_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -426,7 +426,7 @@ int main(void)
 	LwIP_ADIN1110LinkInput(&myConn.netif);
 	BSP_delayMs(500);
 	netif_set_link_up(&myConn.netif);
-	I2C2_InitSemaphore();
+	I2C_InitSemaphore();
 
 	if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adcBuffer, ADC_BUFFER_SIZE)
 			!= HAL_OK) {
@@ -535,7 +535,6 @@ int main(void)
 
 /**
   * @brief System Clock Configuration
-  * @details Configures the system clock to 80 MHz using HSI and PLL for the CN0575 project.
   * @retval None
   */
 void SystemClock_Config(void)
@@ -590,8 +589,7 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief NVIC Configuration
-  * @details Sets interrupt priorities and enables NVIC for SPI1, DMA, EXTI, and I2C2 in the CN0575 project.
+  * @brief NVIC Configuration.
   * @retval None
   */
 static void MX_NVIC_Init(void)
@@ -608,21 +606,21 @@ static void MX_NVIC_Init(void)
   /* EXTI15_10_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-  /* DMA1_Channel4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
-  /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-  /* I2C2_ER_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(I2C2_ER_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(I2C2_ER_IRQn);
-  /* I2C2_EV_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(I2C2_EV_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(I2C2_EV_IRQn);
+  /* I2C1_EV_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C1_EV_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
+  /* I2C1_ER_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C1_ER_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
+  /* DMA2_Channel6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Channel6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Channel6_IRQn);
+  /* DMA2_Channel7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Channel7_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Channel7_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -661,9 +659,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 /* USER CODE END 4 */
 
 /**
-  * @brief Period elapsed callback in non-blocking mode
-  * @param [in] htim TIM handle
-  * @details Increments the system tick (uwTick) when TIM6 interrupt occurs, serving as the FreeRTOS timebase in the CN0575 project.
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -679,8 +680,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 /**
-  * @brief Error handler function
-  * @details Disables interrupts and enters an infinite loop on error in the CN0575 project.
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
   */
 void Error_Handler(void)
 {
@@ -693,10 +694,11 @@ void Error_Handler(void)
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief Reports assert_param error location
-  * @param [in] file Pointer to the source file name
-  * @param [in] line Assert_param error line source number
-  * @details Currently empty; can be extended for debugging in the CN0575 project.
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {

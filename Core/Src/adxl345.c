@@ -1,7 +1,7 @@
 /**
  * @file    adxl345.c
  * @brief   Implementation of the ADXL345 Accelerometer Driver.
- * @details Implements I2C communication with the ADXL345 3-axis accelerometer on the
+ * @details Implements I2C1 communication with the ADXL345 3-axis accelerometer on the
  *          STM32L496ZG-P Nucleo board for the CN0575 SPE board project. Collects XYZ
  *          acceleration data using DMA and FreeRTOS synchronization, which is later
  *          processed into MQTT packets for secure transmission via the ADIN1110 MAC-PHY.
@@ -26,7 +26,7 @@
 
 /**
  * @brief Write a single register to the ADXL345 using DMA.
- * @param [in] hi2c Pointer to the I2C handle structure.
+ * @param [in] hi2c1 Pointer to the I2C handle structure.
  * @param [in] reg Register address to write to.
  * @param [in] data 8-bit data value to write.
  * @return HAL_OK on success, HAL error code otherwise.

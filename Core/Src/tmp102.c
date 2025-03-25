@@ -4,7 +4,7 @@
   * @brief   TMP102 Temperature Sensor Driver for CN0575 Project
   * @details This file implements the temperature reading function for the TMP102 sensor on the
   *          STM32L496ZG-P Nucleo board in the CN0575 Single Pair Ethernet (SPE) board project.
-  *          Uses I2C2 with DMA to read the temperature register, synchronized via FreeRTOS
+  *          Uses I2C1 with DMA to read the temperature register, synchronized via FreeRTOS
   *          semaphore, and updates latestSensorData in freertos.c’s TempTask every 6 seconds
   *          when USE_LWIP is defined. Logs errors to LPUART1 via printf.
   * @addtogroup sensor Sensor Drivers
@@ -13,7 +13,7 @@
   */
 
 /** @brief Includes for I2C, FreeRTOS, and logging
-  * @details i2c.h for I2C2 access, FreeRTOS.h and semphr.h for semaphore, stdio.h for printf.
+  * @details i2c.h for I2C1 access, FreeRTOS.h and semphr.h for semaphore, stdio.h for printf.
   */
 #include "tmp102.h"
 #include "i2c.h"
@@ -45,13 +45,13 @@ float TMP102_ReadTemperature(void) {
 	BaseType_t semStatus;
 
 	if (i2cSemaphore == NULL) {
-		I2C2_InitSemaphore();
+		I2C_InitSemaphore();
 		if (i2cSemaphore == NULL) {
 			return -1000;
 		}
 	}
 
-	if (HAL_I2C_Master_Transmit_DMA(&hi2c2, TMP102_ADDR, &reg, 1) != HAL_OK) {
+	if (HAL_I2C_Master_Transmit_DMA(&hi2c1, TMP102_ADDR, &reg, 1) != HAL_OK) {
 		printf("TMP102: I2C DMA transmit error!\n");
 		return -1000;
 	}
@@ -62,7 +62,7 @@ float TMP102_ReadTemperature(void) {
 		return -1000;
 	}
 
-	if (HAL_I2C_Master_Receive_DMA(&hi2c2, TMP102_ADDR, data, 2) != HAL_OK) {
+	if (HAL_I2C_Master_Receive_DMA(&hi2c1, TMP102_ADDR, data, 2) != HAL_OK) {
 		printf("TMP102: I2C DMA receive error!\n");
 		return -1000;
 	}

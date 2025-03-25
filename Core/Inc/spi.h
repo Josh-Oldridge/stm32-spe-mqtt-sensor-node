@@ -38,6 +38,8 @@ extern "C" {
 #include "boardsupport.h"
 /* USER CODE END Includes */
 
+extern SPI_HandleTypeDef hspi1;
+
 /* USER CODE BEGIN Private defines */
 /** @brief SPI handle for SPI1, used for ADIN1110 communication. */
 extern SPI_HandleTypeDef hspi1;

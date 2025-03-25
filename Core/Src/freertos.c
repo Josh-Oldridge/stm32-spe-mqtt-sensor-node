@@ -279,8 +279,8 @@ void vApplicationDaemonTaskStartupHook(void)
 
 /**
   * @brief  FreeRTOS initialization
-  * @details Initializes FreeRTOS tasks, mutexes, and resources for the CN0575 project,
-  *          using TIM6 as the timebase source for scheduling.
+  * @param  None
+  * @retval None
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
@@ -425,7 +425,7 @@ void AccelTask(void *argument) {
 	int16_t ax, ay, az;
 	HAL_StatusTypeDef ret;
 
-	ret = ADXL345_Init(&hi2c2);
+	ret = ADXL345_Init(&hi2c1);
 	if (ret != HAL_OK) {
 		printf("ADXL345 Initialization Failed!\n");
 	} else {
@@ -433,7 +433,7 @@ void AccelTask(void *argument) {
 	}
 
 	for (;;) {
-		ret = ADXL345_ReadAccel(&hi2c2, &ax, &ay, &az);
+		ret = ADXL345_ReadAccel(&hi2c1, &ax, &ay, &az);
 		if (ret == HAL_OK) {
 			if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
 				latestSensorData.accel_x = ax;

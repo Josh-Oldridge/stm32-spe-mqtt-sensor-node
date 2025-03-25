@@ -65,9 +65,9 @@
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
-extern DMA_HandleTypeDef hdma_i2c2_rx;
-extern DMA_HandleTypeDef hdma_i2c2_tx;
-extern I2C_HandleTypeDef hi2c2;
+extern DMA_HandleTypeDef hdma_i2c1_rx;
+extern DMA_HandleTypeDef hdma_i2c1_tx;
+extern I2C_HandleTypeDef hi2c1;
 extern DMA_HandleTypeDef hdma_spi1_rx;
 extern DMA_HandleTypeDef hdma_spi1_tx;
 extern SPI_HandleTypeDef hspi1;
@@ -80,11 +80,8 @@ extern TIM_HandleTypeDef htim6;
 /******************************************************************************/
 /*           Cortex-M4 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
-
 /**
-  * @brief  Handles Non-Maskable Interrupt (NMI)
-  * @details Processes critical system faults that cannot be masked, entering an infinite
-  *          loop to halt execution in the CN0575 project.
+  * @brief This function handles Non maskable interrupt.
   */
 void NMI_Handler(void)
 {
@@ -99,9 +96,7 @@ void NMI_Handler(void)
 }
 
 /**
-  * @brief  Handles Hard Fault Interrupt
-  * @details Processes severe hardware faults (e.g., invalid memory access) in the CN0575
-  *          project, halting execution in an infinite loop.
+  * @brief This function handles Hard fault interrupt.
   */
 void HardFault_Handler(void)
 {
@@ -116,8 +111,7 @@ void HardFault_Handler(void)
 }
 
 /**
-  * @brief  Handles Memory Management Fault Interrupt
-  * @details Manages memory protection faults in the CN0575 project, halting execution if triggered.
+  * @brief This function handles Memory management fault.
   */
 void MemManage_Handler(void)
 {
@@ -132,9 +126,7 @@ void MemManage_Handler(void)
 }
 
 /**
-  * @brief  Handles Bus Fault Interrupt
-  * @details Processes bus-related faults (e.g., prefetch or memory access errors) in the
-  *          CN0575 project, halting execution if triggered.
+  * @brief This function handles Prefetch fault, memory access fault.
   */
 void BusFault_Handler(void)
 {
@@ -149,9 +141,7 @@ void BusFault_Handler(void)
 }
 
 /**
-  * @brief  Handles Usage Fault Interrupt
-  * @details Manages faults from undefined instructions or illegal states in the CN0575
-  *          project, halting execution if triggered.
+  * @brief This function handles Undefined instruction or illegal state.
   */
 void UsageFault_Handler(void)
 {
@@ -166,8 +156,7 @@ void UsageFault_Handler(void)
 }
 
 /**
-  * @brief  Handles Debug Monitor Interrupt
-  * @details Supports debug operations in the CN0575 project, typically used for debugging tools.
+  * @brief This function handles Debug monitor.
   */
 void DebugMon_Handler(void)
 {
@@ -187,9 +176,7 @@ void DebugMon_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief  Handles DMA1 Channel 1 Interrupt (ADC1)
-  * @details Manages DMA transfer completion for ADC1, used for sensor data sampling in the
-  *          CN0575 project.
+  * @brief This function handles DMA1 channel1 global interrupt.
   */
 void DMA1_Channel1_IRQHandler(void)
 {
@@ -203,9 +190,7 @@ void DMA1_Channel1_IRQHandler(void)
 }
 
 /**
-  * @brief  Handles DMA1 Channel 2 Interrupt (SPI1 RX)
-  * @details Manages DMA receive completion for SPI1, handling data from the ADIN1110 in the
-  *          CN0575 project.
+  * @brief This function handles DMA1 channel2 global interrupt.
   */
 void DMA1_Channel2_IRQHandler(void)
 {
@@ -219,9 +204,7 @@ void DMA1_Channel2_IRQHandler(void)
 }
 
 /**
-  * @brief  Handles DMA1 Channel 3 Interrupt (SPI1 TX)
-  * @details Manages DMA transmit completion for SPI1, sending data to the ADIN1110 in the
-  *          CN0575 project.
+  * @brief This function handles DMA1 channel3 global interrupt.
   */
 void DMA1_Channel3_IRQHandler(void)
 {
@@ -235,72 +218,35 @@ void DMA1_Channel3_IRQHandler(void)
 }
 
 /**
-  * @brief  Handles DMA1 Channel 4 Interrupt (I2C2 TX)
-  * @details Manages DMA transmit completion for I2C2, used for sensor communication in the
-  *          CN0575 project.
+  * @brief This function handles I2C1 event interrupt.
   */
-void DMA1_Channel4_IRQHandler(void)
+void I2C1_EV_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Channel4_IRQn 0 */
+  /* USER CODE BEGIN I2C1_EV_IRQn 0 */
 
-  /* USER CODE END DMA1_Channel4_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_i2c2_tx);
-  /* USER CODE BEGIN DMA1_Channel4_IRQn 1 */
+  /* USER CODE END I2C1_EV_IRQn 0 */
+  HAL_I2C_EV_IRQHandler(&hi2c1);
+  /* USER CODE BEGIN I2C1_EV_IRQn 1 */
 
-  /* USER CODE END DMA1_Channel4_IRQn 1 */
+  /* USER CODE END I2C1_EV_IRQn 1 */
 }
 
 /**
-  * @brief  Handles DMA1 Channel 5 Interrupt (I2C2 RX)
-  * @details Manages DMA receive completion for I2C2, handling sensor data in the CN0575 project.
+  * @brief This function handles I2C1 error interrupt.
   */
-void DMA1_Channel5_IRQHandler(void)
+void I2C1_ER_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Channel5_IRQn 0 */
+  /* USER CODE BEGIN I2C1_ER_IRQn 0 */
 
-  /* USER CODE END DMA1_Channel5_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_i2c2_rx);
-  /* USER CODE BEGIN DMA1_Channel5_IRQn 1 */
+  /* USER CODE END I2C1_ER_IRQn 0 */
+  HAL_I2C_ER_IRQHandler(&hi2c1);
+  /* USER CODE BEGIN I2C1_ER_IRQn 1 */
 
-  /* USER CODE END DMA1_Channel5_IRQn 1 */
+  /* USER CODE END I2C1_ER_IRQn 1 */
 }
 
 /**
-  * @brief  Handles I2C2 Event Interrupt
-  * @details Processes event-driven I2C2 interrupts (e.g., transfer complete) for sensor
-  *          communication in the CN0575 project.
-  */
-void I2C2_EV_IRQHandler(void)
-{
-  /* USER CODE BEGIN I2C2_EV_IRQn 0 */
-
-  /* USER CODE END I2C2_EV_IRQn 0 */
-  HAL_I2C_EV_IRQHandler(&hi2c2);
-  /* USER CODE BEGIN I2C2_EV_IRQn 1 */
-
-  /* USER CODE END I2C2_EV_IRQn 1 */
-}
-
-/**
-  * @brief  Handles I2C2 Error Interrupt
-  * @details Manages I2C2 error conditions (e.g., bus errors) during sensor communication in
-  *          the CN0575 project.
-  */
-void I2C2_ER_IRQHandler(void)
-{
-  /* USER CODE BEGIN I2C2_ER_IRQn 0 */
-
-  /* USER CODE END I2C2_ER_IRQn 0 */
-  HAL_I2C_ER_IRQHandler(&hi2c2);
-  /* USER CODE BEGIN I2C2_ER_IRQn 1 */
-
-  /* USER CODE END I2C2_ER_IRQn 1 */
-}
-
-/**
-  * @brief  Handles SPI1 Global Interrupt
-  * @details Processes SPI1 interrupts (e.g., transfer complete) for ADIN1110 communication
-  *          in the CN0575 project.
+  * @brief This function handles SPI1 global interrupt.
   */
 void SPI1_IRQHandler(void)
 {
@@ -314,9 +260,7 @@ void SPI1_IRQHandler(void)
 }
 
 /**
-  * @brief  Handles EXTI Line [15:10] Interrupts
-  * @details Manages external interrupts for ADIN1110 INT_N and reset button events in the
-  *          CN0575 project.
+  * @brief This function handles EXTI line[15:10] interrupts.
   */
 void EXTI15_10_IRQHandler(void)
 {
@@ -331,10 +275,7 @@ void EXTI15_10_IRQHandler(void)
 }
 
 /**
-  * @brief  Handles TIM6 Global Interrupt (Timebase Source)
-  * @details Processes TIM6 interrupts as the system timebase source, providing timing for
-  *          FreeRTOS and other operations in the CN0575 project. Also handles DAC underrun
-  *          errors if applicable.
+  * @brief This function handles TIM6 global interrupt, DAC channel1 and channel2 underrun error interrupts.
   */
 void TIM6_DAC_IRQHandler(void)
 {
@@ -345,6 +286,34 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
 
   /* USER CODE END TIM6_DAC_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA2 channel6 global interrupt.
+  */
+void DMA2_Channel6_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA2_Channel6_IRQn 0 */
+
+  /* USER CODE END DMA2_Channel6_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_i2c1_rx);
+  /* USER CODE BEGIN DMA2_Channel6_IRQn 1 */
+
+  /* USER CODE END DMA2_Channel6_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA2 channel7 global interrupt.
+  */
+void DMA2_Channel7_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA2_Channel7_IRQn 0 */
+
+  /* USER CODE END DMA2_Channel7_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_i2c1_tx);
+  /* USER CODE BEGIN DMA2_Channel7_IRQn 1 */
+
+  /* USER CODE END DMA2_Channel7_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
