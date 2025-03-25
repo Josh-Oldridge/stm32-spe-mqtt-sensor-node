@@ -58,10 +58,10 @@ void MX_I2C1_Init(void);
 /* USER CODE BEGIN Prototypes */
 
 /**
-  * @brief Initialize I2C1 semaphore for FreeRTOS
+  * @brief Initialize I2C semaphore for FreeRTOS
   * @details Creates a binary semaphore for synchronizing I2C1 access, called from main.c.
   */
-void I2C1_InitSemaphore(void);
+void I2C_InitSemaphore(void);
 
 /**
   * @brief I2C1 master transmit complete callback

@@ -606,9 +606,6 @@ static void MX_NVIC_Init(void)
   /* EXTI15_10_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* I2C1_EV_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(I2C1_EV_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
@@ -621,6 +618,9 @@ static void MX_NVIC_Init(void)
   /* DMA2_Channel7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Channel7_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Channel7_IRQn);
+  /* DMA2_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Channel3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Channel3_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
