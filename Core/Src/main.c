@@ -45,6 +45,7 @@
 #ifdef USE_LWIP
 #include "lwIP_adin1110_app.h"
 #endif /* USE_LWIP */
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -74,7 +75,7 @@ adin1110_DeviceStruct_t dev;
 /** @brief Handle for the ADIN1110 device, used in both modes. */
 adin1110_DeviceHandle_t hDevice = &dev;
 
-#ifndef USE_LWIP
+#ifdef LAYER_2
 
 /** @brief Memory allocation for ADIN1110 driver in standalone mode. */
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
@@ -88,7 +89,7 @@ adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
   * @param [in] hDevice Pointer to the ADIN1110 device handle
   * @details Logs frame counts and error statistics via UART for standalone testing.
   */
-void printStats(adin1110_DeviceHandle_t* hDevice);
+void printStats(adin1110_DeviceHandle_t hDevice);
 
 /** @brief Destination MAC address for standalone frame testing (Dell MAC). */
 uint8_t dest_mac[6] = { 0xAC, 0x1A, 0x3D, 0xAC, 0xD0, 0x33 };
@@ -132,7 +133,7 @@ static uint8_t txBuf[BUFF_DESC_COUNT][MAX_FRAME_BUF_SIZE] __attribute__((aligned
 /** @brief Availability flags for transmit buffers in standalone mode. */
 bool txBufAvailable[BUFF_DESC_COUNT];
 
-#else /* USE_LWIP defined */
+#else /* LAYER_2 not defined */
 
 /** @brief Board configuration details for lwIP mode. */
 board_t boardDetails;
@@ -140,9 +141,9 @@ board_t boardDetails;
 /** @brief lwIP and ADIN1110 integration structure for lwIP mode. */
 LwIP_ADIN1110_t myConn;
 
-#endif  /* USE_LWIP */
+#endif  /* LAYER_2 */
 
-#ifndef USE_LWIP
+#ifdef LAYER_2
 
 /**
   * @brief Transmit callback for ADIN1110 in standalone mode
@@ -178,7 +179,7 @@ static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
   * @details Updates receive index, checks for errors, and resubmits the buffer.
   */
 static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
-	adin1110_DeviceHandle_t* hDevice = (adin1110_DeviceHandle_t) pCBParam;
+	adin1110_DeviceHandle_t hDevice = (adin1110_DeviceHandle_t) pCBParam;
 	adi_eth_BufDesc_t *pRxBufDesc = (adi_eth_BufDesc_t*) pArg;
 	uint32_t idx;
 
@@ -211,7 +212,7 @@ void cbLinkChange(void *pCBParam, uint32_t Event, void *pArg) {
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET); // Turn off LD3
 	}
 }
-#endif  /* USE_LWIP */
+#endif  /* LAYER_2 */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -224,7 +225,7 @@ static void MX_NVIC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#ifndef USE_LWIP
+#ifdef LAYER_2
 void printStats(adin1110_DeviceHandle_t hDevice) {
 	adi_eth_Result_e result = ADI_ETH_SUCCESS;
 	adi_eth_MacStatCounters_t stats;
@@ -283,7 +284,7 @@ void printStats(adin1110_DeviceHandle_t hDevice) {
 	DEBUG_MESSAGE("         RX_DROP_FILT_CNT   = %" PRIu32 "\r",
 			stats.RX_DROP_FILT_CNT);
 }
-#endif  /* USE_LWIP */
+#endif  /* LAYER_2 */
 
 /* USER CODE END 0 */
 
@@ -326,19 +327,19 @@ int main(void)
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-#ifndef USE_LWIP
+#ifdef LAYER_2
 	adi_eth_Result_e result;
 	adin1110_DeviceStruct_t deviceStruct;
 	adin1110_DeviceHandle_t hDevice = &deviceStruct;
 
-	#else /* USE_LWIP defined */
+	#else /* LAYER_2 not defined */
 	boardDetails.mac[0] = 0x00;
 	boardDetails.mac[1] = 0xE0;
 	boardDetails.mac[2] = 0x22;
 	boardDetails.mac[3] = 0xFE;
 	boardDetails.mac[4] = 0xDA;
 	boardDetails.mac[5] = 0xCA;
-#endif  /* USE_LWIP */
+
 
 #ifndef IP_FIXED
 	/*For IP Address Fixed Settings, make sure to setup a static DHCP lease in the 2303-8SP1 switch and uncomment the ip address, net_mask and gateway. Most importantly, change from IP_DYNAMIC to IP_FIXED*/
@@ -359,9 +360,10 @@ int main(void)
 
 #endif /* IP_FIXED */
 
+#endif  /* LAYER_2 */
 
 
-#ifndef USE_LWIP
+#ifdef LAYER_2
 	for (uint32_t i = 0; i < ADIN1110_INIT_ITER; i++) {
 		result = adin1110_Init(hDevice, &drvConfig);
 		if (result == ADI_ETH_SUCCESS) {
@@ -391,6 +393,7 @@ int main(void)
 	adi_eth_LinkStatus_e linkStatus;
 	uint32_t frameIdx = 0;
 	uint32_t heartbeatTicks = 0;
+	uint32_t heartbeatCheckTime = 0;
 
 	for (uint32_t i = 0; i < BUFF_DESC_COUNT; i++) {
 		memcpy(&txBuf[i], &testFrames[i % 2][0], MAX_FRAME_SIZE);
@@ -415,7 +418,7 @@ int main(void)
 	expectedTxIdx = 0;
 	errorTxIdx = 0;
 	errorRxIdx = 0;
-	#else /* USE_LWIP defined */
+	#else /* LAYER_2 not defined */
 
 	/* Initialize lwIP stack */
 	uint32_t result = discoveradin1110(&hDevice);
@@ -434,7 +437,7 @@ int main(void)
 		Error_Handler();
 	}
 
-#endif  /* USE_LWIP */
+
 
   /* USER CODE END 2 */
 
@@ -451,13 +454,14 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+#endif  /* LAYER_2 */
 	/* Uncomment these variable declarations when using lwIP stack*/
 #ifdef USE_LWIP
 	while (1) {
 #endif  /* USE_LWIP */
-#ifndef USE_LWIP
+#ifdef LAYER_2
 	while (!FRAME_COUNT || (txIdx < FRAME_COUNT)) {
-	#endif  /* USE_LWIP */
+	#endif  /* LAYER_2 */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -465,7 +469,7 @@ int main(void)
 	}
 #endif  /* USE_LWIP */
 
-#ifndef USE_LWIP
+#ifdef LAYER_2
 		uint32_t now = BSP_SysNow();
 
 		if ((now - heartbeatCheckTime) >= 250) {
@@ -528,7 +532,7 @@ int main(void)
 	DEBUG_RESULT("adin1110_UnInit", uninitRes, ADI_ETH_SUCCESS);
 	while (1) {
 	}
-	#endif  /* USE_LWIP */
+	#endif  /* LAYER_2 */
 
   /* USER CODE END 3 */
 }

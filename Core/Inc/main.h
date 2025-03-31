@@ -6,7 +6,7 @@
   * @details        : This file contains common definitions and includes for the CN0575
   *                   Single Pair Ethernet (SPE) board project on the STM32L496ZG-P Nucleo
   *                   board. It defines GPIO pin mappings, constants for standalone ADIN1110
-  *                   testing (if USE_LWIP is undefined), and includes necessary HAL and
+  *                   testing (if LAYER_2 is defined), and includes necessary HAL and
   *                   FreeRTOS headers. Supports secure MQTT transmission over TLSv1.2 when
   *                   USE_LWIP is defined, or standalone Ethernet frame testing otherwise.
   * @addtogroup main Main Module
@@ -49,9 +49,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-#ifdef USE_LWIP
-  /* When using lwIP, these definitions come from lwIP_adin1110_app.c */
-#else /* USE_LWIP not defined */
+#ifdef LAYER_2
 
 /** @brief Number of initialization retries for ADIN1110 in standalone mode (5 attempts). */
 #define ADIN1110_INIT_ITER  (5)

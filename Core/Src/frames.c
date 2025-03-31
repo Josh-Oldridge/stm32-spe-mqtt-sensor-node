@@ -4,7 +4,7 @@
   * @brief   Custom Ethernet Frame Implementation for CN0575 Project
   * @details This file implements custom Ethernet frame data for the CN0575 Single Pair
   *          Ethernet (SPE) board project on the STM32L496ZG-P Nucleo board. Defines multicast
-  *          MAC addresses and test frames used in standalone mode (when USE_LWIP is not defined)
+  *          MAC addresses and test frames used in standalone mode (when LAYER_2 is defined)
   *          for Layer 2 transmission via the ADIN1110 MAC-PHY in main.c. Frames include source/
   *          destination MACs, EtherType, and custom payloads for testing.
   * @addtogroup ethernet Ethernet Utilities
@@ -14,7 +14,7 @@
 
 #include "frames.h"
 
-#ifndef USE_LWIP
+#ifdef LAYER_2
 
 /** @brief Multicast MAC addresses for frame filtering
   * @details Two predefined MAC addresses used in main.c’s adin1110_AddAddressFilter for

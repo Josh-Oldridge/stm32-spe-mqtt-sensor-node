@@ -1,0 +1,7 @@
+../Core/Src/i2c.c:40:6:I2C_InitSemaphore	3
+../Core/Src/i2c.c:54:6:HAL_I2C_ErrorCallback	2
+../Core/Src/i2c.c:68:6:MX_I2C1_Init	4
+../Core/Src/i2c.c:111:6:HAL_I2C_MspInit	5
+../Core/Src/i2c.c:187:6:HAL_I2C_MspDeInit	2
+../Core/Src/i2c.c:226:6:HAL_I2C_MasterTxCpltCallback	3
+../Core/Src/i2c.c:241:6:HAL_I2C_MasterRxCpltCallback	3
