@@ -265,17 +265,26 @@ err_t client_mqtt_publish_sensor_data(void) {
 		return ERR_CONN;
 	}
 
-	char payload[256];
+	char payload[512];
 	float temperature;
-	int16_t accel_x, accel_y, accel_z;
 	uint16_t adc_value;
 
 	if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
 		temperature = latestSensorData.temperature;
-		accel_x = latestSensorData.accel_x;
-		accel_y = latestSensorData.accel_y;
-		accel_z = latestSensorData.accel_z;
 		adc_value = latestSensorData.adc_value;
+
+		float voltage = (adc_value * 3.3f) / 16383.0f * 1.0143f;
+		float current = (voltage - 2.626f) / 0.329f;
+		snprintf(payload, sizeof(payload),
+				"{\"temperature\":%.2f,\"avg_accel_x\":%.2f,\"avg_accel_y\":%.2f,\"avg_accel_z\":%.2f,"
+						"\"max_accel_x\":%d,\"max_accel_y\":%d,\"max_accel_z\":%d,"
+						"\"voltage\":%.2f,\"current\":%.2f}", temperature,
+				averagedADXL345Data.avg_accel_x,
+				averagedADXL345Data.avg_accel_y,
+				averagedADXL345Data.avg_accel_z,
+				averagedADXL345Data.max_accel_x,
+				averagedADXL345Data.max_accel_y,
+				averagedADXL345Data.max_accel_z, voltage, current);
 		xSemaphoreGive(sensorDataMutex);
 	} else {
 		printf("Failed to acquire sensor data mutex!\n");
@@ -290,14 +299,6 @@ err_t client_mqtt_publish_sensor_data(void) {
 		printf("Invalid ADC value: %u (max 16383)\n", adc_value);
 		return ERR_VAL;
 	}
-
-	float voltage = (adc_value * 3.3f) / 16383.0f;
-	float current = (voltage - 1.65f) / 0.33f;
-
-	snprintf(payload, sizeof(payload),
-			"{\"temperature\":%.2f,\"accel_x\":%d,\"accel_y\":%d,\"accel_z\":%d,"
-					"\"voltage\":%.2f,\"current\":%.2f}", temperature, accel_x,
-			accel_y, accel_z, voltage, current);
 
 #ifdef MQTT_CLIENT_DEBUG
   printf("Publishing to topic: %s, Payload: %s\n", "sensors/data", payload);

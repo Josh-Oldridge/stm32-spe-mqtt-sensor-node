@@ -13,6 +13,7 @@
 
 #include "adxl345.h"
 #include "i2c.h"
+#include "sensor_data.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include <stdio.h>
@@ -156,7 +157,6 @@ HAL_StatusTypeDef ADXL345_ReadAccel(I2C_HandleTypeDef *hi2c, int16_t *x, int16_t
         return ret;
     }
 
-    // Combine bytes into 16-bit two's complement values for X, Y, and Z.
     *x = (int16_t)((buffer[1] << 8) | buffer[0]);
     *y = (int16_t)((buffer[3] << 8) | buffer[2]);
     *z = (int16_t)((buffer[5] << 8) | buffer[4]);
