@@ -1,0 +1,17 @@
+../Core/Src/lwIP_adin1110_app.c:113:13:txCallback	32	static
+../Core/Src/lwIP_adin1110_app.c:132:13:rxCallback	48	static
+../Core/Src/lwIP_adin1110_app.c:166:6:cbLinkChange	32	static
+../Core/Src/lwIP_adin1110_app.c:185:10:adi_phy_GetLinkStatus	24	static
+../Core/Src/lwIP_adin1110_app.c:197:10:sys_now	8	static
+../Core/Src/lwIP_adin1110_app.c:207:7:LwIP_ADIN1110LinkInput	24	static
+../Core/Src/lwIP_adin1110_app.c:236:14:low_level_output	56	static
+../Core/Src/lwIP_adin1110_app.c:327:14:LwIP_ADIN1110LinkOutput	16	static
+../Core/Src/lwIP_adin1110_app.c:346:18:LwIP_StructInit	56	static
+../Core/Src/lwIP_adin1110_app.c:370:14:LwipADIN1110Init	24	static
+../Core/Src/lwIP_adin1110_app.c:403:25:ADIN1110Init	56	static
+../Core/Src/lwIP_adin1110_app.c:503:6:LwIP_Init	56	static
+../Core/Src/lwIP_adin1110_app.c:543:6:initPQueue	16	static
+../Core/Src/lwIP_adin1110_app.c:554:10:pDataAvailable	16	static
+../Core/Src/lwIP_adin1110_app.c:571:6:writePQ	32	static
+../Core/Src/lwIP_adin1110_app.c:598:7:readPQ	24	static
+../Core/Src/lwIP_adin1110_app.c:628:10:discoveradin1110	32	static

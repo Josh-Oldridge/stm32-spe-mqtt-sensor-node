@@ -1,0 +1,4 @@
+../Core/Src/adxl345.c:37:26:ADXL345_WriteRegister_DMA	24	static
+../Core/Src/adxl345.c:65:26:ADXL345_ReadRegister_DMA	32	static
+../Core/Src/adxl345.c:95:19:ADXL345_Init	24	static
+../Core/Src/adxl345.c:151:19:ADXL345_ReadAccel	32	static

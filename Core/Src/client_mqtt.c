@@ -17,17 +17,22 @@
 #include "client_mqtt.h"
 #include "lwip/apps/mqtt.h"
 #include "lwip/ip_addr.h"
-#include "lwip/altcp_tls.h"
 #include "lwip/err.h"
 #include <string.h>
 #include <stdio.h>
+
+#ifdef MQTT_TLS
 #include "mbedtls/debug.h"
 #include "mbedtls/ssl.h"
+#include "certificates.h"
+#include "lwip/altcp_tls.h"
+#endif
+
 #include "tmp102.h"
 #include "adxl345.h"
 #include "i2c.h"
 #include "sensor_data.h"
-#include "certificates.h"
+
 
 /** @brief Global MQTT client instance, initialized in client_mqtt_init. */
 mqtt_client_t *mqtt_client = NULL;
@@ -37,8 +42,14 @@ mqtt_client_t *mqtt_client = NULL;
  */
 #define MQTT_BROKER_IP_STR "192.168.1.5"
 
+#ifdef MQTT_TLS
 /** @brief Secure port for MQTT over TLS (8883). */
 #define MQTT_BROKER_PORT_SECURE 8883
+
+#else
+/** @brief MQTT Port (1883). */
+#define MQTT_BROKER_PORT 1883
+#endif
 
 /** @brief Client ID for MQTT connection ("STM32_Client"). */
 #define MQTT_CLIENT_ID     "STM32_Client"
@@ -46,8 +57,10 @@ mqtt_client_t *mqtt_client = NULL;
 /** @brief IP address structure for the MQTT broker, parsed from MQTT_BROKER_IP_STR. */
 static ip_addr_t broker_ip;
 
+#ifdef MQTT_TLS
 /** @brief TLS configuration for secure MQTT connection, using broker_ca_cert. */
 static struct altcp_tls_config *tls_config = NULL;
+#endif
 
 /** @brief Indicates if the MQTT client is connected to the broker. */
 volatile bool mqtt_connected = false;
@@ -87,12 +100,20 @@ void client_mqtt_init(void) {
 	err_t err;
 	struct mqtt_connect_client_info_t ci;
 
+#ifdef MQTT_TLS
 	if (mqtt_client != NULL) {
 		mqtt_disconnect(mqtt_client);
 		if (tls_config != NULL) {
 			altcp_tls_free_config(tls_config);
 			tls_config = NULL;
 		}
+		mqtt_client_free(mqtt_client);
+		mqtt_client = NULL;
+	}
+#endif
+
+	if (mqtt_client != NULL) {
+		mqtt_disconnect(mqtt_client);
 		mqtt_client_free(mqtt_client);
 		mqtt_client = NULL;
 	}
@@ -109,6 +130,8 @@ void client_mqtt_init(void) {
 	ci.client_user = "admin";
 	ci.client_pass = "admin";
 
+
+#ifdef MQTT_TLS
 #if LWIP_ALTCP && LWIP_ALTCP_TLS
 	tls_config = altcp_tls_create_config_client((const u8_t*) broker_ca_cert,
 			strlen(broker_ca_cert) + 1);
@@ -121,6 +144,7 @@ void client_mqtt_init(void) {
 	mbedtls_ssl_conf_max_frag_len((mbedtls_ssl_config*) tls_config,
 	MBEDTLS_SSL_MAX_FRAG_LEN_4096);
 	ci.tls_config = tls_config;
+#endif
 
 #ifdef TLS_DEBUG
     mbedtls_ssl_conf_dbg((mbedtls_ssl_config*)tls_config, my_debug, NULL);
@@ -128,6 +152,7 @@ void client_mqtt_init(void) {
 #endif
 #endif
 
+#ifdef MQTT_TLS
 	if (!ipaddr_aton(MQTT_BROKER_IP_STR, &broker_ip)) {
 		printf("Invalid broker IP address\n");
 		if (tls_config != NULL) {
@@ -138,9 +163,12 @@ void client_mqtt_init(void) {
 		mqtt_client = NULL;
 		return;
 	}
+#endif
 
+#ifdef MQTT_TLS
 	printf("Initiating MQTT connection: Client ID=%s, Broker IP=%s, Port=%d\n",
 			ci.client_id, MQTT_BROKER_IP_STR, MQTT_BROKER_PORT_SECURE);
+
 
 	err = mqtt_client_connect(mqtt_client, &broker_ip, MQTT_BROKER_PORT_SECURE,
 			mqtt_connection_cb, NULL, &ci);
@@ -153,6 +181,27 @@ void client_mqtt_init(void) {
 		mqtt_client_free(mqtt_client);
 		mqtt_client = NULL;
 	}
+
+#else
+
+	if (!ipaddr_aton(MQTT_BROKER_IP_STR, &broker_ip)) {
+	    printf("Invalid broker IP address\n");
+	    return;
+	}
+
+	printf("Initiating MQTT connection: Client ID=%s, Broker IP=%s, Port=%d\n",
+				ci.client_id, MQTT_BROKER_IP_STR, MQTT_BROKER_PORT);
+
+
+
+	err = mqtt_client_connect(mqtt_client, &broker_ip, MQTT_BROKER_PORT, mqtt_connection_cb, NULL, &ci);
+
+	if (err != ERR_OK) {
+		printf("mqtt_client_connect failed: %d\n", err);
+		mqtt_client_free(mqtt_client);
+		mqtt_client = NULL;
+	}
+#endif
 }
 
 /**
@@ -184,12 +233,15 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg,
 		printf("MQTT connection failed or disconnected, status: %d\n", status);
 		mqtt_connected = false;
 		mqtt_disconnect(client);
+
+#ifdef MQTT_TLS
 		if (tls_config != NULL) {
 			altcp_tls_free_config(tls_config);
 			tls_config = NULL;
 		}
 		mqtt_client_free(client);
 		mqtt_client = NULL;
+#endif
 	}
 }
 
@@ -236,10 +288,13 @@ void mqtt_pub_request_cb(void *arg, err_t result) {
 			mqtt_connected = false;
 			mqtt_connecting = false;
 			mqtt_disconnect(mqtt_client);
+
+#ifdef MQTT_TLS
 			if (tls_config != NULL) {
 				altcp_tls_free_config(tls_config);
 				tls_config = NULL;
 			}
+#endif
 			mqtt_client_free(mqtt_client);
 			mqtt_client = NULL;
 			printf(

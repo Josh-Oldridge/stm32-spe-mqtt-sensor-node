@@ -1,0 +1,9 @@
+C:/ST/workspace_InProgress/ADIN1110/mbedtls-2.16.12/include/mbedtls/ssl_internal.h:299:19:mbedtls_ssl_chk_buf_ptr	24	static
+C:/ST/workspace_InProgress/ADIN1110/mbedtls-2.16.12/include/mbedtls/ssl_internal.h:826:19:mbedtls_ssl_safer_memcmp	40	static
+../mbedtls-2.16.12/library/ssl_cookie.c:99:6:mbedtls_ssl_cookie_init	16	static
+../mbedtls-2.16.12/library/ssl_cookie.c:112:6:mbedtls_ssl_cookie_set_timeout	16	static
+../mbedtls-2.16.12/library/ssl_cookie.c:117:6:mbedtls_ssl_cookie_free	16	static
+../mbedtls-2.16.12/library/ssl_cookie.c:128:5:mbedtls_ssl_cookie_setup	72	static
+../mbedtls-2.16.12/library/ssl_cookie.c:154:12:ssl_cookie_hmac	56	static
+../mbedtls-2.16.12/library/ssl_cookie.c:180:5:mbedtls_ssl_cookie_write	48	static
+../mbedtls-2.16.12/library/ssl_cookie.c:225:5:mbedtls_ssl_cookie_check	80	static

@@ -225,6 +225,7 @@
   */
 #define UDP_TTL                         255
 
+#ifdef MQTT_TLS
 /** @brief Enable ALTCP for TLS over TCP
   * @details Provides abstraction for TLS, required for MQTT security in client_mqtt.c.
   */
@@ -240,6 +241,7 @@
   */
 #define LWIP_ALTCP_TLS_MBEDTLS          1
 
+#endif
 /*
  ------------------------------------
  ---------- Memory options ----------

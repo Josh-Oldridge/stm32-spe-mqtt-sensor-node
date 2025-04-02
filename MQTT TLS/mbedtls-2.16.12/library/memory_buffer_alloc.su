@@ -1,0 +1,17 @@
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:116:13:debug_header	40	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:137:13:debug_chain	16	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:159:12:verify_header	16	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:204:12:verify_chain	16	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:255:14:buffer_alloc_calloc	40	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:406:13:buffer_alloc_free	32	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:523:6:mbedtls_memory_buffer_set_verify	16	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:528:5:mbedtls_memory_buffer_alloc_verify	8	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:534:6:mbedtls_memory_buffer_alloc_status	56	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:556:6:mbedtls_memory_buffer_alloc_max_get	16	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:562:6:mbedtls_memory_buffer_alloc_max_reset	4	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:568:6:mbedtls_memory_buffer_alloc_cur_get	16	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:598:6:mbedtls_memory_buffer_alloc_init	16	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:633:6:mbedtls_memory_buffer_alloc_free	8	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:642:12:check_pointer	16	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:653:12:check_all_free	4	static
+../mbedtls-2.16.12/library/memory_buffer_alloc.c:678:5:mbedtls_memory_buffer_alloc_self_test	1064	static

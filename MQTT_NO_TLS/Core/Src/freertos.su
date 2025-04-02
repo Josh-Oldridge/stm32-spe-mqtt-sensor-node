@@ -1,0 +1,14 @@
+../Core/Src/freertos.c:208:13:configureTimerForRunTimeStats	4	static
+../Core/Src/freertos.c:212:22:getRunTimeCounterValue	4	static
+../Core/Src/freertos.c:223:6:vApplicationIdleHook	4	static
+../Core/Src/freertos.c:233:6:vApplicationTickHook	4	static
+../Core/Src/freertos.c:246:6:vApplicationStackOverflowHook	24	static,ignoring_inline_asm
+../Core/Src/freertos.c:260:6:vApplicationMallocFailedHook	16	static,ignoring_inline_asm
+../Core/Src/freertos.c:274:6:vApplicationDaemonTaskStartupHook	4	static
+../Core/Src/freertos.c:283:6:MX_FREERTOS_Init	8	static
+../Core/Src/freertos.c:339:6:StartDefaultTask	16	static
+../Core/Src/freertos.c:357:6:NetworkMaintenanceTask	24	static
+../Core/Src/freertos.c:377:6:ADCTask	24	static
+../Core/Src/freertos.c:394:6:TempTask	24	static
+../Core/Src/freertos.c:424:6:AccelTask	24	static
+../Core/Src/freertos.c:478:6:SensorDataMQTTTask	40	static

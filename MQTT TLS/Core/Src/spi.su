@@ -1,0 +1,8 @@
+../Core/Src/spi.c:45:6:MX_SPI1_Init	8	static
+../Core/Src/spi.c:89:6:HAL_SPI_MspInit	48	static
+../Core/Src/spi.c:164:6:HAL_SPI_MspDeInit	16	static
+../Core/Src/spi.c:206:6:ADIN1110_CS_Select	8	static
+../Core/Src/spi.c:216:6:ADIN1110_CS_Deselect	8	static
+../Core/Src/spi.c:232:19:HAL_SPI_Write_Read	32	static
+../Core/Src/spi.c:258:10:HAL_SPI_Register_Callback	16	static
+../Core/Src/spi.c:272:6:HAL_SPI_TxRxCpltCallback	16	static

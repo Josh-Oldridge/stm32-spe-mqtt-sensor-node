@@ -38,7 +38,6 @@
 #include "lwip/timeouts.h"
 #include "lwip/dhcp.h"
 #include "netif/etharp.h"
-#include "udp_query.h"
 #include "lwip/udp.h"
 #include "lwip/netif.h"
 #include "tmp102.h"
@@ -81,9 +80,6 @@ extern volatile bool mqtt_connecting;
 
 /** @brief Tracks DHCP configuration status (0 = not configured). */
 volatile int dhcp_configured = 0;
-
-/** @brief Indicates if the system is fully initialized and ready. */
-volatile bool system_ready = false;
 
 /** @brief Stores the latest sensor data readings. */
 SensorData_t latestSensorData = { 0 };
@@ -393,9 +389,6 @@ void ADCTask(void *argument) {
  *          and signals sensor readiness in the CN0575 project.
  */
 void TempTask(void *argument) {
-	while (!system_ready) {
-		osDelay(pdMS_TO_TICKS(100));
-	}
 	for (;;) {
 		float temp = TMP102_ReadTemperature();
 		if (temp > -1000) {
@@ -423,9 +416,6 @@ void TempTask(void *argument) {
  *          access to shared data. Part of the CN0575 project.
  */
 void AccelTask(void *argument) {
-    while (!system_ready) {
-        osDelay(pdMS_TO_TICKS(100));
-    }
     int16_t ax, ay, az;
     HAL_StatusTypeDef ret;
 
@@ -498,8 +488,6 @@ void SensorDataMQTTTask(void *argument) {
 
     for (;;) {
         if (mqtt_connected) {
-            system_ready = true;
-
             TickType_t currentTime = xTaskGetTickCount();
             if (lastPublishTime != 0) {
 #ifdef MQTT_CLIENT_DEBUG

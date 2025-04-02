@@ -1,0 +1,10 @@
+../mbedtls-2.16.12/library/chacha20.c:116:20:chacha20_quarter_round	24	static
+../mbedtls-2.16.12/library/chacha20.c:151:13:chacha20_inner_block	24	static
+../mbedtls-2.16.12/library/chacha20.c:170:13:chacha20_block	88	static
+../mbedtls-2.16.12/library/chacha20.c:213:6:mbedtls_chacha20_init	16	static
+../mbedtls-2.16.12/library/chacha20.c:224:6:mbedtls_chacha20_free	16	static
+../mbedtls-2.16.12/library/chacha20.c:232:5:mbedtls_chacha20_setkey	16	static
+../mbedtls-2.16.12/library/chacha20.c:257:5:mbedtls_chacha20_starts	24	static
+../mbedtls-2.16.12/library/chacha20.c:280:5:mbedtls_chacha20_update	32	static
+../mbedtls-2.16.12/library/chacha20.c:345:5:mbedtls_chacha20_crypt	160	static
+../mbedtls-2.16.12/library/chacha20.c:560:5:mbedtls_chacha20_self_test	424	static

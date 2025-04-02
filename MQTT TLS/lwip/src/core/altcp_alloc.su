@@ -1,0 +1,2 @@
+../lwip/src/core/altcp_alloc.c:61:1:altcp_tls_new	24	static
+../lwip/src/core/altcp_alloc.c:81:1:altcp_tls_alloc	16	static
