@@ -2008,8 +2008,6 @@ Discarded input sections
  .bss           0x00000000        0x0 ./Core/Src/freertos.o
  .bss.dhcp_configured
                 0x00000000        0x4 ./Core/Src/freertos.o
- .bss.system_ready
-                0x00000000        0x1 ./Core/Src/freertos.o
  .debug_macro   0x00000000      0xaf0 ./Core/Src/freertos.o
  .debug_macro   0x00000000      0x189 ./Core/Src/freertos.o
  .debug_macro   0x00000000       0x22 ./Core/Src/freertos.o
@@ -51933,7 +51931,7 @@ LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
 LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libm.a
 LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/thumb/v7e-m+fp/hard\libgcc.a
 
-.debug_info     0x00000000    0x80ad5
+.debug_info     0x00000000    0x80ac4
  .debug_info    0x00000000      0xf6a ./Core/Src/adc.o
  .debug_info    0x00000f6a     0x2798 ./Core/Src/adi_mac.o
  .debug_info    0x00003702     0x1bad ./Core/Src/adi_phy.o
@@ -51944,113 +51942,113 @@ LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .debug_info    0x0000af04     0x1957 ./Core/Src/client_mqtt.o
  .debug_info    0x0000c85b      0x2d8 ./Core/Src/dma.o
  .debug_info    0x0000cb33      0x163 ./Core/Src/fcs.o
- .debug_info    0x0000cc96     0x1f90 ./Core/Src/freertos.o
- .debug_info    0x0000ec26      0x8ad ./Core/Src/gpio.o
- .debug_info    0x0000f4d3      0x6d6 ./Core/Src/hal.o
- .debug_info    0x0000fba9     0x10ed ./Core/Src/i2c.o
- .debug_info    0x00010c96     0x1da0 ./Core/Src/lwIP_adin1110_app.o
- .debug_info    0x00012a36     0x2799 ./Core/Src/main.o
- .debug_info    0x000151cf      0xd0d ./Core/Src/rtc.o
- .debug_info    0x00015edc      0xe3d ./Core/Src/spi.o
- .debug_info    0x00016d19      0x562 ./Core/Src/stm32l4xx_hal_msp.o
- .debug_info    0x0001727b      0xcd1 ./Core/Src/stm32l4xx_hal_timebase_tim.o
- .debug_info    0x00017f4c      0xdd3 ./Core/Src/stm32l4xx_it.o
- .debug_info    0x00018d1f     0x1308 ./Core/Src/syscalls.o
- .debug_info    0x0001a027      0x168 ./Core/Src/sysmem.o
- .debug_info    0x0001a18f      0x5cd ./Core/Src/system_stm32l4xx.o
- .debug_info    0x0001a75c      0x70e ./Core/Src/tmp102.o
- .debug_info    0x0001ae6a      0xe3b ./Core/Src/usart.o
- .debug_info    0x0001bca5       0x30 ./Core/Startup/startup_stm32l496zgtxp.o
- .debug_info    0x0001bcd5      0x754 ./Core/ThreadSafe/newlib_lock_glue.o
- .debug_info    0x0001c429      0xb4b ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.o
- .debug_info    0x0001cf74     0x1dfb ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.o
- .debug_info    0x0001ed6f     0x1b67 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc_ex.o
- .debug_info    0x000208d6      0xdb7 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.o
- .debug_info    0x0002168d      0x6f4 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.o
- .debug_info    0x00021d81      0x76f ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_gpio.o
- .debug_info    0x000224f0     0x20d2 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.o
- .debug_info    0x000245c2      0x999 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.o
- .debug_info    0x00024f5b      0x956 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.o
- .debug_info    0x000258b1      0x996 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.o
- .debug_info    0x00026247      0xc3b ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc.o
- .debug_info    0x00026e82     0x10c1 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc_ex.o
- .debug_info    0x00027f43      0xd7d ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc.o
- .debug_info    0x00028cc0     0x1549 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi.o
- .debug_info    0x0002a209     0x2a9a ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.o
- .debug_info    0x0002cca3     0x169e ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.o
- .debug_info    0x0002e341     0x3b85 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.o
- .debug_info    0x00031ec6     0x4200 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.o
- .debug_info    0x000360c6      0x2af ./Middlewares/Third_Party/FreeRTOS/Source/list.o
- .debug_info    0x00036375     0x1b79 ./Middlewares/Third_Party/FreeRTOS/Source/queue.o
- .debug_info    0x00037eee     0x2ae5 ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
- .debug_info    0x0003a9d3     0x1b7a ./Middlewares/Third_Party/FreeRTOS/Source/timers.o
- .debug_info    0x0003c54d      0x4de ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
- .debug_info    0x0003ca2b      0x4f7 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
- .debug_info    0x0003cf22     0x45cc ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls.o
- .debug_info    0x000414ee     0x143a ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls_mem.o
- .debug_info    0x00042928     0x18fb ./lwip/src/apps/mqtt/mqtt.o
- .debug_info    0x00044223      0xc66 ./lwip/src/apps/sntp/sntp.o
- .debug_info    0x00044e89     0x1323 ./lwip/src/core/altcp.o
- .debug_info    0x000461ac      0x84a ./lwip/src/core/altcp_alloc.o
- .debug_info    0x000469f6     0x1927 ./lwip/src/core/altcp_tcp.o
- .debug_info    0x0004831d      0x37b ./lwip/src/core/def.o
- .debug_info    0x00048698      0x632 ./lwip/src/core/inet_chksum.o
- .debug_info    0x00048cca       0xde ./lwip/src/core/init.o
- .debug_info    0x00048da8      0x502 ./lwip/src/core/ip.o
- .debug_info    0x000492aa      0x1d9 ./lwip/src/core/mem.o
- .debug_info    0x00049483      0x44e ./lwip/src/core/memp.o
- .debug_info    0x000498d1      0xc15 ./lwip/src/core/netif.o
- .debug_info    0x0004a4e6     0x1732 ./lwip/src/core/pbuf.o
- .debug_info    0x0004bc18     0x1dd9 ./lwip/src/core/tcp.o
- .debug_info    0x0004d9f1     0x172a ./lwip/src/core/tcp_in.o
- .debug_info    0x0004f11b     0x1acc ./lwip/src/core/tcp_out.o
- .debug_info    0x00050be7      0xd1a ./lwip/src/core/timeouts.o
- .debug_info    0x00051901      0xf05 ./lwip/src/core/udp.o
- .debug_info    0x00052806     0x1b37 ./lwip/src/core/ipv4/dhcp.o
- .debug_info    0x0005433d      0xe6b ./lwip/src/core/ipv4/etharp.o
- .debug_info    0x000551a8      0x929 ./lwip/src/core/ipv4/icmp.o
- .debug_info    0x00055ad1      0xacb ./lwip/src/core/ipv4/ip4.o
- .debug_info    0x0005659c      0x6b4 ./lwip/src/core/ipv4/ip4_addr.o
- .debug_info    0x00056c50      0x751 ./lwip/src/netif/ethernet.o
- .debug_info    0x000573a1      0xa55 ./mbedtls-2.16.12/library/aes.o
- .debug_info    0x00057df6      0x71e ./mbedtls-2.16.12/library/asn1parse.o
- .debug_info    0x00058514      0x8e9 ./mbedtls-2.16.12/library/asn1write.o
- .debug_info    0x00058dfd      0x3df ./mbedtls-2.16.12/library/base64.o
- .debug_info    0x000591dc     0x1e24 ./mbedtls-2.16.12/library/bignum.o
- .debug_info    0x0005b000      0xd2e ./mbedtls-2.16.12/library/ccm.o
- .debug_info    0x0005bd2e      0x5c5 ./mbedtls-2.16.12/library/chacha20.o
- .debug_info    0x0005c2f3      0xa34 ./mbedtls-2.16.12/library/chachapoly.o
- .debug_info    0x0005cd27     0x15de ./mbedtls-2.16.12/library/cipher.o
- .debug_info    0x0005e305     0x1267 ./mbedtls-2.16.12/library/cipher_wrap.o
- .debug_info    0x0005f56c      0xa21 ./mbedtls-2.16.12/library/ctr_drbg.o
- .debug_info    0x0005ff8d     0x1b2d ./mbedtls-2.16.12/library/debug.o
- .debug_info    0x00061aba      0xba5 ./mbedtls-2.16.12/library/dhm.o
- .debug_info    0x0006265f      0xea2 ./mbedtls-2.16.12/library/ecdh.o
- .debug_info    0x00063501     0x144f ./mbedtls-2.16.12/library/ecdsa.o
- .debug_info    0x00064950     0x235a ./mbedtls-2.16.12/library/ecp.o
- .debug_info    0x00066caa      0x6dc ./mbedtls-2.16.12/library/ecp_curves.o
- .debug_info    0x00067386      0x779 ./mbedtls-2.16.12/library/entropy.o
- .debug_info    0x00067aff      0xfa7 ./mbedtls-2.16.12/library/gcm.o
- .debug_info    0x00068aa6      0x7db ./mbedtls-2.16.12/library/hmac_drbg.o
- .debug_info    0x00069281      0x8ef ./mbedtls-2.16.12/library/md.o
- .debug_info    0x00069b70      0xa21 ./mbedtls-2.16.12/library/md_wrap.o
- .debug_info    0x0006a591      0xf00 ./mbedtls-2.16.12/library/oid.o
- .debug_info    0x0006b491      0x43d ./mbedtls-2.16.12/library/pem.o
- .debug_info    0x0006b8ce      0xe43 ./mbedtls-2.16.12/library/pk.o
- .debug_info    0x0006c711     0x150b ./mbedtls-2.16.12/library/pk_wrap.o
- .debug_info    0x0006dc1c     0x11e4 ./mbedtls-2.16.12/library/pkparse.o
- .debug_info    0x0006ee00      0x216 ./mbedtls-2.16.12/library/platform.o
- .debug_info    0x0006f016      0x244 ./mbedtls-2.16.12/library/platform_util.o
- .debug_info    0x0006f25a      0x753 ./mbedtls-2.16.12/library/poly1305.o
- .debug_info    0x0006f9ad     0x20c6 ./mbedtls-2.16.12/library/rsa.o
- .debug_info    0x00071a73      0x664 ./mbedtls-2.16.12/library/rsa_internal.o
- .debug_info    0x000720d7      0x765 ./mbedtls-2.16.12/library/sha256.o
- .debug_info    0x0007283c      0x7aa ./mbedtls-2.16.12/library/sha512.o
- .debug_info    0x00072fe6      0x687 ./mbedtls-2.16.12/library/ssl_ciphersuites.o
- .debug_info    0x0007366d     0x36ae ./mbedtls-2.16.12/library/ssl_cli.o
- .debug_info    0x00076d1b     0x6472 ./mbedtls-2.16.12/library/ssl_tls.o
- .debug_info    0x0007d18d     0x14a3 ./mbedtls-2.16.12/library/x509.o
- .debug_info    0x0007e630     0x24a5 ./mbedtls-2.16.12/library/x509_crt.o
+ .debug_info    0x0000cc96     0x1f7f ./Core/Src/freertos.o
+ .debug_info    0x0000ec15      0x8ad ./Core/Src/gpio.o
+ .debug_info    0x0000f4c2      0x6d6 ./Core/Src/hal.o
+ .debug_info    0x0000fb98     0x10ed ./Core/Src/i2c.o
+ .debug_info    0x00010c85     0x1da0 ./Core/Src/lwIP_adin1110_app.o
+ .debug_info    0x00012a25     0x2799 ./Core/Src/main.o
+ .debug_info    0x000151be      0xd0d ./Core/Src/rtc.o
+ .debug_info    0x00015ecb      0xe3d ./Core/Src/spi.o
+ .debug_info    0x00016d08      0x562 ./Core/Src/stm32l4xx_hal_msp.o
+ .debug_info    0x0001726a      0xcd1 ./Core/Src/stm32l4xx_hal_timebase_tim.o
+ .debug_info    0x00017f3b      0xdd3 ./Core/Src/stm32l4xx_it.o
+ .debug_info    0x00018d0e     0x1308 ./Core/Src/syscalls.o
+ .debug_info    0x0001a016      0x168 ./Core/Src/sysmem.o
+ .debug_info    0x0001a17e      0x5cd ./Core/Src/system_stm32l4xx.o
+ .debug_info    0x0001a74b      0x70e ./Core/Src/tmp102.o
+ .debug_info    0x0001ae59      0xe3b ./Core/Src/usart.o
+ .debug_info    0x0001bc94       0x30 ./Core/Startup/startup_stm32l496zgtxp.o
+ .debug_info    0x0001bcc4      0x754 ./Core/ThreadSafe/newlib_lock_glue.o
+ .debug_info    0x0001c418      0xb4b ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.o
+ .debug_info    0x0001cf63     0x1dfb ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.o
+ .debug_info    0x0001ed5e     0x1b67 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc_ex.o
+ .debug_info    0x000208c5      0xdb7 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.o
+ .debug_info    0x0002167c      0x6f4 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.o
+ .debug_info    0x00021d70      0x76f ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_gpio.o
+ .debug_info    0x000224df     0x20d2 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.o
+ .debug_info    0x000245b1      0x999 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.o
+ .debug_info    0x00024f4a      0x956 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.o
+ .debug_info    0x000258a0      0x996 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.o
+ .debug_info    0x00026236      0xc3b ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc.o
+ .debug_info    0x00026e71     0x10c1 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc_ex.o
+ .debug_info    0x00027f32      0xd7d ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc.o
+ .debug_info    0x00028caf     0x1549 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi.o
+ .debug_info    0x0002a1f8     0x2a9a ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.o
+ .debug_info    0x0002cc92     0x169e ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.o
+ .debug_info    0x0002e330     0x3b85 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.o
+ .debug_info    0x00031eb5     0x4200 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.o
+ .debug_info    0x000360b5      0x2af ./Middlewares/Third_Party/FreeRTOS/Source/list.o
+ .debug_info    0x00036364     0x1b79 ./Middlewares/Third_Party/FreeRTOS/Source/queue.o
+ .debug_info    0x00037edd     0x2ae5 ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
+ .debug_info    0x0003a9c2     0x1b7a ./Middlewares/Third_Party/FreeRTOS/Source/timers.o
+ .debug_info    0x0003c53c      0x4de ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
+ .debug_info    0x0003ca1a      0x4f7 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+ .debug_info    0x0003cf11     0x45cc ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls.o
+ .debug_info    0x000414dd     0x143a ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls_mem.o
+ .debug_info    0x00042917     0x18fb ./lwip/src/apps/mqtt/mqtt.o
+ .debug_info    0x00044212      0xc66 ./lwip/src/apps/sntp/sntp.o
+ .debug_info    0x00044e78     0x1323 ./lwip/src/core/altcp.o
+ .debug_info    0x0004619b      0x84a ./lwip/src/core/altcp_alloc.o
+ .debug_info    0x000469e5     0x1927 ./lwip/src/core/altcp_tcp.o
+ .debug_info    0x0004830c      0x37b ./lwip/src/core/def.o
+ .debug_info    0x00048687      0x632 ./lwip/src/core/inet_chksum.o
+ .debug_info    0x00048cb9       0xde ./lwip/src/core/init.o
+ .debug_info    0x00048d97      0x502 ./lwip/src/core/ip.o
+ .debug_info    0x00049299      0x1d9 ./lwip/src/core/mem.o
+ .debug_info    0x00049472      0x44e ./lwip/src/core/memp.o
+ .debug_info    0x000498c0      0xc15 ./lwip/src/core/netif.o
+ .debug_info    0x0004a4d5     0x1732 ./lwip/src/core/pbuf.o
+ .debug_info    0x0004bc07     0x1dd9 ./lwip/src/core/tcp.o
+ .debug_info    0x0004d9e0     0x172a ./lwip/src/core/tcp_in.o
+ .debug_info    0x0004f10a     0x1acc ./lwip/src/core/tcp_out.o
+ .debug_info    0x00050bd6      0xd1a ./lwip/src/core/timeouts.o
+ .debug_info    0x000518f0      0xf05 ./lwip/src/core/udp.o
+ .debug_info    0x000527f5     0x1b37 ./lwip/src/core/ipv4/dhcp.o
+ .debug_info    0x0005432c      0xe6b ./lwip/src/core/ipv4/etharp.o
+ .debug_info    0x00055197      0x929 ./lwip/src/core/ipv4/icmp.o
+ .debug_info    0x00055ac0      0xacb ./lwip/src/core/ipv4/ip4.o
+ .debug_info    0x0005658b      0x6b4 ./lwip/src/core/ipv4/ip4_addr.o
+ .debug_info    0x00056c3f      0x751 ./lwip/src/netif/ethernet.o
+ .debug_info    0x00057390      0xa55 ./mbedtls-2.16.12/library/aes.o
+ .debug_info    0x00057de5      0x71e ./mbedtls-2.16.12/library/asn1parse.o
+ .debug_info    0x00058503      0x8e9 ./mbedtls-2.16.12/library/asn1write.o
+ .debug_info    0x00058dec      0x3df ./mbedtls-2.16.12/library/base64.o
+ .debug_info    0x000591cb     0x1e24 ./mbedtls-2.16.12/library/bignum.o
+ .debug_info    0x0005afef      0xd2e ./mbedtls-2.16.12/library/ccm.o
+ .debug_info    0x0005bd1d      0x5c5 ./mbedtls-2.16.12/library/chacha20.o
+ .debug_info    0x0005c2e2      0xa34 ./mbedtls-2.16.12/library/chachapoly.o
+ .debug_info    0x0005cd16     0x15de ./mbedtls-2.16.12/library/cipher.o
+ .debug_info    0x0005e2f4     0x1267 ./mbedtls-2.16.12/library/cipher_wrap.o
+ .debug_info    0x0005f55b      0xa21 ./mbedtls-2.16.12/library/ctr_drbg.o
+ .debug_info    0x0005ff7c     0x1b2d ./mbedtls-2.16.12/library/debug.o
+ .debug_info    0x00061aa9      0xba5 ./mbedtls-2.16.12/library/dhm.o
+ .debug_info    0x0006264e      0xea2 ./mbedtls-2.16.12/library/ecdh.o
+ .debug_info    0x000634f0     0x144f ./mbedtls-2.16.12/library/ecdsa.o
+ .debug_info    0x0006493f     0x235a ./mbedtls-2.16.12/library/ecp.o
+ .debug_info    0x00066c99      0x6dc ./mbedtls-2.16.12/library/ecp_curves.o
+ .debug_info    0x00067375      0x779 ./mbedtls-2.16.12/library/entropy.o
+ .debug_info    0x00067aee      0xfa7 ./mbedtls-2.16.12/library/gcm.o
+ .debug_info    0x00068a95      0x7db ./mbedtls-2.16.12/library/hmac_drbg.o
+ .debug_info    0x00069270      0x8ef ./mbedtls-2.16.12/library/md.o
+ .debug_info    0x00069b5f      0xa21 ./mbedtls-2.16.12/library/md_wrap.o
+ .debug_info    0x0006a580      0xf00 ./mbedtls-2.16.12/library/oid.o
+ .debug_info    0x0006b480      0x43d ./mbedtls-2.16.12/library/pem.o
+ .debug_info    0x0006b8bd      0xe43 ./mbedtls-2.16.12/library/pk.o
+ .debug_info    0x0006c700     0x150b ./mbedtls-2.16.12/library/pk_wrap.o
+ .debug_info    0x0006dc0b     0x11e4 ./mbedtls-2.16.12/library/pkparse.o
+ .debug_info    0x0006edef      0x216 ./mbedtls-2.16.12/library/platform.o
+ .debug_info    0x0006f005      0x244 ./mbedtls-2.16.12/library/platform_util.o
+ .debug_info    0x0006f249      0x753 ./mbedtls-2.16.12/library/poly1305.o
+ .debug_info    0x0006f99c     0x20c6 ./mbedtls-2.16.12/library/rsa.o
+ .debug_info    0x00071a62      0x664 ./mbedtls-2.16.12/library/rsa_internal.o
+ .debug_info    0x000720c6      0x765 ./mbedtls-2.16.12/library/sha256.o
+ .debug_info    0x0007282b      0x7aa ./mbedtls-2.16.12/library/sha512.o
+ .debug_info    0x00072fd5      0x687 ./mbedtls-2.16.12/library/ssl_ciphersuites.o
+ .debug_info    0x0007365c     0x36ae ./mbedtls-2.16.12/library/ssl_cli.o
+ .debug_info    0x00076d0a     0x6472 ./mbedtls-2.16.12/library/ssl_tls.o
+ .debug_info    0x0007d17c     0x14a3 ./mbedtls-2.16.12/library/x509.o
+ .debug_info    0x0007e61f     0x24a5 ./mbedtls-2.16.12/library/x509_crt.o
 
 .debug_abbrev   0x00000000    0x125be
  .debug_abbrev  0x00000000      0x222 ./Core/Src/adc.o
@@ -53030,7 +53028,7 @@ LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .debug_macro   0x000505d6      0x3cd ./mbedtls-2.16.12/library/x509.o
  .debug_macro   0x000509a3      0x3ce ./mbedtls-2.16.12/library/x509_crt.o
 
-.debug_line     0x00000000    0x87be9
+.debug_line     0x00000000    0x87be8
  .debug_line    0x00000000      0x97b ./Core/Src/adc.o
  .debug_line    0x0000097b     0x1c93 ./Core/Src/adi_mac.o
  .debug_line    0x0000260e     0x16e2 ./Core/Src/adi_phy.o
@@ -53041,115 +53039,115 @@ LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .debug_line    0x00008433     0x12bc ./Core/Src/client_mqtt.o
  .debug_line    0x000096ef      0x871 ./Core/Src/dma.o
  .debug_line    0x00009f60      0xae7 ./Core/Src/fcs.o
- .debug_line    0x0000aa47     0x1477 ./Core/Src/freertos.o
- .debug_line    0x0000bebe      0xb56 ./Core/Src/gpio.o
- .debug_line    0x0000ca14      0xc2a ./Core/Src/hal.o
- .debug_line    0x0000d63e      0xc64 ./Core/Src/i2c.o
- .debug_line    0x0000e2a2     0x151d ./Core/Src/lwIP_adin1110_app.o
- .debug_line    0x0000f7bf     0x11bc ./Core/Src/main.o
- .debug_line    0x0001097b      0xcce ./Core/Src/rtc.o
- .debug_line    0x00011649      0xba5 ./Core/Src/spi.o
- .debug_line    0x000121ee      0x87a ./Core/Src/stm32l4xx_hal_msp.o
- .debug_line    0x00012a68      0x89a ./Core/Src/stm32l4xx_hal_timebase_tim.o
- .debug_line    0x00013302      0x9ec ./Core/Src/stm32l4xx_it.o
- .debug_line    0x00013cee      0xd48 ./Core/Src/syscalls.o
- .debug_line    0x00014a36      0x579 ./Core/Src/sysmem.o
- .debug_line    0x00014faf      0x8bc ./Core/Src/system_stm32l4xx.o
- .debug_line    0x0001586b      0xb6a ./Core/Src/tmp102.o
- .debug_line    0x000163d5      0x953 ./Core/Src/usart.o
- .debug_line    0x00016d28       0x7a ./Core/Startup/startup_stm32l496zgtxp.o
- .debug_line    0x00016da2      0xa97 ./Core/ThreadSafe/newlib_lock_glue.o
- .debug_line    0x00017839      0xc17 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.o
- .debug_line    0x00018450     0x205c ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.o
- .debug_line    0x0001a4ac     0x1a66 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc_ex.o
- .debug_line    0x0001bf12      0xde0 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.o
- .debug_line    0x0001ccf2      0xe1c ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.o
- .debug_line    0x0001db0e      0xc8b ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_gpio.o
- .debug_line    0x0001e799     0x3b4a ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.o
- .debug_line    0x000222e3      0xa3f ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.o
- .debug_line    0x00022d22      0x9ee ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.o
- .debug_line    0x00023710      0xde3 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.o
- .debug_line    0x000244f3     0x10d8 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc.o
- .debug_line    0x000255cb     0x1855 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc_ex.o
- .debug_line    0x00026e20     0x122f ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc.o
- .debug_line    0x0002804f     0x20ed ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi.o
- .debug_line    0x0002a13c     0x3f26 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.o
- .debug_line    0x0002e062     0x1d10 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.o
- .debug_line    0x0002fd72     0x3329 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.o
- .debug_line    0x0003309b     0x24f7 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.o
- .debug_line    0x00035592      0x797 ./Middlewares/Third_Party/FreeRTOS/Source/list.o
- .debug_line    0x00035d29     0x1761 ./Middlewares/Third_Party/FreeRTOS/Source/queue.o
- .debug_line    0x0003748a     0x206d ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
- .debug_line    0x000394f7      0xe22 ./Middlewares/Third_Party/FreeRTOS/Source/timers.o
- .debug_line    0x0003a319      0x960 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
- .debug_line    0x0003ac79      0x9c7 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
- .debug_line    0x0003b640     0x1bb4 ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls.o
- .debug_line    0x0003d1f4      0xfce ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls_mem.o
- .debug_line    0x0003e1c2     0x1b97 ./lwip/src/apps/mqtt/mqtt.o
- .debug_line    0x0003fd59     0x11d3 ./lwip/src/apps/sntp/sntp.o
- .debug_line    0x00040f2c     0x1834 ./lwip/src/core/altcp.o
- .debug_line    0x00042760      0xda7 ./lwip/src/core/altcp_alloc.o
- .debug_line    0x00043507     0x1323 ./lwip/src/core/altcp_tcp.o
- .debug_line    0x0004482a      0xe4f ./lwip/src/core/def.o
- .debug_line    0x00045679      0xff0 ./lwip/src/core/inet_chksum.o
- .debug_line    0x00046669      0xf13 ./lwip/src/core/init.o
- .debug_line    0x0004757c      0xda7 ./lwip/src/core/ip.o
- .debug_line    0x00048323      0xda6 ./lwip/src/core/mem.o
- .debug_line    0x000490c9     0x1094 ./lwip/src/core/memp.o
- .debug_line    0x0004a15d     0x1406 ./lwip/src/core/netif.o
- .debug_line    0x0004b563     0x17b4 ./lwip/src/core/pbuf.o
- .debug_line    0x0004cd17     0x1f23 ./lwip/src/core/tcp.o
- .debug_line    0x0004ec3a     0x22f0 ./lwip/src/core/tcp_in.o
- .debug_line    0x00050f2a     0x1c89 ./lwip/src/core/tcp_out.o
- .debug_line    0x00052bb3     0x1184 ./lwip/src/core/timeouts.o
- .debug_line    0x00053d37     0x14ac ./lwip/src/core/udp.o
- .debug_line    0x000551e3     0x207a ./lwip/src/core/ipv4/dhcp.o
- .debug_line    0x0005725d     0x1481 ./lwip/src/core/ipv4/etharp.o
- .debug_line    0x000586de      0xf7a ./lwip/src/core/ipv4/icmp.o
- .debug_line    0x00059658     0x11f1 ./lwip/src/core/ipv4/ip4.o
- .debug_line    0x0005a849     0x1060 ./lwip/src/core/ipv4/ip4_addr.o
- .debug_line    0x0005b8a9      0xfa0 ./lwip/src/netif/ethernet.o
- .debug_line    0x0005c849     0x18f4 ./mbedtls-2.16.12/library/aes.o
- .debug_line    0x0005e13d      0xcda ./mbedtls-2.16.12/library/asn1parse.o
- .debug_line    0x0005ee17      0xf01 ./mbedtls-2.16.12/library/asn1write.o
- .debug_line    0x0005fd18      0xccc ./mbedtls-2.16.12/library/base64.o
- .debug_line    0x000609e4     0x28fe ./mbedtls-2.16.12/library/bignum.o
- .debug_line    0x000632e2      0xc51 ./mbedtls-2.16.12/library/ccm.o
- .debug_line    0x00063f33      0xe03 ./mbedtls-2.16.12/library/chacha20.o
- .debug_line    0x00064d36      0xc28 ./mbedtls-2.16.12/library/chachapoly.o
- .debug_line    0x0006595e     0x1274 ./mbedtls-2.16.12/library/cipher.o
- .debug_line    0x00066bd2      0xa72 ./mbedtls-2.16.12/library/cipher_wrap.o
- .debug_line    0x00067644      0xdc6 ./mbedtls-2.16.12/library/ctr_drbg.o
- .debug_line    0x0006840a      0xcbd ./mbedtls-2.16.12/library/debug.o
- .debug_line    0x000690c7      0xcd8 ./mbedtls-2.16.12/library/dhm.o
- .debug_line    0x00069d9f      0xb6f ./mbedtls-2.16.12/library/ecdh.o
- .debug_line    0x0006a90e      0xc8c ./mbedtls-2.16.12/library/ecdsa.o
- .debug_line    0x0006b59a     0x1e75 ./mbedtls-2.16.12/library/ecp.o
- .debug_line    0x0006d40f      0xa51 ./mbedtls-2.16.12/library/ecp_curves.o
- .debug_line    0x0006de60      0xb62 ./mbedtls-2.16.12/library/entropy.o
- .debug_line    0x0006e9c2     0x112d ./mbedtls-2.16.12/library/gcm.o
- .debug_line    0x0006faef      0xb93 ./mbedtls-2.16.12/library/hmac_drbg.o
- .debug_line    0x00070682      0xd80 ./mbedtls-2.16.12/library/md.o
- .debug_line    0x00071402      0x9da ./mbedtls-2.16.12/library/md_wrap.o
- .debug_line    0x00071ddc      0xd10 ./mbedtls-2.16.12/library/oid.o
- .debug_line    0x00072aec      0xa32 ./mbedtls-2.16.12/library/pem.o
- .debug_line    0x0007351e      0xc1d ./mbedtls-2.16.12/library/pk.o
- .debug_line    0x0007413b      0xc6d ./mbedtls-2.16.12/library/pk_wrap.o
- .debug_line    0x00074da8     0x12a2 ./mbedtls-2.16.12/library/pkparse.o
- .debug_line    0x0007604a      0x81d ./mbedtls-2.16.12/library/platform.o
- .debug_line    0x00076867      0x7d1 ./mbedtls-2.16.12/library/platform_util.o
- .debug_line    0x00077038      0xe8f ./mbedtls-2.16.12/library/poly1305.o
- .debug_line    0x00077ec7     0x1d89 ./mbedtls-2.16.12/library/rsa.o
- .debug_line    0x00079c50      0x9af ./mbedtls-2.16.12/library/rsa_internal.o
- .debug_line    0x0007a5ff      0xc51 ./mbedtls-2.16.12/library/sha256.o
- .debug_line    0x0007b250      0xcb9 ./mbedtls-2.16.12/library/sha512.o
- .debug_line    0x0007bf09      0xa43 ./mbedtls-2.16.12/library/ssl_ciphersuites.o
- .debug_line    0x0007c94c     0x26e0 ./mbedtls-2.16.12/library/ssl_cli.o
- .debug_line    0x0007f02c     0x55ff ./mbedtls-2.16.12/library/ssl_tls.o
- .debug_line    0x0008462b     0x1432 ./mbedtls-2.16.12/library/x509.o
- .debug_line    0x00085a5d     0x218c ./mbedtls-2.16.12/library/x509_crt.o
+ .debug_line    0x0000aa47     0x1476 ./Core/Src/freertos.o
+ .debug_line    0x0000bebd      0xb56 ./Core/Src/gpio.o
+ .debug_line    0x0000ca13      0xc2a ./Core/Src/hal.o
+ .debug_line    0x0000d63d      0xc64 ./Core/Src/i2c.o
+ .debug_line    0x0000e2a1     0x151d ./Core/Src/lwIP_adin1110_app.o
+ .debug_line    0x0000f7be     0x11bc ./Core/Src/main.o
+ .debug_line    0x0001097a      0xcce ./Core/Src/rtc.o
+ .debug_line    0x00011648      0xba5 ./Core/Src/spi.o
+ .debug_line    0x000121ed      0x87a ./Core/Src/stm32l4xx_hal_msp.o
+ .debug_line    0x00012a67      0x89a ./Core/Src/stm32l4xx_hal_timebase_tim.o
+ .debug_line    0x00013301      0x9ec ./Core/Src/stm32l4xx_it.o
+ .debug_line    0x00013ced      0xd48 ./Core/Src/syscalls.o
+ .debug_line    0x00014a35      0x579 ./Core/Src/sysmem.o
+ .debug_line    0x00014fae      0x8bc ./Core/Src/system_stm32l4xx.o
+ .debug_line    0x0001586a      0xb6a ./Core/Src/tmp102.o
+ .debug_line    0x000163d4      0x953 ./Core/Src/usart.o
+ .debug_line    0x00016d27       0x7a ./Core/Startup/startup_stm32l496zgtxp.o
+ .debug_line    0x00016da1      0xa97 ./Core/ThreadSafe/newlib_lock_glue.o
+ .debug_line    0x00017838      0xc17 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.o
+ .debug_line    0x0001844f     0x205c ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.o
+ .debug_line    0x0001a4ab     0x1a66 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc_ex.o
+ .debug_line    0x0001bf11      0xde0 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.o
+ .debug_line    0x0001ccf1      0xe1c ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.o
+ .debug_line    0x0001db0d      0xc8b ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_gpio.o
+ .debug_line    0x0001e798     0x3b4a ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.o
+ .debug_line    0x000222e2      0xa3f ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.o
+ .debug_line    0x00022d21      0x9ee ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.o
+ .debug_line    0x0002370f      0xde3 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.o
+ .debug_line    0x000244f2     0x10d8 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc.o
+ .debug_line    0x000255ca     0x1855 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc_ex.o
+ .debug_line    0x00026e1f     0x122f ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc.o
+ .debug_line    0x0002804e     0x20ed ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi.o
+ .debug_line    0x0002a13b     0x3f26 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.o
+ .debug_line    0x0002e061     0x1d10 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.o
+ .debug_line    0x0002fd71     0x3329 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.o
+ .debug_line    0x0003309a     0x24f7 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.o
+ .debug_line    0x00035591      0x797 ./Middlewares/Third_Party/FreeRTOS/Source/list.o
+ .debug_line    0x00035d28     0x1761 ./Middlewares/Third_Party/FreeRTOS/Source/queue.o
+ .debug_line    0x00037489     0x206d ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
+ .debug_line    0x000394f6      0xe22 ./Middlewares/Third_Party/FreeRTOS/Source/timers.o
+ .debug_line    0x0003a318      0x960 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
+ .debug_line    0x0003ac78      0x9c7 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+ .debug_line    0x0003b63f     0x1bb4 ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls.o
+ .debug_line    0x0003d1f3      0xfce ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls_mem.o
+ .debug_line    0x0003e1c1     0x1b97 ./lwip/src/apps/mqtt/mqtt.o
+ .debug_line    0x0003fd58     0x11d3 ./lwip/src/apps/sntp/sntp.o
+ .debug_line    0x00040f2b     0x1834 ./lwip/src/core/altcp.o
+ .debug_line    0x0004275f      0xda7 ./lwip/src/core/altcp_alloc.o
+ .debug_line    0x00043506     0x1323 ./lwip/src/core/altcp_tcp.o
+ .debug_line    0x00044829      0xe4f ./lwip/src/core/def.o
+ .debug_line    0x00045678      0xff0 ./lwip/src/core/inet_chksum.o
+ .debug_line    0x00046668      0xf13 ./lwip/src/core/init.o
+ .debug_line    0x0004757b      0xda7 ./lwip/src/core/ip.o
+ .debug_line    0x00048322      0xda6 ./lwip/src/core/mem.o
+ .debug_line    0x000490c8     0x1094 ./lwip/src/core/memp.o
+ .debug_line    0x0004a15c     0x1406 ./lwip/src/core/netif.o
+ .debug_line    0x0004b562     0x17b4 ./lwip/src/core/pbuf.o
+ .debug_line    0x0004cd16     0x1f23 ./lwip/src/core/tcp.o
+ .debug_line    0x0004ec39     0x22f0 ./lwip/src/core/tcp_in.o
+ .debug_line    0x00050f29     0x1c89 ./lwip/src/core/tcp_out.o
+ .debug_line    0x00052bb2     0x1184 ./lwip/src/core/timeouts.o
+ .debug_line    0x00053d36     0x14ac ./lwip/src/core/udp.o
+ .debug_line    0x000551e2     0x207a ./lwip/src/core/ipv4/dhcp.o
+ .debug_line    0x0005725c     0x1481 ./lwip/src/core/ipv4/etharp.o
+ .debug_line    0x000586dd      0xf7a ./lwip/src/core/ipv4/icmp.o
+ .debug_line    0x00059657     0x11f1 ./lwip/src/core/ipv4/ip4.o
+ .debug_line    0x0005a848     0x1060 ./lwip/src/core/ipv4/ip4_addr.o
+ .debug_line    0x0005b8a8      0xfa0 ./lwip/src/netif/ethernet.o
+ .debug_line    0x0005c848     0x18f4 ./mbedtls-2.16.12/library/aes.o
+ .debug_line    0x0005e13c      0xcda ./mbedtls-2.16.12/library/asn1parse.o
+ .debug_line    0x0005ee16      0xf01 ./mbedtls-2.16.12/library/asn1write.o
+ .debug_line    0x0005fd17      0xccc ./mbedtls-2.16.12/library/base64.o
+ .debug_line    0x000609e3     0x28fe ./mbedtls-2.16.12/library/bignum.o
+ .debug_line    0x000632e1      0xc51 ./mbedtls-2.16.12/library/ccm.o
+ .debug_line    0x00063f32      0xe03 ./mbedtls-2.16.12/library/chacha20.o
+ .debug_line    0x00064d35      0xc28 ./mbedtls-2.16.12/library/chachapoly.o
+ .debug_line    0x0006595d     0x1274 ./mbedtls-2.16.12/library/cipher.o
+ .debug_line    0x00066bd1      0xa72 ./mbedtls-2.16.12/library/cipher_wrap.o
+ .debug_line    0x00067643      0xdc6 ./mbedtls-2.16.12/library/ctr_drbg.o
+ .debug_line    0x00068409      0xcbd ./mbedtls-2.16.12/library/debug.o
+ .debug_line    0x000690c6      0xcd8 ./mbedtls-2.16.12/library/dhm.o
+ .debug_line    0x00069d9e      0xb6f ./mbedtls-2.16.12/library/ecdh.o
+ .debug_line    0x0006a90d      0xc8c ./mbedtls-2.16.12/library/ecdsa.o
+ .debug_line    0x0006b599     0x1e75 ./mbedtls-2.16.12/library/ecp.o
+ .debug_line    0x0006d40e      0xa51 ./mbedtls-2.16.12/library/ecp_curves.o
+ .debug_line    0x0006de5f      0xb62 ./mbedtls-2.16.12/library/entropy.o
+ .debug_line    0x0006e9c1     0x112d ./mbedtls-2.16.12/library/gcm.o
+ .debug_line    0x0006faee      0xb93 ./mbedtls-2.16.12/library/hmac_drbg.o
+ .debug_line    0x00070681      0xd80 ./mbedtls-2.16.12/library/md.o
+ .debug_line    0x00071401      0x9da ./mbedtls-2.16.12/library/md_wrap.o
+ .debug_line    0x00071ddb      0xd10 ./mbedtls-2.16.12/library/oid.o
+ .debug_line    0x00072aeb      0xa32 ./mbedtls-2.16.12/library/pem.o
+ .debug_line    0x0007351d      0xc1d ./mbedtls-2.16.12/library/pk.o
+ .debug_line    0x0007413a      0xc6d ./mbedtls-2.16.12/library/pk_wrap.o
+ .debug_line    0x00074da7     0x12a2 ./mbedtls-2.16.12/library/pkparse.o
+ .debug_line    0x00076049      0x81d ./mbedtls-2.16.12/library/platform.o
+ .debug_line    0x00076866      0x7d1 ./mbedtls-2.16.12/library/platform_util.o
+ .debug_line    0x00077037      0xe8f ./mbedtls-2.16.12/library/poly1305.o
+ .debug_line    0x00077ec6     0x1d89 ./mbedtls-2.16.12/library/rsa.o
+ .debug_line    0x00079c4f      0x9af ./mbedtls-2.16.12/library/rsa_internal.o
+ .debug_line    0x0007a5fe      0xc51 ./mbedtls-2.16.12/library/sha256.o
+ .debug_line    0x0007b24f      0xcb9 ./mbedtls-2.16.12/library/sha512.o
+ .debug_line    0x0007bf08      0xa43 ./mbedtls-2.16.12/library/ssl_ciphersuites.o
+ .debug_line    0x0007c94b     0x26e0 ./mbedtls-2.16.12/library/ssl_cli.o
+ .debug_line    0x0007f02b     0x55ff ./mbedtls-2.16.12/library/ssl_tls.o
+ .debug_line    0x0008462a     0x1432 ./mbedtls-2.16.12/library/x509.o
+ .debug_line    0x00085a5c     0x218c ./mbedtls-2.16.12/library/x509_crt.o
 
-.debug_str      0x00000000   0x177a98
+.debug_str      0x00000000   0x177a8b
  .debug_str     0x00000000   0x114809 ./Core/Src/adc.o
                              0x114e0d (size before relaxing)
  .debug_str     0x00114809    0x1a1c6 ./Core/Src/adi_mac.o
@@ -53170,219 +53168,219 @@ LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
                              0x1144a4 (size before relaxing)
  .debug_str     0x0014c3f4       0x2a ./Core/Src/fcs.o
                              0x119a65 (size before relaxing)
- .debug_str     0x0014c41e     0x334d ./Core/Src/freertos.o
-                             0x13ce4d (size before relaxing)
- .debug_str     0x0014f76b      0x53d ./Core/Src/gpio.o
+ .debug_str     0x0014c41e     0x3340 ./Core/Src/freertos.o
+                             0x13ce40 (size before relaxing)
+ .debug_str     0x0014f75e      0x53d ./Core/Src/gpio.o
                              0x119ca9 (size before relaxing)
- .debug_str     0x0014fca8       0x5e ./Core/Src/hal.o
+ .debug_str     0x0014fc9b       0x5e ./Core/Src/hal.o
                              0x11a220 (size before relaxing)
- .debug_str     0x0014fd06      0x106 ./Core/Src/i2c.o
+ .debug_str     0x0014fcf9      0x106 ./Core/Src/i2c.o
                              0x11da5d (size before relaxing)
- .debug_str     0x0014fe0c      0xb58 ./Core/Src/lwIP_adin1110_app.o
+ .debug_str     0x0014fdff      0xb58 ./Core/Src/lwIP_adin1110_app.o
                              0x13a225 (size before relaxing)
- .debug_str     0x00150964      0x588 ./Core/Src/main.o
+ .debug_str     0x00150957      0x588 ./Core/Src/main.o
                              0x13c393 (size before relaxing)
- .debug_str     0x00150eec      0x366 ./Core/Src/rtc.o
+ .debug_str     0x00150edf      0x366 ./Core/Src/rtc.o
                              0x118d22 (size before relaxing)
- .debug_str     0x00151252      0x104 ./Core/Src/spi.o
+ .debug_str     0x00151245      0x104 ./Core/Src/spi.o
                              0x11a156 (size before relaxing)
- .debug_str     0x00151356       0x2c ./Core/Src/stm32l4xx_hal_msp.o
+ .debug_str     0x00151349       0x2c ./Core/Src/stm32l4xx_hal_msp.o
                              0x114a16 (size before relaxing)
- .debug_str     0x00151382      0x107 ./Core/Src/stm32l4xx_hal_timebase_tim.o
+ .debug_str     0x00151375      0x107 ./Core/Src/stm32l4xx_hal_timebase_tim.o
                              0x114c75 (size before relaxing)
- .debug_str     0x00151489      0x1a1 ./Core/Src/stm32l4xx_it.o
+ .debug_str     0x0015147c      0x1a1 ./Core/Src/stm32l4xx_it.o
                              0x114f18 (size before relaxing)
- .debug_str     0x0015162a     0x1603 ./Core/Src/syscalls.o
+ .debug_str     0x0015161d     0x1603 ./Core/Src/syscalls.o
                              0x11a378 (size before relaxing)
- .debug_str     0x00152c2d       0x6b ./Core/Src/sysmem.o
+ .debug_str     0x00152c20       0x6b ./Core/Src/sysmem.o
                                0x615a (size before relaxing)
- .debug_str     0x00152c98       0x9e ./Core/Src/system_stm32l4xx.o
+ .debug_str     0x00152c8b       0x9e ./Core/Src/system_stm32l4xx.o
                              0x114156 (size before relaxing)
- .debug_str     0x00152d36       0x54 ./Core/Src/tmp102.o
+ .debug_str     0x00152d29       0x54 ./Core/Src/tmp102.o
                              0x11cfaa (size before relaxing)
- .debug_str     0x00152d8a       0xae ./Core/Src/usart.o
+ .debug_str     0x00152d7d       0xae ./Core/Src/usart.o
                              0x114d56 (size before relaxing)
- .debug_str     0x00152e38       0x45 ./Core/Startup/startup_stm32l496zgtxp.o
+ .debug_str     0x00152e2b       0x45 ./Core/Startup/startup_stm32l496zgtxp.o
                                  0x72 (size before relaxing)
- .debug_str     0x00152e7d     0x1636 ./Core/ThreadSafe/newlib_lock_glue.o
+ .debug_str     0x00152e70     0x1636 ./Core/ThreadSafe/newlib_lock_glue.o
                                0xd4a0 (size before relaxing)
- .debug_str     0x001544b3      0x5eb ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.o
+ .debug_str     0x001544a6      0x5eb ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.o
                              0x114d5e (size before relaxing)
- .debug_str     0x00154a9e      0xa6d ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.o
+ .debug_str     0x00154a91      0xa6d ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.o
                              0x114fd8 (size before relaxing)
- .debug_str     0x0015550b      0x665 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc_ex.o
+ .debug_str     0x001554fe      0x665 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc_ex.o
                              0x114f81 (size before relaxing)
- .debug_str     0x00155b70      0x309 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.o
+ .debug_str     0x00155b63      0x309 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.o
                              0x114a31 (size before relaxing)
- .debug_str     0x00155e79      0x205 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.o
+ .debug_str     0x00155e6c      0x205 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.o
                              0x1143b3 (size before relaxing)
- .debug_str     0x0015607e       0xc0 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_gpio.o
+ .debug_str     0x00156071       0xc0 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_gpio.o
                              0x1142d0 (size before relaxing)
- .debug_str     0x0015613e      0xd0f ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.o
+ .debug_str     0x00156131      0xd0f ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.o
                              0x11534a (size before relaxing)
- .debug_str     0x00156e4d       0xb8 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.o
+ .debug_str     0x00156e40       0xb8 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.o
                              0x114669 (size before relaxing)
- .debug_str     0x00156f05      0x34d ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.o
+ .debug_str     0x00156ef8      0x34d ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.o
                              0x1144cd (size before relaxing)
- .debug_str     0x00157252      0x3cb ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.o
+ .debug_str     0x00157245      0x3cb ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.o
                              0x1146a5 (size before relaxing)
- .debug_str     0x0015761d      0x365 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc.o
+ .debug_str     0x00157610      0x365 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc.o
                              0x1147a3 (size before relaxing)
- .debug_str     0x00157982      0x54b ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc_ex.o
+ .debug_str     0x00157975      0x54b ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc_ex.o
                              0x114b3e (size before relaxing)
- .debug_str     0x00157ecd      0x279 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc.o
+ .debug_str     0x00157ec0      0x279 ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc.o
                              0x1145d4 (size before relaxing)
- .debug_str     0x00158146      0x4fa ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi.o
+ .debug_str     0x00158139      0x4fa ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi.o
                              0x114964 (size before relaxing)
- .debug_str     0x00158640      0xe5c ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.o
+ .debug_str     0x00158633      0xe5c ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.o
                              0x115489 (size before relaxing)
- .debug_str     0x0015949c      0x5fe ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.o
+ .debug_str     0x0015948f      0x5fe ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.o
                              0x114d9d (size before relaxing)
- .debug_str     0x00159a9a      0x82e ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.o
+ .debug_str     0x00159a8d      0x82e ./Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.o
                              0x114eae (size before relaxing)
- .debug_str     0x0015a2c8     0x1f59 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.o
+ .debug_str     0x0015a2bb     0x1f59 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.o
                              0x11f199 (size before relaxing)
- .debug_str     0x0015c221      0x12d ./Middlewares/Third_Party/FreeRTOS/Source/list.o
+ .debug_str     0x0015c214      0x12d ./Middlewares/Third_Party/FreeRTOS/Source/list.o
                                0xabe2 (size before relaxing)
- .debug_str     0x0015c34e      0x877 ./Middlewares/Third_Party/FreeRTOS/Source/queue.o
+ .debug_str     0x0015c341      0x877 ./Middlewares/Third_Party/FreeRTOS/Source/queue.o
                                0xc722 (size before relaxing)
- .debug_str     0x0015cbc5     0x128d ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
+ .debug_str     0x0015cbb8     0x128d ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
                                0xde07 (size before relaxing)
- .debug_str     0x0015de52      0x5af ./Middlewares/Third_Party/FreeRTOS/Source/timers.o
+ .debug_str     0x0015de45      0x5af ./Middlewares/Third_Party/FreeRTOS/Source/timers.o
                                0xcf9f (size before relaxing)
- .debug_str     0x0015e401      0x783 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
+ .debug_str     0x0015e3f4      0x783 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
                                0xa39a (size before relaxing)
- .debug_str     0x0015eb84      0x324 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+ .debug_str     0x0015eb77      0x324 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
                                0xb541 (size before relaxing)
- .debug_str     0x0015eea8     0x3315 ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls.o
+ .debug_str     0x0015ee9b     0x3315 ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls.o
                              0x13262e (size before relaxing)
- .debug_str     0x001621bd      0x14b ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls_mem.o
+ .debug_str     0x001621b0      0x14b ./lwip/src/apps/altcp_tls/altcp_tls_mbedtls_mem.o
                              0x12ee5c (size before relaxing)
- .debug_str     0x00162308      0xb09 ./lwip/src/apps/mqtt/mqtt.o
+ .debug_str     0x001622fb      0xb09 ./lwip/src/apps/mqtt/mqtt.o
                              0x120acd (size before relaxing)
- .debug_str     0x00162e11      0x9c6 ./lwip/src/apps/sntp/sntp.o
+ .debug_str     0x00162e04      0x9c6 ./lwip/src/apps/sntp/sntp.o
                              0x12297e (size before relaxing)
- .debug_str     0x001637d7      0x9b5 ./lwip/src/core/altcp.o
+ .debug_str     0x001637ca      0x9b5 ./lwip/src/core/altcp.o
                              0x12288d (size before relaxing)
- .debug_str     0x0016418c       0x2f ./lwip/src/core/altcp_alloc.o
+ .debug_str     0x0016417f       0x2f ./lwip/src/core/altcp_alloc.o
                              0x11fcae (size before relaxing)
- .debug_str     0x001641bb      0x54b ./lwip/src/core/altcp_tcp.o
+ .debug_str     0x001641ae      0x54b ./lwip/src/core/altcp_tcp.o
                              0x122c28 (size before relaxing)
- .debug_str     0x00164706       0x83 ./lwip/src/core/def.o
+ .debug_str     0x001646f9       0x83 ./lwip/src/core/def.o
                              0x11d8b8 (size before relaxing)
- .debug_str     0x00164789      0x1d7 ./lwip/src/core/inet_chksum.o
+ .debug_str     0x0016477c      0x1d7 ./lwip/src/core/inet_chksum.o
                              0x11f872 (size before relaxing)
- .debug_str     0x00164960     0x1c44 ./lwip/src/core/init.o
+ .debug_str     0x00164953     0x1c44 ./lwip/src/core/init.o
                              0x124209 (size before relaxing)
- .debug_str     0x001665a4       0xbe ./lwip/src/core/ip.o
+ .debug_str     0x00166597       0xbe ./lwip/src/core/ip.o
                              0x121760 (size before relaxing)
- .debug_str     0x00166662      0x1a7 ./lwip/src/core/mem.o
+ .debug_str     0x00166655      0x1a7 ./lwip/src/core/mem.o
                              0x11e8a7 (size before relaxing)
- .debug_str     0x00166809      0x1fe ./lwip/src/core/memp.o
+ .debug_str     0x001667fc      0x1fe ./lwip/src/core/memp.o
                              0x124313 (size before relaxing)
- .debug_str     0x00166a07      0x2eb ./lwip/src/core/netif.o
+ .debug_str     0x001669fa      0x2eb ./lwip/src/core/netif.o
                              0x1249cd (size before relaxing)
- .debug_str     0x00166cf2      0x42b ./lwip/src/core/pbuf.o
+ .debug_str     0x00166ce5      0x42b ./lwip/src/core/pbuf.o
                              0x1242da (size before relaxing)
- .debug_str     0x0016711d      0x600 ./lwip/src/core/tcp.o
+ .debug_str     0x00167110      0x600 ./lwip/src/core/tcp.o
                              0x1240be (size before relaxing)
- .debug_str     0x0016771d      0x2d7 ./lwip/src/core/tcp_in.o
+ .debug_str     0x00167710      0x2d7 ./lwip/src/core/tcp_in.o
                              0x123f35 (size before relaxing)
- .debug_str     0x001679f4      0x356 ./lwip/src/core/tcp_out.o
+ .debug_str     0x001679e7      0x356 ./lwip/src/core/tcp_out.o
                              0x123edb (size before relaxing)
- .debug_str     0x00167d4a      0x220 ./lwip/src/core/timeouts.o
+ .debug_str     0x00167d3d      0x220 ./lwip/src/core/timeouts.o
                              0x124714 (size before relaxing)
- .debug_str     0x00167f6a      0x26a ./lwip/src/core/udp.o
+ .debug_str     0x00167f5d      0x26a ./lwip/src/core/udp.o
                              0x1227a4 (size before relaxing)
- .debug_str     0x001681d4      0xe4f ./lwip/src/core/ipv4/dhcp.o
+ .debug_str     0x001681c7      0xe4f ./lwip/src/core/ipv4/dhcp.o
                              0x1231e2 (size before relaxing)
- .debug_str     0x00169023      0x517 ./lwip/src/core/ipv4/etharp.o
+ .debug_str     0x00169016      0x517 ./lwip/src/core/ipv4/etharp.o
                              0x122a1e (size before relaxing)
- .debug_str     0x0016953a       0xb8 ./lwip/src/core/ipv4/icmp.o
+ .debug_str     0x0016952d       0xb8 ./lwip/src/core/ipv4/icmp.o
                              0x121c2e (size before relaxing)
- .debug_str     0x001695f2      0x131 ./lwip/src/core/ipv4/ip4.o
+ .debug_str     0x001695e5      0x131 ./lwip/src/core/ipv4/ip4.o
                              0x123d30 (size before relaxing)
- .debug_str     0x00169723       0x7a ./lwip/src/core/ipv4/ip4_addr.o
+ .debug_str     0x00169716       0x7a ./lwip/src/core/ipv4/ip4_addr.o
                              0x120aa0 (size before relaxing)
- .debug_str     0x0016979d       0x6b ./lwip/src/netif/ethernet.o
+ .debug_str     0x00169790       0x6b ./lwip/src/netif/ethernet.o
                              0x122282 (size before relaxing)
- .debug_str     0x00169808      0xb1c ./mbedtls-2.16.12/library/aes.o
+ .debug_str     0x001697fb      0xb1c ./mbedtls-2.16.12/library/aes.o
                                0xa14b (size before relaxing)
- .debug_str     0x0016a324      0x1be ./mbedtls-2.16.12/library/asn1parse.o
+ .debug_str     0x0016a317      0x1be ./mbedtls-2.16.12/library/asn1parse.o
                                0x9eb6 (size before relaxing)
- .debug_str     0x0016a4e2      0x2ba ./mbedtls-2.16.12/library/asn1write.o
+ .debug_str     0x0016a4d5      0x2ba ./mbedtls-2.16.12/library/asn1write.o
                                0x9ef4 (size before relaxing)
- .debug_str     0x0016a79c      0x173 ./mbedtls-2.16.12/library/base64.o
+ .debug_str     0x0016a78f      0x173 ./mbedtls-2.16.12/library/base64.o
                                0x955e (size before relaxing)
- .debug_str     0x0016a90f      0x9a7 ./mbedtls-2.16.12/library/bignum.o
+ .debug_str     0x0016a902      0x9a7 ./mbedtls-2.16.12/library/bignum.o
                                0xa32b (size before relaxing)
- .debug_str     0x0016b2b6      0x559 ./mbedtls-2.16.12/library/ccm.o
+ .debug_str     0x0016b2a9      0x559 ./mbedtls-2.16.12/library/ccm.o
                                0x9d2c (size before relaxing)
- .debug_str     0x0016b80f      0x4e2 ./mbedtls-2.16.12/library/chacha20.o
+ .debug_str     0x0016b802      0x4e2 ./mbedtls-2.16.12/library/chacha20.o
                                0x99fa (size before relaxing)
- .debug_str     0x0016bcf1      0x547 ./mbedtls-2.16.12/library/chachapoly.o
+ .debug_str     0x0016bce4      0x547 ./mbedtls-2.16.12/library/chachapoly.o
                                0x9c50 (size before relaxing)
- .debug_str     0x0016c238      0x5b0 ./mbedtls-2.16.12/library/cipher.o
+ .debug_str     0x0016c22b      0x5b0 ./mbedtls-2.16.12/library/cipher.o
                                0xad4d (size before relaxing)
- .debug_str     0x0016c7e8      0x37b ./mbedtls-2.16.12/library/cipher_wrap.o
+ .debug_str     0x0016c7db      0x37b ./mbedtls-2.16.12/library/cipher_wrap.o
                                0xad5b (size before relaxing)
- .debug_str     0x0016cb63      0x27d ./mbedtls-2.16.12/library/ctr_drbg.o
+ .debug_str     0x0016cb56      0x27d ./mbedtls-2.16.12/library/ctr_drbg.o
                                0x9c78 (size before relaxing)
- .debug_str     0x0016cde0      0x34f ./mbedtls-2.16.12/library/debug.o
+ .debug_str     0x0016cdd3      0x34f ./mbedtls-2.16.12/library/debug.o
                               0x1833e (size before relaxing)
- .debug_str     0x0016d12f      0x4c7 ./mbedtls-2.16.12/library/dhm.o
+ .debug_str     0x0016d122      0x4c7 ./mbedtls-2.16.12/library/dhm.o
                               0x117e6 (size before relaxing)
- .debug_str     0x0016d5f6      0x4ba ./mbedtls-2.16.12/library/ecdh.o
+ .debug_str     0x0016d5e9      0x4ba ./mbedtls-2.16.12/library/ecdh.o
                                0x98dd (size before relaxing)
- .debug_str     0x0016dab0      0x660 ./mbedtls-2.16.12/library/ecdsa.o
+ .debug_str     0x0016daa3      0x660 ./mbedtls-2.16.12/library/ecdsa.o
                                0xad42 (size before relaxing)
- .debug_str     0x0016e110      0x8a8 ./mbedtls-2.16.12/library/ecp.o
+ .debug_str     0x0016e103      0x8a8 ./mbedtls-2.16.12/library/ecp.o
                                0xb1d2 (size before relaxing)
- .debug_str     0x0016e9b8      0x606 ./mbedtls-2.16.12/library/ecp_curves.o
+ .debug_str     0x0016e9ab      0x606 ./mbedtls-2.16.12/library/ecp_curves.o
                                0x9d31 (size before relaxing)
- .debug_str     0x0016efbe      0x243 ./mbedtls-2.16.12/library/entropy.o
+ .debug_str     0x0016efb1      0x243 ./mbedtls-2.16.12/library/entropy.o
                                0x9aca (size before relaxing)
- .debug_str     0x0016f201      0x4b3 ./mbedtls-2.16.12/library/gcm.o
+ .debug_str     0x0016f1f4      0x4b3 ./mbedtls-2.16.12/library/gcm.o
                                0xab10 (size before relaxing)
- .debug_str     0x0016f6b4      0x1fa ./mbedtls-2.16.12/library/hmac_drbg.o
+ .debug_str     0x0016f6a7      0x1fa ./mbedtls-2.16.12/library/hmac_drbg.o
                                0x90ff (size before relaxing)
- .debug_str     0x0016f8ae      0x1cc ./mbedtls-2.16.12/library/md.o
+ .debug_str     0x0016f8a1      0x1cc ./mbedtls-2.16.12/library/md.o
                                0x8fd3 (size before relaxing)
- .debug_str     0x0016fa7a      0x26e ./mbedtls-2.16.12/library/md_wrap.o
+ .debug_str     0x0016fa6d      0x26e ./mbedtls-2.16.12/library/md_wrap.o
                                0x9a61 (size before relaxing)
- .debug_str     0x0016fce8     0x300a ./mbedtls-2.16.12/library/oid.o
+ .debug_str     0x0016fcdb     0x300a ./mbedtls-2.16.12/library/oid.o
                                0xefc5 (size before relaxing)
- .debug_str     0x00172cf2      0x142 ./mbedtls-2.16.12/library/pem.o
+ .debug_str     0x00172ce5      0x142 ./mbedtls-2.16.12/library/pem.o
                                0x9c27 (size before relaxing)
- .debug_str     0x00172e34      0x3f4 ./mbedtls-2.16.12/library/pk.o
+ .debug_str     0x00172e27      0x3f4 ./mbedtls-2.16.12/library/pk.o
                                0x9e70 (size before relaxing)
- .debug_str     0x00173228      0x2d5 ./mbedtls-2.16.12/library/pk_wrap.o
+ .debug_str     0x0017321b      0x2d5 ./mbedtls-2.16.12/library/pk_wrap.o
                                0xaaa0 (size before relaxing)
- .debug_str     0x001734fd      0x1f8 ./mbedtls-2.16.12/library/pkparse.o
+ .debug_str     0x001734f0      0x1f8 ./mbedtls-2.16.12/library/pkparse.o
                                0xe1ce (size before relaxing)
- .debug_str     0x001736f5       0xa2 ./mbedtls-2.16.12/library/platform.o
+ .debug_str     0x001736e8       0xa2 ./mbedtls-2.16.12/library/platform.o
                                0x8b35 (size before relaxing)
- .debug_str     0x00173797       0xe6 ./mbedtls-2.16.12/library/platform_util.o
+ .debug_str     0x0017378a       0xe6 ./mbedtls-2.16.12/library/platform_util.o
                                0x84ca (size before relaxing)
- .debug_str     0x0017387d      0x1ae ./mbedtls-2.16.12/library/poly1305.o
+ .debug_str     0x00173870      0x1ae ./mbedtls-2.16.12/library/poly1305.o
                                0x9964 (size before relaxing)
- .debug_str     0x00173a2b      0xa03 ./mbedtls-2.16.12/library/rsa.o
+ .debug_str     0x00173a1e      0xa03 ./mbedtls-2.16.12/library/rsa.o
                                0xe76f (size before relaxing)
- .debug_str     0x0017442e       0x3d ./mbedtls-2.16.12/library/rsa_internal.o
+ .debug_str     0x00174421       0x3d ./mbedtls-2.16.12/library/rsa_internal.o
                                0x6e03 (size before relaxing)
- .debug_str     0x0017446b      0x587 ./mbedtls-2.16.12/library/sha256.o
+ .debug_str     0x0017445e      0x587 ./mbedtls-2.16.12/library/sha256.o
                                0x9c37 (size before relaxing)
- .debug_str     0x001749f2      0x537 ./mbedtls-2.16.12/library/sha512.o
+ .debug_str     0x001749e5      0x537 ./mbedtls-2.16.12/library/sha512.o
                                0x9cfe (size before relaxing)
- .debug_str     0x00174f29      0x1fa ./mbedtls-2.16.12/library/ssl_ciphersuites.o
+ .debug_str     0x00174f1c      0x1fa ./mbedtls-2.16.12/library/ssl_ciphersuites.o
                               0x17d7d (size before relaxing)
- .debug_str     0x00175123      0xaa4 ./mbedtls-2.16.12/library/ssl_cli.o
+ .debug_str     0x00175116      0xaa4 ./mbedtls-2.16.12/library/ssl_cli.o
                               0x1a49f (size before relaxing)
- .debug_str     0x00175bc7     0x1472 ./mbedtls-2.16.12/library/ssl_tls.o
+ .debug_str     0x00175bba     0x1472 ./mbedtls-2.16.12/library/ssl_tls.o
                               0x1dd13 (size before relaxing)
- .debug_str     0x00177039      0x3db ./mbedtls-2.16.12/library/x509.o
+ .debug_str     0x0017702c      0x3db ./mbedtls-2.16.12/library/x509.o
                                0xe4ca (size before relaxing)
- .debug_str     0x00177414      0x684 ./mbedtls-2.16.12/library/x509_crt.o
+ .debug_str     0x00177407      0x684 ./mbedtls-2.16.12/library/x509_crt.o
                                0xecfd (size before relaxing)
 
 .comment        0x00000000       0x43

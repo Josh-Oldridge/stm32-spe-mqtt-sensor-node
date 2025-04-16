@@ -41,8 +41,9 @@ extern "C" {
 extern SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN Private defines */
-/** @brief SPI handle for SPI1, used for ADIN1110 communication. */
-extern SPI_HandleTypeDef hspi1;
+/** @fn extern SPI_HandleTypeDef hspi1
+ *  @brief SPI handle for SPI1, used for ADIN1110 communication. */
+
 /* USER CODE END Private defines */
 
 void MX_SPI1_Init(void);

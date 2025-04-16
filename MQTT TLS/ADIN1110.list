@@ -27,25 +27,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  0005f3bc  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00080ad5  00000000  00000000  0005f3ec  2**0
+ 12 .debug_info   00080ac4  00000000  00000000  0005f3ec  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 000125be  00000000  00000000  000dfec1  2**0
+ 13 .debug_abbrev 000125be  00000000  00000000  000dfeb0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00005e08  00000000  00000000  000f2480  2**3
+ 14 .debug_aranges 00005e08  00000000  00000000  000f2470  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_rnglists 000049aa  00000000  00000000  000f8288  2**0
+ 15 .debug_rnglists 000049aa  00000000  00000000  000f8278  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  00050d71  00000000  00000000  000fcc32  2**0
+ 16 .debug_macro  00050d71  00000000  00000000  000fcc22  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   00087be9  00000000  00000000  0014d9a3  2**0
+ 17 .debug_line   00087be8  00000000  00000000  0014d993  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    00177a98  00000000  00000000  001d558c  2**0
+ 18 .debug_str    00177a8b  00000000  00000000  001d557b  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  0034d024  2**0
+ 19 .comment      00000043  00000000  00000000  0034d006  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  0001a57c  00000000  00000000  0034d068  2**2
+ 20 .debug_frame  0001a57c  00000000  00000000  0034d04c  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000056  00000000  00000000  003675e4  2**0
+ 21 .debug_line_str 00000056  00000000  00000000  003675c8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -18313,8 +18313,6 @@ void SensorDataMQTTTask(void *argument) {
  80072fa:	b2db      	uxtb	r3, r3
  80072fc:	2b00      	cmp	r3, #0
  80072fe:	f000 80a5 	beq.w	800744c <SensorDataMQTTTask+0x1c0>
-            //system_ready = true;
-
             TickType_t currentTime = xTaskGetTickCount();
  8007302:	f00b ffef 	bl	80132e4 <xTaskGetTickCount>
  8007306:	6178      	str	r0, [r7, #20]
@@ -23554,7 +23552,7 @@ void HardFault_Handler(void)
  80093c8:	b480      	push	{r7}
  80093ca:	af00      	add	r7, sp, #0
   /* USER CODE BEGIN HardFault_IRQn 0 */
-////
+
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
  80093cc:	bf00      	nop
