@@ -1,0 +1,13 @@
+../Core/Src/adi_spi_oa.c:66:6:oaIrqHandler	2
+../Core/Src/adi_spi_oa.c:87:6:spiCallback	1
+../Core/Src/adi_spi_oa.c:103:18:oaStateMachine	67
+../Core/Src/adi_spi_oa.c:774:18:oaPhyRegReadStart	2
+../Core/Src/adi_spi_oa.c:820:18:oaPhyRegReadStep	2
+../Core/Src/adi_spi_oa.c:860:18:oaSpiIntHandle	9
+../Core/Src/adi_spi_oa.c:951:25:oaSpiProcess	16
+../Core/Src/adi_spi_oa.c:1039:25:oaCreateNextChunk	17
+../Core/Src/adi_spi_oa.c:1172:25:oaCtrlSetup	3
+../Core/Src/adi_spi_oa.c:1214:13:oaCtrlCmdHeader	2
+../Core/Src/adi_spi_oa.c:1249:25:oaCtrlCmdReadData	3
+../Core/Src/adi_spi_oa.c:1291:25:oaCtrlCmdWriteData	2
+../Core/Src/adi_spi_oa.c:1323:18:MAC_SendFrame	1

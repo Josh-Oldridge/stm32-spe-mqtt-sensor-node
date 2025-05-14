@@ -93,6 +93,9 @@ uint32_t pDataAvailable(pQueue_t *pQ);
 /** @brief Memory for ADIN1110 driver instance. */
 uint8_t devMem[ADIN1110_DEVICE_SIZE];
 
+uint32_t txIdx = 0; // Total frames sent
+uint32_t rxIdx = 0;
+
 /** @brief ADIN1110 driver configuration structure. */
 adin1110_DriverConfig_t drvConfig = { .pDevMem = (void*) devMem, .devMemSize =
 		sizeof(devMem), .fcsCheckEn = true, };
@@ -112,7 +115,7 @@ adi_eth_LinkStatus_e linkState;
  */
 static void txCallback(void *pCBParam, uint32_t Event, void *pArg) {
 	adi_eth_BufDesc_t *desc = (adi_eth_BufDesc_t*) pArg;
-
+	txIdx++;
 	for (int i = 0; i < NUM_TX_DESC; i++) {
 		if (&txBufDesc[i] == desc) {
 			txBufAvailable[i] = true;
@@ -140,6 +143,7 @@ static void rxCallback(void *pCBParam, uint32_t Event, void *pArg) {
 		adin1110_SubmitRxBuffer(hDevice, pRxBufDesc);
 		return;
 	}
+	rxIdx++;
 	int unicast = ((payload[0] & 0x01) == 0);
 	LINK_STATS_INC(link.recv);MIB2_STATS_NETIF_ADD(netif, ifinoctets, frmLen);
 	if (unicast) {
@@ -296,16 +300,14 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p) {
 			osDelay(pdMS_TO_TICKS(1));
 			attempts++;
 			if (attempts > 1000) {
-				DEBUG_MESSAGE("Tx queue stuck. Dropping frame.\n");
-				LINK_STATS_INC(link.drop);
+				DEBUG_MESSAGE("Tx queue stuck. Dropping frame.\n"); LINK_STATS_INC(link.drop);
 				portEXIT_CRITICAL();
 				return ERR_MEM;
 			}
 		}
 	}
 	if (res != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("SubmitTxBuffer failed with code=0x%08X\n", res);
-		LINK_STATS_INC(link.drop);
+		DEBUG_MESSAGE("SubmitTxBuffer failed with code=0x%08X\n", res); LINK_STATS_INC(link.drop);
 		portEXIT_CRITICAL();
 		return ERR_IF;
 	}
@@ -334,7 +336,6 @@ static err_t LwIP_ADIN1110LinkOutput(struct netif *netif, struct pbuf *p) {
 //		int insertBufferLen) {
 //	return 1;
 //}
-
 /**
  * @brief Initialize lwIP ADIN1110 structure.
  * @param [in,out] eth Pointer to the lwIP ADIN1110 structure.
@@ -396,102 +397,131 @@ static err_t LwipADIN1110Init(struct netif *netif) {
  * @brief Initialize ADIN1110 for lwIP operation.
  * @param [in] eth Pointer to the lwIP ADIN1110 structure.
  * @return ADI_ETH_SUCCESS on success, error code otherwise.
- * @details Configures ADIN1110 with MAC filters, cut-through mode, chunk size, and callbacks.
- *          Submits RX buffers, enables the device, and waits for link-up. Initializes the
- *          packet queue for RX frame handling. Called by LwIP_Init() to prepare the ADIN1110.
+ * @details Configures ADIN1110 with MAC filters, cut-through mode, chunk size, and callbacks
+ *          for normal network operation in the CN0575 project. Submits RX buffers, enables
+ *          the device, and waits for link-up. Initializes the packet queue for RX frame
+ *          handling. Excludes frame generator/checker (irrelevant for cable testing) and
+ *          enables promiscuous mode for packet debugging. Prepares for future TDR diagnostics.
+ *          Called by LwIP_Init() to prepare the ADIN1110 for packet testing (e.g., pings/UDP)
+ *          over 50m/100m cables.
  */
 static adi_eth_Result_e ADIN1110Init(LwIP_ADIN1110_t *eth) {
-	adi_eth_Result_e result;
-	adin1110_DeviceHandle_t *hDevice = eth->hDevice;
-	uint8_t brcstMAC[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+    adi_eth_Result_e result;
+    adin1110_DeviceHandle_t *hDevice = eth->hDevice;
+    uint8_t brcstMAC[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+    adi_eth_LinkStatus_e linkStatus;
 
-	result = adin1110_AddAddressFilter(*hDevice, brcstMAC, NULL, 0);
-	if (result != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE(
-				"Error: Adding broadcast MAC address filter failed. Code: 0x%08X\r\n",
-				result);
-		return result;
-	}
-	result = adin1110_AddAddressFilter(*hDevice, eth->macAddress, NULL, 0);
-	if (result != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("Error: Adding device MAC address filter failed.\r\n");
-		return result;
-	}
+    result = adin1110_AddAddressFilter(*hDevice, brcstMAC, NULL, 0);
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to add broadcast MAC filter. Code: 0x%08X\r\n", result);
+        return result;
+    }
+    result = adin1110_AddAddressFilter(*hDevice, eth->macAddress, NULL, 0);
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to add device MAC filter. Code: 0x%08X\r\n", result);
+        return result;
+    }
 
-	result = adin1110_SetCutThroughMode(*hDevice, true, true); // TXCTE = true, RXCTE = true
-	if (result != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("Error: Failed to set cut-through mode. Code: 0x%08X\r\n",
-				result);
-		return result;
-	}
-	bool txcteEnabled, rxcteEnabled;
-	result = adin1110_GetCutThroughMode(*hDevice, &txcteEnabled, &rxcteEnabled);
-	if (result == ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("Cut-through mode - TXCTE: %d, RXCTE: %d\r\n",
-				txcteEnabled, rxcteEnabled);
-	} else {
-		DEBUG_MESSAGE("Error: Failed to get cut-through mode. Code: 0x%08X\r\n",
-				result);
-	}
+    result = adin1110_SetCutThroughMode(*hDevice, true, true); // TXCTE = true, RXCTE = true
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to set cut-through mode. Code: 0x%08X\r\n", result);
+        return result;
+    }
+    bool txcteEnabled, rxcteEnabled;
+    result = adin1110_GetCutThroughMode(*hDevice, &txcteEnabled, &rxcteEnabled);
+    if (result == ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Cut-through mode - TXCTE: %d, RXCTE: %d\r\n", txcteEnabled, rxcteEnabled);
+    } else {
+        DEBUG_MESSAGE("Error: Failed to get cut-through mode. Code: 0x%08X\r\n", result);
+    }
 
-	result = adin1110_WriteRegister(*hDevice, ADDR_MAC_TX_THRESH, 0x1);
-	if (result != ADI_ETH_SUCCESS) {
-		printf("Failed to set TX_THRESH: 0x%08X\n", result);
-	}
+    result = adin1110_WriteRegister(*hDevice, ADDR_MAC_TX_THRESH, 0x1);
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to set TX_THRESH. Code: 0x%08X\r\n", result);
+        return result;
+    }
 
-	result = adin1110_SetChunkSize(*hDevice, ADI_MAC_OA_CPS_64BYTE);
-	if (result != ADI_ETH_SUCCESS) {
-		printf("Failed to set chunk size: 0x%08X\n", result);
-	}
+    result = adin1110_SetChunkSize(*hDevice, ADI_MAC_OA_CPS_64BYTE);
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to set chunk size. Code: 0x%08X\r\n", result);
+        return result;
+    }
 
-	uint32_t config0, txThresh;
-	adin1110_ReadRegister(*hDevice, ADDR_MAC_CONFIG0, &config0);
-	adin1110_ReadRegister(*hDevice, ADDR_MAC_TX_THRESH, &txThresh);
-	printf("CONFIG0: 0x%08lX, TX_THRESH: 0x%08lX\n", (unsigned long) config0,
-			(unsigned long) txThresh);
+#ifdef STATS
+    result = adin1110_SetPromiscuousMode(*hDevice, true);
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to set promiscuous mode. Code: 0x%08X\r\n", result);
+        return result;
+    }
+    bool promiscEnabled;
+    result = adin1110_GetPromiscuousMode(*hDevice, &promiscEnabled);
+    if (result == ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Promiscuous mode: %s\r\n", promiscEnabled ? "Enabled" : "Disabled");
+    } else {
+        DEBUG_MESSAGE("Error: Failed to get promiscuous mode. Code: 0x%08X\r\n", result);
+    }
 
-	result = adin1110_SyncConfig(*hDevice);
-	if (result != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("Error: Synchronizing configuration failed.\r\n");
-		return result;
-	}
-	result = adin1110_RegisterCallback(*hDevice, cbLinkChange,
-			ADI_MAC_EVT_LINK_CHANGE);
-	if (result != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("Error: Registering link change callback failed.\r\n");
-		return result;
-	}
-	for (uint32_t i = 0; i < NUM_RX_DESC; i++) {
-		rxBufDesc[i].pBuf = &rxBuf[i][0];
-		rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
-		rxBufDesc[i].cbFunc = rxCallback;
+    // Placeholder for TDR initialization (pending TDR library)
+    // TODO: Add TDR engine enable or configuration once library is available
+    DEBUG_MESSAGE("TDR initialization pending library integration.\r\n");
+#endif /* STATS */
 
-		result = adin1110_SubmitRxBuffer(*hDevice, &rxBufDesc[i]);
-		if (result != ADI_ETH_SUCCESS) {
-			DEBUG_MESSAGE(
-					"Error: SubmitRxBuffer() failed at i=%lu (code=0x%08X)\n",
-					i, result);
-			return result;
-		}
-	}
-	for (uint32_t i = 0; i < NUM_TX_DESC; i++) {
-		txBufAvailable[i] = true;
-	}
-	result = adin1110_Enable(*hDevice);
-	if (result != ADI_ETH_SUCCESS) {
-		DEBUG_MESSAGE("Error: Enabling device failed.\n");
-		return result;
-	}
+    uint32_t config0, txThresh;
+    result = adin1110_ReadRegister(*hDevice, ADDR_MAC_CONFIG0, &config0);
+    if (result == ADI_ETH_SUCCESS) {
+        result = adin1110_ReadRegister(*hDevice, ADDR_MAC_TX_THRESH, &txThresh);
+    }
+    if (result == ADI_ETH_SUCCESS) {
+        printf("CONFIG0: 0x%08lX, TX_THRESH: 0x%08lX\r\n", (unsigned long)config0, (unsigned long)txThresh);
+    } else {
+        DEBUG_MESSAGE("Error: Failed to read configuration registers. Code: 0x%08X\r\n", result);
+    }
 
-	do {
-		result = adin1110_GetLinkStatus(*hDevice, &linkStatus);
-		DEBUG_RESULT("adin1110_GetLinkStatus", result, ADI_ETH_SUCCESS);
-	} while (linkStatus != ADI_ETH_LINK_STATUS_UP);
+    result = adin1110_SyncConfig(*hDevice);
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to synchronize configuration. Code: 0x%08X\r\n", result);
+        return result;
+    }
 
-	initPQueue(&pQ[0]);
+    result = adin1110_RegisterCallback(*hDevice, cbLinkChange, ADI_MAC_EVT_LINK_CHANGE);
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to register link change callback. Code: 0x%08X\r\n", result);
+        return result;
+    }
 
-	DEBUG_MESSAGE("ADIN1110 initialization completed successfully.\r\n");
-	return result;
+    for (uint32_t i = 0; i < NUM_RX_DESC; i++) {
+        rxBufDesc[i].pBuf = &rxBuf[i][0];
+        rxBufDesc[i].bufSize = MAX_FRAME_BUF_SIZE;
+        rxBufDesc[i].cbFunc = rxCallback;
+
+        result = adin1110_SubmitRxBuffer(*hDevice, &rxBufDesc[i]);
+        if (result != ADI_ETH_SUCCESS) {
+            DEBUG_MESSAGE("Error: SubmitRxBuffer failed at i=%lu (code=0x%08X)\r\n", i, result);
+            return result;
+        }
+    }
+
+    for (uint32_t i = 0; i < NUM_TX_DESC; i++) {
+        txBufAvailable[i] = true;
+    }
+
+    result = adin1110_Enable(*hDevice);
+    if (result != ADI_ETH_SUCCESS) {
+        DEBUG_MESSAGE("Error: Failed to enable device. Code: 0x%08X\r\n", result);
+        return result;
+    }
+
+    do {
+        result = adin1110_GetLinkStatus(*hDevice, &linkStatus);
+        if (result != ADI_ETH_SUCCESS) {
+            DEBUG_MESSAGE("Error: GetLinkStatus failed. Code: 0x%08X\r\n", result);
+        }
+    } while (linkStatus != ADI_ETH_LINK_STATUS_UP);
+
+    initPQueue(&pQ[0]);
+
+    DEBUG_MESSAGE("ADIN1110 initialization completed successfully.\r\n");
+    return ADI_ETH_SUCCESS;
 }
 
 /**
@@ -507,7 +537,6 @@ void LwIP_Init(LwIP_ADIN1110_t *eth, board_t *boardDetails) {
 	/* Not using SSI and HTTPD in build */
 //	http_set_ssi_handler(ssiHandler, NULL, 0);
 //	httpd_init();
-
 	if (boardDetails->ip_addr_fixed == 1) {
 		ip4_addr_t ip, mask, gw;
 

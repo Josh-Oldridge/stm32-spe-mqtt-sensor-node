@@ -1,0 +1,16 @@
+../Core/Src/freertos.c:205:13:ping_recv_callback	64	static
+../Core/Src/freertos.c:279:13:configureTimerForRunTimeStats	4	static
+../Core/Src/freertos.c:283:22:getRunTimeCounterValue	4	static
+../Core/Src/freertos.c:294:6:vApplicationIdleHook	4	static
+../Core/Src/freertos.c:304:6:vApplicationTickHook	4	static
+../Core/Src/freertos.c:317:6:vApplicationStackOverflowHook	24	static,ignoring_inline_asm
+../Core/Src/freertos.c:331:6:vApplicationMallocFailedHook	16	static,ignoring_inline_asm
+../Core/Src/freertos.c:345:6:vApplicationDaemonTaskStartupHook	4	static
+../Core/Src/freertos.c:354:6:MX_FREERTOS_Init	8	static
+../Core/Src/freertos.c:415:6:StartDefaultTask	16	static
+../Core/Src/freertos.c:434:6:NetworkMaintenanceTask	24	static
+../Core/Src/freertos.c:459:6:PingTask	24112	static
+../Core/Src/freertos.c:621:6:ADCTask	24	static
+../Core/Src/freertos.c:638:6:TempTask	24	static
+../Core/Src/freertos.c:665:6:AccelTask	24	static
+../Core/Src/freertos.c:716:6:SensorDataMQTTTask	40	static

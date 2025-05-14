@@ -1,0 +1,6 @@
+../mbedtls-2.16.12/library/base64.c:75:22:mask_of_range	1
+../mbedtls-2.16.12/library/base64.c:89:22:enc_char	1
+../mbedtls-2.16.12/library/base64.c:106:5:mbedtls_base64_encode	9
+../mbedtls-2.16.12/library/base64.c:181:20:dec_value	1
+../mbedtls-2.16.12/library/base64.c:201:5:mbedtls_base64_decode	26
+../mbedtls-2.16.12/library/base64.c:322:5:mbedtls_base64_self_test	10

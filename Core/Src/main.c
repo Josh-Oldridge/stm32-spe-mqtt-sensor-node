@@ -437,8 +437,6 @@ int main(void)
 		Error_Handler();
 	}
 
-
-
   /* USER CODE END 2 */
 
   /* Init scheduler */

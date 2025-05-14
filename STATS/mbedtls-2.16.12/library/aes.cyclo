@@ -1,0 +1,13 @@
+../mbedtls-2.16.12/library/aes.c:429:13:aes_gen_tables	12
+../mbedtls-2.16.12/library/aes.c:543:6:mbedtls_aes_init	1
+../mbedtls-2.16.12/library/aes.c:550:6:mbedtls_aes_free	2
+../mbedtls-2.16.12/library/aes.c:581:5:mbedtls_aes_setkey_enc	14
+../mbedtls-2.16.12/library/aes.c:697:5:mbedtls_aes_setkey_dec	4
+../mbedtls-2.16.12/library/aes.c:894:5:mbedtls_internal_aes_encrypt	2
+../mbedtls-2.16.12/library/aes.c:955:6:mbedtls_aes_encrypt	1
+../mbedtls-2.16.12/library/aes.c:967:5:mbedtls_internal_aes_decrypt	2
+../mbedtls-2.16.12/library/aes.c:1028:6:mbedtls_aes_decrypt	1
+../mbedtls-2.16.12/library/aes.c:1039:5:mbedtls_aes_crypt_ecb	2
+../mbedtls-2.16.12/library/aes.c:1077:5:mbedtls_aes_crypt_cbc	9
+../mbedtls-2.16.12/library/aes.c:1483:5:mbedtls_aes_crypt_ctr	7
+../mbedtls-2.16.12/library/aes.c:1848:5:mbedtls_aes_self_test	37

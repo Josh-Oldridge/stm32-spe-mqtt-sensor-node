@@ -353,7 +353,7 @@
   * @details Set to 0 as LWIP_RAW is disabled; CN0575 uses TCP/UDP for MQTT, not raw IP.
   */
 #ifndef MEMP_NUM_RAW_PCB
-#define MEMP_NUM_RAW_PCB                0
+#define MEMP_NUM_RAW_PCB                2
 #endif
 
 /** @brief Number of UDP protocol control blocks
@@ -572,7 +572,7 @@
   * @details Set to 4096 to accommodate MQTT payloads and TLS overhead in client_mqtt.c.
   */
 #ifndef TCP_SND_BUF
-#define TCP_SND_BUF                     4096
+#define TCP_SND_BUF                     8192
 #endif
 
 /** @brief TCP window size in bytes
@@ -607,7 +607,7 @@
   * @details Calculated as (4 * TCP_SND_BUF + (TCP_MSS - 1)) / TCP_MSS, ensuring sufficient queue depth.
   */
 #ifndef TCP_SND_QUEUELEN
-#define TCP_SND_QUEUELEN                ((4 * (TCP_SND_BUF) + (TCP_MSS - 1)) / (TCP_MSS))
+#define TCP_SND_QUEUELEN                24
 #endif
 
 /** @brief TCP oversize segment option
@@ -636,7 +636,7 @@
   * @details Set to 0 as CN0575 uses TCP for MQTT, not raw IP, minimizing unused features.
   */
 #ifndef LWIP_RAW
-#define LWIP_RAW                        0
+#define LWIP_RAW                        1
 #endif
 
 /*

@@ -1,0 +1,3 @@
+../mbedtls-2.16.12/library/version.c:58:14:mbedtls_version_get_number	1
+../mbedtls-2.16.12/library/version.c:63:6:mbedtls_version_get_string	1
+../mbedtls-2.16.12/library/version.c:69:6:mbedtls_version_get_string_full	1

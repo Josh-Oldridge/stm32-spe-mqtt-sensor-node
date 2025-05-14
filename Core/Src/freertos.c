@@ -52,6 +52,14 @@
 #include "lwipopts.h"
 #include "lwip/ip_addr.h"
 #include "rtc.h"
+#ifdef STATS
+#include "lwip/ip_addr.h"
+#include "lwip/inet_chksum.h"
+#include "adin1110_enhanced_stats.h"
+#include "lwip/icmp.h"
+#include "lwip/raw.h"
+#include <math.h>
+#endif /* STATS */
 
 /* USER CODE END Includes */
 
@@ -71,6 +79,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+
+extern LwIP_ADIN1110_t myConn;
 
 /** @brief Indicates if MQTT client is connected. */
 extern volatile bool mqtt_connected;
@@ -113,6 +123,18 @@ const osThreadAttr_t networkMaintenanceTask_attributes = { .name =
 		"netMaintTask", .stack_size = 1024 * 8, .priority =
 		(osPriority_t) osPriorityRealtime, };
 
+#ifdef STATS
+/** @brief Handle for the statistics task. */
+osThreadId_t pingTaskHandle;
+
+/** @brief Attributes for the statistics task. */
+const osThreadAttr_t pingTask_attributes = {
+    .name = "pingTask",
+    .stack_size = 32768,
+    .priority = osPriorityNormal,
+};
+#endif /* STATS */
+
 /** @brief Handle for the ADC task. */
 osThreadId_t adcTaskHandle;
 
@@ -145,8 +167,11 @@ const osThreadAttr_t sensorDataMQTTTask_attributes =
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = { .name = "defaultTask",
-		.stack_size = 128 * 4, .priority = (osPriority_t) osPriorityNormal, };
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -157,6 +182,55 @@ const osThreadAttr_t defaultTask_attributes = { .name = "defaultTask",
  * @details Manages lwIP network stack, heartbeat LED, and link input for ADIN1110.
  */
 void NetworkMaintenanceTask(void *argument);
+
+
+#ifdef STATS
+void PingTask(void *argument);
+
+static u8_t ping_recv_callback(void *arg, struct raw_pcb *pcb, struct pbuf *p, const struct ip4_addr *addr);
+static uint32_t ping_sent = 0;
+static uint32_t ping_received = 0;
+static uint16_t ping_seq_num = 0;
+static uint32_t ping_lost = 0;
+const uint32_t maxPings = 10000; // Send 5000 pings
+
+/**
+ * @brief Callback for receiving ICMP echo replies
+ * @param [in] arg User argument (unused)
+ * @param [in] pcb Raw protocol control block
+ * @param [in] p Received packet buffer
+ * @param [in] addr Source IP address (IPv4)
+ * @return 1 if packet processed, 0 otherwise
+ */
+static u8_t ping_recv_callback(void *arg, struct raw_pcb *pcb, struct pbuf *p, const struct ip4_addr *addr) {
+    if (p != NULL && p->len >= (20 + sizeof(struct icmp_echo_hdr))) {
+        struct icmp_echo_hdr *icmp = (struct icmp_echo_hdr *)((uint8_t *)p->payload + 20);
+        uint16_t seq = lwip_ntohs(icmp->seqno);
+        u8_t icmp_type = ICMPH_TYPE(icmp);
+        printf("Received packet from %s, len=%u, type=%u, code=%u, id=0x%04X, seq=%u\n",
+               ipaddr_ntoa(addr), p->tot_len, icmp_type, ICMPH_CODE(icmp), lwip_ntohs(icmp->id), seq);
+        printf("\n");
+        if (icmp_type == 0 && seq >= 1 && seq <= maxPings) {
+        	taskENTER_CRITICAL();
+            ping_received++;
+            printf("PingTask: Received ping reply #%lu\n", ping_received);
+            fflush(stdout);
+            taskEXIT_CRITICAL();
+        } else if (icmp_type == 11) {
+            printf("PingTask: Received Time Exceeded (type 11), code %u\n", ICMPH_CODE(icmp));
+        } else {
+            printf("PingTask: Unexpected ICMP type %u, expected Echo Reply (0)\n", icmp_type);
+        }
+        pbuf_free(p);
+        return 1;
+    } else {
+        printf("PingTask: Packet too short, len=%u\n", p->tot_len);
+        pbuf_free(p);
+    }
+    return 0;
+}
+
+#endif /* STATS */
 
 /**
  * @brief  ADC task function
@@ -273,56 +347,61 @@ void vApplicationDaemonTaskStartupHook(void) {
 /* USER CODE END DAEMON_TASK_STARTUP_HOOK */
 
 /**
- * @brief  FreeRTOS initialization
- * @param  None
- * @retval None
- */
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
 void MX_FREERTOS_Init(void) {
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* USER CODE BEGIN RTOS_MUTEX */
+  /* USER CODE BEGIN RTOS_MUTEX */
 	/** @brief Creates mutex for sensor data access synchronization. */
 	sensorDataMutex = xSemaphoreCreateMutex();
 	if (sensorDataMutex == NULL) {
 		printf("Failed to create sensor data mutex!\n");
 		Error_Handler();
 	}
-	/* USER CODE END RTOS_MUTEX */
+  /* USER CODE END RTOS_MUTEX */
 
-	/* USER CODE BEGIN RTOS_SEMAPHORES */
-	/* USER CODE END RTOS_SEMAPHORES */
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* USER CODE END RTOS_SEMAPHORES */
 
-	/* USER CODE BEGIN RTOS_TIMERS */
+  /* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
-	/* USER CODE END RTOS_TIMERS */
+  /* USER CODE END RTOS_TIMERS */
 
-	/* USER CODE BEGIN RTOS_QUEUES */
+  /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	/* USER CODE END RTOS_QUEUES */
+  /* USER CODE END RTOS_QUEUES */
 
-	/* Create the thread(s) */
-	/* creation of defaultTask */
-	defaultTaskHandle = osThreadNew(StartDefaultTask, NULL,
-			&defaultTask_attributes);
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-	/* USER CODE BEGIN RTOS_THREADS */
+  /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
 
-	/** @brief Creates tasks for network, ADC, temperature, acceleration, and MQTT operations. */
+	/** @brief Creates tasks for network, stats, ADC, temperature, acceleration, and MQTT operations. */
 	networkMaintenanceTaskHandle = osThreadNew(NetworkMaintenanceTask, NULL,
 			&networkMaintenanceTask_attributes);
+
+#ifdef STATS
+	pingTaskHandle = osThreadNew(PingTask, myConn.hDevice, &pingTask_attributes);
+
+#else
 	adcTaskHandle = osThreadNew(ADCTask, NULL, &adcTask_attributes);
 	tempTaskHandle = osThreadNew(TempTask, NULL, &tempTask_attributes);
 	accelTaskHandle = osThreadNew(AccelTask, NULL, &accelTask_attributes);
 	sensorDataMQTTTaskHandle = osThreadNew(SensorDataMQTTTask, NULL,
 			&sensorDataMQTTTask_attributes);
-	/* USER CODE END RTOS_THREADS */
+#endif /* STATS*/
+  /* USER CODE END RTOS_THREADS */
 
-	/* USER CODE BEGIN RTOS_EVENTS */
+  /* USER CODE BEGIN RTOS_EVENTS */
 	/* add events, ... */
-	/* USER CODE END RTOS_EVENTS */
+  /* USER CODE END RTOS_EVENTS */
 
 }
 
@@ -333,13 +412,14 @@ void MX_FREERTOS_Init(void) {
  * @details Default task that runs an infinite loop with a minimal delay in the CN0575 project.
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument) {
-	/* USER CODE BEGIN StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN StartDefaultTask */
 	/* Infinite loop */
 	for (;;) {
 		osDelay(1);
 	}
-	/* USER CODE END StartDefaultTask */
+  /* USER CODE END StartDefaultTask */
 }
 
 /* Private application code --------------------------------------------------*/
@@ -364,6 +444,173 @@ void NetworkMaintenanceTask(void *argument) {
 		vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(heartbeatIntervalMs));
 	}
 }
+
+#ifdef STATS
+
+
+/**
+ * @brief Ping task for sending 5000 ICMP echo requests and collecting link quality stats
+ * @param [in] argument Pointer to the ADIN1110 device handle
+ * @details Waits for DHCP, sends 5000 ICMP pings with a 1472-byte payload every 10ms,
+ *          reads MSE every 10 pings, collects link quality metrics (MSE, SQI, SNR, slicer errors)
+ *          every 100 pings, prints ping stats, and prints enhanced statistics after completion.
+ *          Runs in FreeRTOS with a 60s timeout for replies.
+ */
+void PingTask(void *argument) {
+	adin1110_DeviceHandle_t *hDevice = (adin1110_DeviceHandle_t*) argument;
+	const TickType_t pingFrequency = pdMS_TO_TICKS(5);
+	const TickType_t perPingTimeout = pdMS_TO_TICKS(5);
+	const TickType_t timeout = pdMS_TO_TICKS(60000);
+	const uint16_t payload_size = 1472;
+	TickType_t xLastPingTime = xTaskGetTickCount();
+	TickType_t testStartTime;
+	LinkQualitySample samples[NUM_SAMPLES] = { 0 };
+	uint32_t sampleIndex = 0;
+	adi_eth_Result_e result;
+	uint16_t regVal;
+
+	printf("PingTask: Started with hDevice=%p, *hDevice=%p\n", hDevice,
+			hDevice ? *hDevice : NULL);
+	fflush(stdout);
+	if (hDevice == NULL || *hDevice == NULL) {
+		printf("PingTask: Invalid device handle\n");
+		fflush(stdout);
+		vTaskDelete(NULL);
+	}
+
+	printf("PingTask: Waiting for DHCP configuration...\n");
+	while (!dhcp_supplied_address(&myConn.netif)) {
+		vTaskDelay(pdMS_TO_TICKS(1000));
+	}
+	printf("PingTask: DHCP complete, IP assigned\n");
+
+	struct raw_pcb *pcb = raw_new(IP_PROTO_ICMP);
+	if (pcb == NULL) {
+		printf("PingTask: Failed to create raw PCB\n");
+		fflush(stdout);
+		vTaskDelete(NULL);
+	}
+	raw_bind(pcb, IP_ADDR_ANY);
+	raw_recv(pcb, ping_recv_callback, NULL);
+
+	ip_addr_t target;
+	ipaddr_aton("192.168.1.7", &target);
+
+	ping_sent = 0;
+	ping_received = 0;
+	ping_lost = 0;
+	ping_seq_num = 0;
+	testStartTime = xTaskGetTickCount();
+
+	printf("PingTask: Checking diagnostics clock (0x1E882C)\n");
+	result = adin1110_PhyRead(*hDevice, ADDR_CRSM_DIAG_CLK_CTRL, &regVal);
+	if (result == ADI_ETH_SUCCESS) {
+		printf("Debug: Diagnostics Clock (0x1E882C): %s\n",
+				(regVal & BITM_CRSM_DIAG_CLK_CTRL_CRSM_DIAG_CLK_EN) ?
+						"Enabled" : "Disabled");
+		if (!(regVal & BITM_CRSM_DIAG_CLK_CTRL_CRSM_DIAG_CLK_EN)) {
+			printf("Debug: Enabling diagnostics clock (0x1E882C)\n");
+			result = adin1110_PhyWrite(*hDevice, ADDR_CRSM_DIAG_CLK_CTRL,
+					BITM_CRSM_DIAG_CLK_CTRL_CRSM_DIAG_CLK_EN);
+			if (result != ADI_ETH_SUCCESS) {
+				printf(
+						"Error: Failed to enable diagnostics clock (0x1E882C): 0x%08X\n",
+						result);
+			}
+		}
+	} else {
+		printf("Error: Failed to read diagnostics clock (0x1E882C): 0x%08X\n",
+				result);
+	}
+
+	printf("PingTask: Starting test with 10000 pings to %s\n",
+			ipaddr_ntoa(&target));
+	while (ping_sent < maxPings) {
+		if (xTaskGetTickCount() - xLastPingTime >= pingFrequency) {
+			struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT,
+					sizeof(struct icmp_echo_hdr) + payload_size, PBUF_RAM);
+			if (p != NULL) {
+				struct icmp_echo_hdr *icmp = (struct icmp_echo_hdr*) p->payload;
+				ICMPH_TYPE_SET(icmp, ICMP_ECHO);
+				ICMPH_CODE_SET(icmp, 0);
+				icmp->chksum = 0;
+				icmp->id = 0x1234;
+				icmp->seqno = lwip_htons(++ping_seq_num);
+
+				uint8_t *payload = (uint8_t*) (icmp + 1);
+				for (int i = 0; i < payload_size; i++) {
+					payload[i] = 0x55;
+				}
+
+				icmp->chksum = inet_chksum(icmp,
+						sizeof(struct icmp_echo_hdr) + payload_size);
+
+				err_t err = raw_sendto(pcb, p, &target);
+				if (err == ERR_OK) {
+					ping_sent++;
+					printf("PingTask: Sent ping #%lu to %s\n", ping_sent,
+							ipaddr_ntoa(&target));
+
+					TickType_t pingStartTime = xTaskGetTickCount();
+					uint32_t expectedReceived = ping_received + 1;
+					while (ping_received < expectedReceived
+							&& (xTaskGetTickCount() - pingStartTime)
+									< perPingTimeout) {
+						vTaskDelay(pdMS_TO_TICKS(1));
+					}
+					if (ping_received < expectedReceived) {
+						ping_lost++;
+						printf("PingTask: Timeout waiting for reply #%lu\n",
+								ping_sent);
+					}
+
+					if (ping_sent % 10 == 0 && sampleIndex < NUM_SAMPLES) {
+						printf("PingTask: Collecting sample %lu at ping %lu\n",
+								sampleIndex + 1, ping_sent);
+						result = collectLinkQualityStats(hDevice,
+								&samples[sampleIndex]);
+						if (result != ADI_ETH_SUCCESS) {
+							printf(
+									"Error: Failed to collect sample %lu: 0x%08X\n",
+									sampleIndex + 1, result);
+						}
+						sampleIndex++;
+					}
+
+				} else {
+					printf("PingTask: Failed to send ping #%lu: %d\n",
+							ping_sent + 1, err);
+				}
+				pbuf_free(p);
+			}
+			xLastPingTime = xTaskGetTickCount();
+		}
+		vTaskDelay(1);
+	}
+
+	printf("PingTask: Waiting for replies (timeout in %lu ms)\n",
+			timeout * portTICK_PERIOD_MS);
+	while (ping_received < ping_sent
+			&& (xTaskGetTickCount() - testStartTime) < timeout) {
+		vTaskDelay(10);
+	}
+
+	uint32_t ping_lost = ping_sent - ping_received;
+	float packet_loss =
+			ping_sent > 0 ? (float) ping_lost / ping_sent * 100.0f : 0.0f;
+	printf("PingTask: Ping test complete\n");
+	printf("Ping Stats:\n");
+	printf("  Sent: %lu\n", ping_sent);
+	printf("  Received: %lu\n", ping_received);
+	printf("  Lost: %lu\n", ping_lost);
+	printf("  Packet Loss: %.2f%%\n", packet_loss);
+	printf("PingTask: Calling printEnhancedStats for ping...\n");
+	printEnhancedStats(hDevice, samples);
+	printf("PingTask: Test finished, deleting task\n");
+	vTaskDelete(NULL);
+}
+#endif /* STATS */
+
 
 /**
  * @brief  ADC data collection task

@@ -158,5 +158,19 @@ extern LwIP_ADIN1110_t myConn;
  * @details Single queue instance used to buffer incoming Ethernet frames from ADIN1110.
  */
 extern pQueue_t pQ[MAX_PQ];
+
+/**
+ * @brief Counter for total transmitted frames
+ * @details Incremented for each frame sent via the ADIN1110, used for packet loss calculations
+ *          in enhanced statistics.
+ */
+extern uint32_t txIdx;
+
+/**
+ * @brief Counter for total received frames
+ * @details Incremented for each frame received via the ADIN1110, used for packet loss
+ *          calculations in enhanced statistics.
+ */
+extern uint32_t rxIdx;
 #endif /*LWIP_ADIN1110__H*/
 /** @} */

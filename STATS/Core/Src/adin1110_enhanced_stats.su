@@ -1,0 +1,2 @@
+../Core/Src/adin1110_enhanced_stats.c:44:18:collectLinkQualityStats	40	static
+../Core/Src/adin1110_enhanced_stats.c:116:6:printEnhancedStats	312	static
