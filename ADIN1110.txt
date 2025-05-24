@@ -1,6 +1,6 @@
 Configuration	ADIN1110
 STM32CubeMX 	6.13.0
-Date	03/25/2025
+Date	05/20/2025
 MCU	STM32L496ZGTxP
 
 
