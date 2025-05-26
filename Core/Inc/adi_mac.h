@@ -724,6 +724,7 @@ bool                    queueIsEmpty                (adi_mac_Queue_t *pQueue);
 void                    queueAdd                    (adi_mac_Queue_t *pQueue);
 void                    queueRemove                 (adi_mac_Queue_t *pQueue);
 
+/** @} */
 /*! @endcond */
 
 #ifdef __cplusplus
@@ -732,4 +733,4 @@ void                    queueRemove                 (adi_mac_Queue_t *pQueue);
 
 #endif /* ADI_MAC_H */
 
-/** @} */
+

@@ -50,3 +50,7 @@ static const char broker_ca_cert[] = "-----BEGIN CERTIFICATE-----\r\n"
 		"-----END CERTIFICATE-----\r\n";
 
 #endif /* CERTIFICATES_H */
+
+/**
+  * @}
+  */

@@ -9,7 +9,7 @@
  *          1m/50m/100m cable performance with a Phoenix Contact 2303-8SP1 switch. Includes
  *          a struct for interphase sampling and supports array-based data collection for
  *          validation, used by PingTask in freertos.c.
- * @addtogroup adin1110 ADIN1110 Driver
+ * @addtogroup stats Link Statistics
  * @{
  ******************************************************************************
  */
@@ -27,6 +27,7 @@
 
 /**
  * @brief Structure to hold link quality metrics for a single sample
+ * @details Contains metrics collected from the ADIN1110 to evaluate Ethernet link quality.
  */
 typedef struct {
     uint16_t mseVal;            /**< Mean Squared Error (MSE) value */
@@ -41,10 +42,10 @@ typedef struct {
  * @brief Collect link quality statistics for a single sample
  * @param [in] hDevice Pointer to the ADIN1110 device handle
  * @param [out] sample Pointer to store the collected metrics
- * @details Resets slicer counters, reads MSE, slicer errors, and calculates SQI, SNR,
- *          and link quality during ping traffic. Stores results in the provided sample
- *          struct. Called by PingTask every 100 pings.
- * @return adi_eth_Result_e Result code
+ * @details Resets slicer counters, reads MSE and slicer errors, and calculates SQI, SNR,
+ *          and link quality during ping traffic. Stores results in the sample struct.
+ *          Called by PingTask every 100 pings.
+ * @return adi_eth_Result_e Result code indicating success or failure
  */
 adi_eth_Result_e collectLinkQualityStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sample);
 
@@ -52,10 +53,10 @@ adi_eth_Result_e collectLinkQualityStats(adin1110_DeviceHandle_t *hDevice, LinkQ
  * @brief Print enhanced statistics for the ADIN1110
  * @param [in] hDevice Pointer to the ADIN1110 device handle
  * @param [in] samples Array of link quality samples collected during ping traffic
- * @details Averages link quality metrics (MSE, SQI, SNR, slicer errors) from the provided
- *          samples, prints sample arrays for validation, and logs auto-negotiation status,
- *          MAC packet counts, and MAC statistics. Called by PingTask in freertos.c after
- *          1000 pings. Logs to LPUART1.
+ * @details Averages link quality metrics (MSE, SQI, SNR, slicer errors) from the samples,
+ *          prints sample arrays for validation, and logs auto-negotiation status, MAC
+ *          packet counts, and MAC statistics. Called by PingTask after 1000 pings. Logs
+ *          to LPUART1.
  */
 void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *samples);
 

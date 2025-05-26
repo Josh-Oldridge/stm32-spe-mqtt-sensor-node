@@ -189,4 +189,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
 {
 }
+
+
+/**
+ * @}
+ */
 /* USER CODE END 1 */

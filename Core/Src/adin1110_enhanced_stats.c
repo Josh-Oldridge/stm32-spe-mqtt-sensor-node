@@ -11,7 +11,7 @@
  *          sets slicer threshold (0x018306), checks diagnostics clock (0x1E882C), logs firmware
  *          version (0x1E0002, 0x1E0003), and reads link status (0x018302). Excludes test modes
  *          and frame generators. TDR diagnostics pending library. Logs to LPUART1 via PingTask.
- * @addtogroup adin1110 ADIN1110 Driver
+ * @addtogroup stats Link Statistics
  * @{
  */
 
@@ -23,23 +23,23 @@
 #include <stdbool.h>
 #include <math.h>
 
-/** @brief External variable for counting transmitted packets, incremented in lwIP_adin1110_app.c. */
+/** @brief External variable for counting transmitted packets, incremented in lwIP_adin1110_app.c */
 extern uint32_t txIdx;
 
-/** @brief External variable for counting received packets, incremented in lwIP_adin1110_app.c. */
+/** @brief External variable for counting received packets, incremented in lwIP_adin1110_app.c */
 extern uint32_t rxIdx;
 
-/** @brief External PHY driver entry point, used for accessing PHY functions like GetAnStatus. */
+/** @brief External PHY driver entry point, used for accessing PHY functions like GetAnStatus */
 extern adi_phy_DriverEntry_t phyDriverEntry;
 
 /**
  * @brief Collect link quality statistics for a single sample
  * @param [in] hDevice Pointer to the ADIN1110 device handle
  * @param [out] sample Pointer to store the collected metrics
- * @details Resets slicer counters, reads MSE, slicer errors, and calculates SQI, SNR,
+ * @details Resets slicer counters, reads MSE and slicer errors, and calculates SQI, SNR,
  *          and link quality during ping traffic. Stores results in the provided sample
  *          struct. Called by PingTask every 100 pings.
- * @return adi_eth_Result_e Result code
+ * @return adi_eth_Result_e Result code indicating success or failure
  */
 adi_eth_Result_e collectLinkQualityStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sample) {
     adi_eth_Result_e result;
@@ -50,7 +50,7 @@ adi_eth_Result_e collectLinkQualityStats(adin1110_DeviceHandle_t *hDevice, LinkQ
         return ADI_ETH_INVALID_PARAM;
     }
 
-    // Reset slicer counters
+
     result = adin1110_PhyWrite(*hDevice, 0x01800E, 0x0000); // SPIKE_CNTRS_CNTRL reset
     if (result != ADI_ETH_SUCCESS) return result;
     result = adin1110_PhyWrite(*hDevice, 0x01800F, 0x0000); // MAX_ABS_VALS_CNTRL reset
@@ -72,7 +72,7 @@ adi_eth_Result_e collectLinkQualityStats(adin1110_DeviceHandle_t *hDevice, LinkQ
         sample->mseVal = 0;
         sample->sqi = 0;
         sample->snrDb = 0.0f;
-        sample->linkQuality = 0; // Unknown
+        sample->linkQuality = 0;
         return result;
     }
     sample->mseVal = mseQuality.mseVal;
@@ -91,8 +91,7 @@ adi_eth_Result_e collectLinkQualityStats(adin1110_DeviceHandle_t *hDevice, LinkQ
     float mseDb = (noisePower > 0) ? 10.0f * log10f(noisePower) : -INFINITY;
     sample->snrDb = (noisePower > 0) ? -mseDb : 0.0f;
 
-    // Map link quality (AN-2553 Table 2)
-    sample->linkQuality = 0; // Unknown
+    sample->linkQuality = 0;
     if (mseQuality.mseVal > 0x0766) {
         sample->linkQuality = 1; // Poor
     } else if (mseQuality.mseVal >= 0x05E1) {
@@ -135,7 +134,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
     uint32_t sqiMin = UINT32_MAX, sqiMax = 0, spikeCntMin = UINT16_MAX, spikeCntMax = 0;
     float mseDbMin = -INFINITY, mseDbMax = -INFINITY, pNoiseMin = 0.0f, pNoiseMax = 0.0f;
 
-    // Log firmware version
     printf("Debug: Reading firmware version\n");
     result = adin1110_PhyRead(*hDevice, 0x1E0002, &devId1); // MMD1_DEV_ID1
     if (result == ADI_ETH_SUCCESS) {
@@ -149,7 +147,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
         printf("Error: Failed to read MMD1_DEV_ID1 (0x1E0002): 0x%08X\n", result);
     }
 
-    // Check diagnostics clock
     printf("Debug: Checking diagnostics clock (0x1E882C)\n");
     result = adin1110_PhyRead(*hDevice, 0x1E882C, &diagClkCtrl);
     if (result == ADI_ETH_SUCCESS) {
@@ -165,7 +162,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
         printf("Error: Failed to read diagnostics clock (0x1E882C): 0x%08X\n", result);
     }
 
-    // Check link status
     printf("Debug: Checking link status\n");
     result = adin1110_GetLinkStatus(*hDevice, &linkStatus);
     if (result == ADI_ETH_SUCCESS) {
@@ -175,7 +171,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
         printf("Error: Failed to read link status: 0x%08X\n", result);
     }
 
-    // Read PMA link status
     printf("Debug: Reading PMA link status (0x018302)\n");
     result = adin1110_PhyRead(*hDevice, 0x018302, &linkStat); // B10L_PMA_LINK_STAT
     if (result == ADI_ETH_SUCCESS) {
@@ -187,8 +182,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
     } else {
         printf("Error: Failed to read PMA link status (0x018302): 0x%08X\n", result);
     }
-
-    // Read auto-negotiation status
     printf("Debug: Reading AN status\n");
     result = phyDriverEntry.GetAnStatus((*hDevice)->pPhyDevice, &anStatus);
     if (result == ADI_ETH_SUCCESS) {
@@ -202,7 +195,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
         printf("Error: Failed to get AN status: 0x%08X\n", result);
     }
 
-    // Read MAC statistics
     printf("Debug: Reading MAC stats\n");
     result = adin1110_GetStatCounters(*hDevice, &macStats);
     if (result == ADI_ETH_SUCCESS) {
@@ -211,7 +203,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
         printf("Error: Failed to get MAC stats: 0x%08X\n", result);
     }
 
-    // Process samples
     printf("Debug: Processing link quality samples\n");
     for (int i = 0; i < NUM_SAMPLES; i++) {
         if (samples[i].mseVal != 0) {
@@ -235,7 +226,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
         }
     }
 
-    // Calculate MSE min/max in dB and P_noise min/max
     float noisePowerMin = mseMin != UINT16_MAX ? (float)mseMin * 1.5523f / 262144.0f : 0.0f;
     float noisePowerMax = mseMax != 0 ? (float)mseMax * 1.5523f / 262144.0f : 0.0f;
     mseDbMin = (mseMin != UINT16_MAX && noisePowerMin > 0) ? 10.0f * log10f(noisePowerMin) : -INFINITY;
@@ -243,7 +233,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
     pNoiseMin = noisePowerMin;
     pNoiseMax = noisePowerMax;
 
-    // Print sample arrays
     printf("Debug: Link Quality Sample Arrays\n");
     printf("Sample | MSE    | SQI | SlicerErr | Spikes | SNR\n");
     printf("-------|--------|-----|-----------|--------|------\n");
@@ -253,7 +242,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
                samples[i].slicerSpikeCnt, samples[i].snrDb);
     }
 
-    // Calculate averages
     uint16_t finalMseVal = mseCount > 0 ? (uint16_t)(mseSum / mseCount) : 0;
     uint32_t finalSqi = mseCount > 0 ? sqiSum / mseCount : 0;
     float finalSlicerErr = mseCount > 0 ? slicerErrSum / mseCount : 0.0f;
@@ -262,11 +250,9 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
     mseValid = mseCount > 0;
     slicerValid = mseCount > 0 && finalSlicerErr < 0.5f;
 
-    // Calculate noise power and MSE dB for average
     float noisePower = mseValid ? (float)finalMseVal * 1.5523f / 262144.0f : 0.0f;
     float mseDb = (mseValid && noisePower > 0) ? 10.0f * log10f(noisePower) : -INFINITY;
 
-    // Map link quality (AN-2553 Table 2)
     const char *linkQualityStr = mseValid ? "Unknown" : "N/A";
     if (mseValid) {
         if (finalMseVal > 0x0766) {
@@ -278,7 +264,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
         }
     }
 
-    // Map BER (AN-2553 Table 3)
     const char *berStr = mseValid ? "Unknown" : "N/A";
     if (mseValid) {
         if (finalMseVal < 0x02A0) {
@@ -300,7 +285,6 @@ void printEnhancedStats(adin1110_DeviceHandle_t *hDevice, LinkQualitySample *sam
         }
     }
 
-    // Color-coded link quality (AN-2553 Table 5)
     const char *colorStr = slicerValid ? "Unknown" : "N/A";
     if (slicerValid) {
         if (finalSpikeCnt > 0 && finalSlicerErr >= 0.5f) {

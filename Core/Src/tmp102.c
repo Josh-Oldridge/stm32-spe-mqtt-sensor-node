@@ -83,3 +83,8 @@ float TMP102_ReadTemperature(void) {
         return (float)rawTemp * 0.0625f;
     }
 }
+
+
+/**
+ * @}
+ */

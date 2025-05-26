@@ -377,6 +377,7 @@ typedef struct
 
 extern adi_phy_DriverEntry_t phyDriverEntry;
 
+/** @} */
 /*! @endcond */
 
 #ifdef __cplusplus
@@ -385,4 +386,4 @@ extern adi_phy_DriverEntry_t phyDriverEntry;
 
 #endif /* ADI_PHY_H */
 
-/** @} */
+

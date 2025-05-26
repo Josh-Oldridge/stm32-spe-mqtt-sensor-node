@@ -72,3 +72,4 @@ HAL_StatusTypeDef submitRxBuffer (uint8_t * buffer, int nbBytes);
 
 #endif /* __USART_H__ */
 
+/** @} */

@@ -185,6 +185,12 @@ void NetworkMaintenanceTask(void *argument);
 
 
 #ifdef STATS
+
+/**
+ * @brief  Ping Task Stats function
+ * @param [in] argument  Task argument (not used)
+ * @details Sends 10000 pings requests, collects metrics every 10 seconds and averages them, and prints out the statistics when finished
+ */
 void PingTask(void *argument);
 
 static u8_t ping_recv_callback(void *arg, struct raw_pcb *pcb, struct pbuf *p, const struct ip4_addr *addr);
@@ -449,12 +455,11 @@ void NetworkMaintenanceTask(void *argument) {
 
 
 /**
- * @brief Ping task for sending 5000 ICMP echo requests and collecting link quality stats
+ * @brief Ping task for network testing and statistics collection
  * @param [in] argument Pointer to the ADIN1110 device handle
- * @details Waits for DHCP, sends 5000 ICMP pings with a 1472-byte payload every 10ms,
- *          reads MSE every 10 pings, collects link quality metrics (MSE, SQI, SNR, slicer errors)
- *          every 100 pings, prints ping stats, and prints enhanced statistics after completion.
- *          Runs in FreeRTOS with a 60s timeout for replies.
+ * @details Performs a ping test by sending 10000 ICMP echo requests to 192.168.1.7,
+ *          collects link quality metrics from the ADIN1110 every 10 pings, and prints
+ *          statistics after the test completes.
  */
 void PingTask(void *argument) {
 	adin1110_DeviceHandle_t *hDevice = (adin1110_DeviceHandle_t*) argument;

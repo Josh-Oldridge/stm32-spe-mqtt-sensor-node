@@ -163,3 +163,5 @@ HAL_StatusTypeDef ADXL345_ReadAccel(I2C_HandleTypeDef *hi2c, int16_t *x, int16_t
 
     return HAL_OK;
 }
+
+/** @} */
